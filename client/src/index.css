@@ -1,0 +1,151 @@
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Amiri:wght@400;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer utilities {
+  .cafe-scene {
+    background: radial-gradient(circle at center, rgba(40, 20, 10, 0.4) 0%, rgba(10, 5, 0, 0.9) 100%),
+                url('https://images.unsplash.com/photo-1554118811-1e0d58224f24?auto=format&fit=crop&w=1920&q=20'); /* Highly blurred cafe placeholder */
+    background-size: cover;
+    background-position: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .vignette {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at center, transparent 40%, rgba(0,0,0,0.6) 100%);
+    pointer-events: none;
+    z-index: 5;
+  }
+
+  .bg-felt {
+    background: radial-gradient(ellipse at 50% 40%, #2d4a1a 0%, #1e320d 60%, #122008 100%);
+    box-shadow: inset 0 0 100px rgba(0,0,0,0.9), inset 0 0 30px rgba(0,0,0,0.5);
+    position: relative;
+  }
+
+  .bg-felt::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+    opacity: 0.05;
+    pointer-events: none;
+  }
+
+  .bg-wood {
+    background: linear-gradient(180deg, #4a2a1a 0%, #2d1606 50%, #1c0d04 100%);
+    box-shadow: 0 20px 50px rgba(0,0,0,0.8), inset 0 2px 2px rgba(255,255,255,0.1);
+    position: relative;
+  }
+
+  .table-edge {
+    border: 12px solid #2d1606;
+    border-radius: 2rem;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  }
+
+  .table-edge-responsive {
+    border: 6px solid #2d1606;
+    border-radius: 1rem;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.5);
+  }
+
+  @media (min-width: 640px) {
+    .table-edge-responsive {
+      border: 8px solid #2d1606;
+      border-radius: 1.5rem;
+      box-shadow: 0 8px 25px rgba(0,0,0,0.5);
+    }
+  }
+
+  @media (min-width: 768px) {
+    .table-edge-responsive {
+      border: 12px solid #2d1606;
+      border-radius: 2rem;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    }
+  }
+
+  .ambient-light {
+    position: absolute;
+    width: 600px;
+    height: 600px;
+    background: radial-gradient(circle, rgba(255, 180, 100, 0.08) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 2;
+  }
+
+  /* Smoke & Steam Particles */
+  .smoke-particle {
+    position: absolute;
+    background: radial-gradient(circle, rgba(200, 200, 200, 0.4) 0%, transparent 70%);
+    border-radius: 50%;
+    pointer-events: none;
+    filter: blur(4px);
+  }
+
+  @keyframes float-up {
+    0% { transform: translateY(0) scale(1) translateX(0); opacity: 0; }
+    20% { opacity: 0.6; }
+    100% { transform: translateY(-100px) scale(2) translateX(var(--drift)); opacity: 0; }
+  }
+
+  .animate-float-up {
+    animation: float-up var(--dur) ease-out infinite;
+  }
+}
+
+:root {
+  --bg-primary: #0a0500;
+  --bg-secondary: #1a120e;
+  --bg-card: #2e2018;
+  --accent-primary: #c0392b;
+  --accent-secondary: #40e0d0;
+  --accent-success: #4caf50;
+  --accent-warning: #e67e22;
+  --accent-danger: #e74c3c;
+  --text-primary: #f5e6d3;
+  --text-secondary: #c4a882;
+  --text-muted: #8a7560;
+  --border-color: #3e2a1e;
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5);
+  --card-width: 60px;
+  --card-height: 84px;
+}
+
+@media (min-width: 768px) {
+  :root {
+    --card-width: 80px;
+    --card-height: 112px;
+  }
+}
+
+@media (min-width: 1024px) {
+  :root {
+    --card-width: 100px;
+    --card-height: 140px;
+  }
+}
+
+@media (max-width: 480px) {
+  :root {
+    --card-width: 45px;
+    --card-height: 63px;
+  }
+}
+
+@layer base {
+  html, body, #root {
+    height: 100%;
+    font-family: 'Amiri', 'Playfair Display', serif;
+    background: var(--bg-primary);
+    overflow: hidden;
+  }
+}
