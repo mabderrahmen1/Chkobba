@@ -41,6 +41,8 @@ export class Game {
     options: any[]; // Use any[] temporarily or define proper type
   } | null = null;
   winner: Winner | null = null;
+  lastRoundResult: any = null;
+  roundJustEnded: boolean = false;
 
   /**
    * Create a new game
@@ -221,6 +223,9 @@ export class Game {
         player.chkobbaCount++;
       }
 
+      // Check for Hayya (7 of diamonds captured)
+      const isHayya = capturedCards.some(c => c.rank === '7' && c.suit === 'diamonds');
+
       this.afterCardPlayed(playerId, isChkobba);
 
       return {
@@ -228,7 +233,8 @@ export class Game {
         capture: {
           player: playerId,
           cards: capturedCards,
-          isChkobba
+          isChkobba,
+          isHayya
         }
       };
     } 
@@ -246,8 +252,12 @@ export class Game {
   }
 
   afterCardPlayed(playerId: string, isChkobba = false): void {
+    this.roundJustEnded = false;
+    this.lastRoundResult = null;
+
     if (this.isRoundOver()) {
       this.endRound();
+      this.roundJustEnded = true;
       return;
     }
 
@@ -286,10 +296,10 @@ export class Game {
     this.scores.team0 += roundResult.totals.team0;
     this.scores.team1 += roundResult.totals.team1;
 
+    this.lastRoundResult = roundResult;
+
     if (this.scores.team0 >= this.targetScore || this.scores.team1 >= this.targetScore) {
       this.endGame();
-    } else {
-      setTimeout(() => this.startNewRound(), 3000);
     }
   }
 

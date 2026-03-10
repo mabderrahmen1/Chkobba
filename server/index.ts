@@ -413,11 +413,66 @@ io.on('connection', (socket: Socket) => {
     broadcastGameState(currentRoom.id);
 
     if (result.capture?.isChkobba) {
-      io.to(currentRoom.id).emit('chkobba', { 
+      io.to(currentRoom.id).emit('chkobba', {
         playerId: currentPlayer.id,
         playerNickname: currentPlayer.nickname
       });
     }
+
+    if (result.capture?.isHayya) {
+      io.to(currentRoom.id).emit('hayya_captured', {
+        playerId: currentPlayer.id,
+        playerNickname: currentPlayer.nickname
+      });
+    }
+
+    // Check if round just ended
+    if (game.roundJustEnded && game.lastRoundResult) {
+      io.to(currentRoom.id).emit('round_end', game.lastRoundResult);
+
+      // Check if game is over
+      if (game.winner) {
+        io.to(currentRoom.id).emit('game_over', {
+          winner: game.winner,
+          scores: game.scores
+        });
+      }
+    }
+  });
+
+  /**
+   * Continue to next round (after round end modal)
+   */
+  socket.on('continue_round', () => {
+    if (!currentRoom || !currentPlayer) return;
+
+    const game = games.get(currentRoom.id);
+    if (!game) return;
+
+    // Only start new round if game isn't over
+    if (!game.winner) {
+      game.startNewRound();
+      broadcastGameState(currentRoom.id);
+    }
+  });
+
+  /**
+   * Reset lobby (go back to lobby after game over)
+   */
+  socket.on('reset_lobby', () => {
+    if (!currentRoom || !currentPlayer) return;
+
+    // Delete the game instance
+    deleteGame(currentRoom.id);
+
+    // Reset room to lobby state
+    currentRoom.status = 'lobby';
+    for (const player of currentRoom.players) {
+      player.isReady = false;
+    }
+
+    io.to(currentRoom.id).emit('lobby_reset');
+    broadcastRoomUpdate(currentRoom.id);
   });
 
   /**

@@ -2,6 +2,9 @@ import { useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { useGameStore } from '../../stores/useGameStore';
 import { GameTable } from '../game/GameTable';
+import { Scoreboard } from '../game/Scoreboard';
+import { ChkobbaEffect } from '../game/ChkobbaEffect';
+import { HayyaEffect } from '../game/HayyaEffect';
 import { RoundEndModal } from '../game/RoundEndModal';
 import { GameOverModal } from '../game/GameOverModal';
 import { AmbianceToggle } from '../game/ambiance/AmbianceToggle';
@@ -51,6 +54,9 @@ export function GameScreen() {
       <div className="absolute top-0 right-10 w-40 h-40 bg-amber-900/8 rounded-full blur-[80px] pointer-events-none" />
       <div className="absolute bottom-10 left-10 w-32 h-32 bg-turquoise/3 rounded-full blur-[100px] pointer-events-none" />
 
+      {/* Scoreboard */}
+      <Scoreboard />
+
       {/* Ambiance controls */}
       <AmbianceToggle />
 
@@ -70,6 +76,10 @@ export function GameScreen() {
           </p>
         </motion.div>
       )}
+
+      {/* Special effects overlays */}
+      <ChkobbaEffect />
+      <HayyaEffect />
 
       <RoundEndModal />
       <GameOverModal />

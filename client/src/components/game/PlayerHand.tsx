@@ -1,7 +1,7 @@
 import { useGameStore } from '../../stores/useGameStore';
 import { socket } from '../../lib/socket';
 import { Card } from './Card';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export function PlayerHand() {
   const { gameState, playerId, selectedCardIndex, setSelectedCard, selectedTableIndices, clearSelections } = useGameStore();
@@ -44,42 +44,52 @@ export function PlayerHand() {
     <div className="flex flex-col items-center gap-2 sm:gap-4 w-full relative mt-2 sm:mt-4">
       {/* Hand Cards */}
       <div className="flex justify-center -space-x-6 sm:-space-x-4 relative h-[100px] sm:h-[130px] md:h-[150px] items-end pb-2 sm:pb-4">
-        {gameState.hand.map((card, index) => {
-          const isSelected = selectedCardIndex === index;
-          const arc = getArcStyles(index);
+        <AnimatePresence mode="popLayout">
+          {gameState.hand.map((card, index) => {
+            const isSelected = selectedCardIndex === index;
+            const arc = getArcStyles(index);
 
-          return (
-            <motion.div
-              key={`${card.rank}-${card.suit}-${index}`}
-              initial={{ opacity: 0, y: 50, scale: 0.8 }}
-              animate={{
-                opacity: 1,
-                rotate: isSelected ? 0 : arc.rotate,
-                y: isSelected ? -24 : arc.y,
-                scale: isSelected ? 1.08 : 1,
-                zIndex: isSelected ? 10 : index
-              }}
-              whileHover={isMyTurn && !isSelected ? { y: arc.y - 15, scale: 1.03 } : undefined}
-              transition={{ type: 'spring', stiffness: 300, damping: 22 }}
-              className="relative cursor-pointer"
-              onClick={() => handleCardClick(index)}
-              style={{ transformOrigin: 'bottom center' }}
-            >
-              <Card
-                card={card}
-                selectable={isMyTurn}
-                selected={isSelected}
-              />
-              {isSelected && (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="absolute inset-0 rounded-lg border-2 border-green-400/70 shadow-glow-green pointer-events-none"
+            return (
+              <motion.div
+                key={`${card.rank}-${card.suit}`}
+                layout
+                initial={{ opacity: 0, y: 50, scale: 0.8 }}
+                animate={{
+                  opacity: 1,
+                  rotate: isSelected ? 0 : arc.rotate,
+                  y: isSelected ? -24 : arc.y,
+                  scale: isSelected ? 1.08 : 1,
+                  zIndex: isSelected ? 10 : index
+                }}
+                exit={{
+                  opacity: 0,
+                  y: -120,
+                  scale: 0.6,
+                  rotate: 0,
+                  transition: { duration: 0.4, ease: 'easeIn' },
+                }}
+                whileHover={isMyTurn && !isSelected ? { y: arc.y - 15, scale: 1.03 } : undefined}
+                transition={{ type: 'spring', stiffness: 300, damping: 22 }}
+                className="relative cursor-pointer"
+                onClick={() => handleCardClick(index)}
+                style={{ transformOrigin: 'bottom center' }}
+              >
+                <Card
+                  card={card}
+                  selectable={isMyTurn}
+                  selected={isSelected}
                 />
-              )}
-            </motion.div>
-          );
-        })}
+                {isSelected && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="absolute inset-0 rounded-lg border-2 border-green-400/70 shadow-glow-green pointer-events-none"
+                  />
+                )}
+              </motion.div>
+            );
+          })}
+        </AnimatePresence>
       </div>
 
       {/* Confirm Play Button */}

@@ -107,23 +107,36 @@ export function useSocket() {
 
     socket.on('chkobba', (data: { playerNickname: string }) => {
       useGameStore.getState().setChkobbaPlayer(data.playerNickname);
-      setTimeout(() => useGameStore.getState().setChkobbaPlayer(null), 3000);
+      setTimeout(() => useGameStore.getState().setChkobbaPlayer(null), 3500);
+    });
+
+    socket.on('hayya_captured', (data: { playerNickname: string }) => {
+      useGameStore.getState().setHayyaPlayer(data.playerNickname);
+      setTimeout(() => useGameStore.getState().setHayyaPlayer(null), 3000);
     });
 
     socket.on('round_end', (data: any) => {
       useGameStore.getState().setRoundResult(data);
     });
 
-    socket.on('game_over', (data: { winner: any }) => {
+    socket.on('game_over', (data: { winner: any; scores?: any }) => {
       const g = useGameStore.getState();
       g.setGameOverData({
         winner: data.winner,
-        scores: g.gameState?.scores || { team0: 0, team1: 0 },
+        scores: data.scores || g.gameState?.scores || { team0: 0, team1: 0 },
       });
     });
 
     socket.on('auto_win_warning', (data: { timeRemaining: number; playerNickname: string }) => {
       useGameStore.getState().setAutoWinWarning(data);
+    });
+
+    socket.on('lobby_reset', () => {
+      const g = useGameStore.getState();
+      g.setGameOverData(null);
+      g.setGameState(null as any);
+      g.setRoundResult(null);
+      useUIStore.getState().setScreen('lobby');
     });
 
     socket.on('auto_win', (data: { winner: any }) => {

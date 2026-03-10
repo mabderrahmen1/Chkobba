@@ -25,6 +25,8 @@ interface GameStore {
   gameOverData: GameOverData | null;
   autoWinWarning: AutoWinWarning | null;
   chkobbaPlayer: string | null;
+  hayyaPlayer: string | null;
+  lastCaptureType: 'capture' | 'chkobba' | 'hayya' | null;
 
   setNickname: (nickname: string) => void;
   setPlayer: (playerId: string, isHost: boolean) => void;
@@ -38,6 +40,8 @@ interface GameStore {
   setGameOverData: (data: GameOverData | null) => void;
   setAutoWinWarning: (data: AutoWinWarning | null) => void;
   setChkobbaPlayer: (name: string | null) => void;
+  setHayyaPlayer: (name: string | null) => void;
+  setLastCaptureType: (type: 'capture' | 'chkobba' | 'hayya' | null) => void;
   reset: () => void;
 }
 
@@ -56,6 +60,8 @@ export const useGameStore = create<GameStore>()(
       gameOverData: null,
       autoWinWarning: null,
       chkobbaPlayer: null,
+      hayyaPlayer: null,
+      lastCaptureType: null,
 
       setNickname: (nickname) => set({ nickname }),
       setPlayer: (playerId, isHost) => set({ playerId, isHost }),
@@ -79,6 +85,8 @@ export const useGameStore = create<GameStore>()(
       setGameOverData: (gameOverData) => set({ gameOverData }),
       setAutoWinWarning: (autoWinWarning) => set({ autoWinWarning }),
       setChkobbaPlayer: (chkobbaPlayer) => set({ chkobbaPlayer }),
+      setHayyaPlayer: (hayyaPlayer) => set({ hayyaPlayer }),
+      setLastCaptureType: (lastCaptureType) => set({ lastCaptureType }),
       reset: () =>
         set({
           nickname: '',
@@ -93,6 +101,8 @@ export const useGameStore = create<GameStore>()(
           gameOverData: null,
           autoWinWarning: null,
           chkobbaPlayer: null,
+          hayyaPlayer: null,
+          lastCaptureType: null,
         }),
     }),
     {

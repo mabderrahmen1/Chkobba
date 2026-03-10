@@ -26,9 +26,10 @@ export function GameOverModal() {
     setScreen('landing');
   };
 
-  const handleRematch = () => {
+  const handleBackToLobby = () => {
     setGameOverData(null);
-    socket.emit('start_game');
+    useGameStore.getState().setGameState(null as any);
+    socket.emit('reset_lobby');
   };
 
   return (
@@ -52,8 +53,8 @@ export function GameOverModal() {
         </div>
       </div>
       <div className="flex gap-4 justify-center">
-        <Button variant="secondary" onClick={handleNewGame}>New Game</Button>
-        <Button onClick={handleRematch}>Play Again</Button>
+        <Button variant="secondary" onClick={handleNewGame}>Leave</Button>
+        <Button onClick={handleBackToLobby}>Back to Lobby</Button>
       </div>
     </Modal>
   );

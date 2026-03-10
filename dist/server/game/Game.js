@@ -29,6 +29,8 @@ export class Game {
     lastCapturer = null;
     pendingCapture = null;
     winner = null;
+    lastRoundResult = null;
+    roundJustEnded = false;
     /**
      * Create a new game
      * @param {string} roomId - Room ID
@@ -180,13 +182,16 @@ export class Game {
             if (isChkobba) {
                 player.chkobbaCount++;
             }
+            // Check for Hayya (7 of diamonds captured)
+            const isHayya = capturedCards.some(c => c.rank === '7' && c.suit === 'diamonds');
             this.afterCardPlayed(playerId, isChkobba);
             return {
                 success: true,
                 capture: {
                     player: playerId,
                     cards: capturedCards,
-                    isChkobba
+                    isChkobba,
+                    isHayya
                 }
             };
         }
@@ -200,8 +205,11 @@ export class Game {
         return { success: true };
     }
     afterCardPlayed(playerId, isChkobba = false) {
+        this.roundJustEnded = false;
+        this.lastRoundResult = null;
         if (this.isRoundOver()) {
             this.endRound();
+            this.roundJustEnded = true;
             return;
         }
         if (this.players.every(p => p.hand.length === 0) && this.deck.length > 0) {
@@ -232,11 +240,9 @@ export class Game {
         this.roundScores = roundResult.totals;
         this.scores.team0 += roundResult.totals.team0;
         this.scores.team1 += roundResult.totals.team1;
+        this.lastRoundResult = roundResult;
         if (this.scores.team0 >= this.targetScore || this.scores.team1 >= this.targetScore) {
             this.endGame();
-        }
-        else {
-            setTimeout(() => this.startNewRound(), 3000);
         }
     }
     endGame() {

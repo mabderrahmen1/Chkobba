@@ -1,9 +1,12 @@
 import { useGameStore } from '../../stores/useGameStore';
+import { socket } from '../../lib/socket';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
 
 export function RoundEndModal() {
   const roundResult = useGameStore((s) => s.roundResult);
+  const gameState = useGameStore((s) => s.gameState);
+  const playerId = useGameStore((s) => s.playerId);
   const setRoundResult = useGameStore((s) => s.setRoundResult);
 
   const categories = roundResult
@@ -50,8 +53,20 @@ export function RoundEndModal() {
           </div>
         )}
       </div>
+      {gameState && (
+        <div className="flex justify-between px-4 py-3 mt-2 bg-surface-card rounded-lg border border-brass/20">
+          <span className="font-ancient font-bold text-brass">Overall</span>
+          <div className="flex gap-4">
+            <span className="font-bold text-accent w-8 text-center">{gameState.scores.team0}</span>
+            <span className="font-bold text-turquoise w-8 text-center">{gameState.scores.team1}</span>
+          </div>
+        </div>
+      )}
       <div className="mt-6">
-        <Button onClick={() => setRoundResult(null)}>Continue</Button>
+        <Button onClick={() => {
+          setRoundResult(null);
+          socket.emit('continue_round');
+        }}>Continue</Button>
       </div>
     </Modal>
   );

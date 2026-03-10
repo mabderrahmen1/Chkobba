@@ -2,6 +2,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import type { Card as CardType } from '@shared/types.js';
 import { Card } from './Card';
 import { useGameStore } from '../../stores/useGameStore';
+import { useRef, useEffect } from 'react';
 
 interface TableCardsProps {
   cards: CardType[];
@@ -10,6 +11,18 @@ interface TableCardsProps {
 export function TableCards({ cards }: TableCardsProps) {
   const { toggleTableCard, selectedTableIndices, gameState, playerId } = useGameStore();
   const isMyTurn = gameState?.currentTurn === playerId;
+  const prevCount = useRef(cards.length);
+
+  // Track if cards were just captured (count decreased)
+  const wasCapture = useRef(false);
+  useEffect(() => {
+    if (cards.length < prevCount.current) {
+      wasCapture.current = true;
+    } else {
+      wasCapture.current = false;
+    }
+    prevCount.current = cards.length;
+  }, [cards.length]);
 
   if (cards.length === 0) {
     return (
@@ -21,21 +34,28 @@ export function TableCards({ cards }: TableCardsProps) {
 
   return (
     <div className="flex flex-wrap justify-center items-center gap-2 sm:gap-3 w-full min-h-[var(--card-height)] p-3 sm:p-4">
-      <AnimatePresence>
+      <AnimatePresence mode="popLayout">
         {cards.map((card, index) => {
           const isSelected = selectedTableIndices.includes(index);
           return (
             <motion.div
-              key={`${card.rank}-${card.suit}-${index}`}
+              key={`${card.rank}-${card.suit}`}
               layout
-              initial={{ opacity: 0, scale: 0.7, y: -20 }}
+              initial={{ opacity: 0, scale: 0.5, y: -30 }}
               animate={{
                 opacity: 1,
                 scale: isSelected ? 1.06 : 1,
-                y: isSelected ? -8 : 0
+                y: isSelected ? -8 : 0,
               }}
-              exit={{ opacity: 0, scale: 0.7, y: 20 }}
-              transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+              exit={{
+                opacity: 0,
+                scale: 0.3,
+                y: 40,
+                x: 0,
+                rotate: (Math.random() - 0.5) * 20,
+                transition: { duration: 0.4, ease: 'easeIn' },
+              }}
+              transition={{ type: 'spring', stiffness: 260, damping: 22 }}
               className="relative cursor-pointer"
               onClick={() => isMyTurn && toggleTableCard(index)}
             >
@@ -46,8 +66,8 @@ export function TableCards({ cards }: TableCardsProps) {
               />
               {isSelected && (
                 <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
                   className="absolute inset-0 rounded-md border-2 border-brass/70 shadow-glow-gold pointer-events-none"
                 />
               )}
