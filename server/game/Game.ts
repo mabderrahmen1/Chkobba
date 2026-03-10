@@ -123,9 +123,11 @@ export class Game {
     // Deal initial hands
     this.dealHands();
 
-    // Set turn order (starting with player after dealer)
+    // Set turn order — dealer rotates each round, first player is after dealer
     this.turnOrder = this.players.map(p => p.id);
-    this.currentTurn = this.turnOrder[1 % this.turnOrder.length];
+    const dealerIndex = (this.roundNumber - 1) % this.players.length;
+    const firstPlayerIndex = (dealerIndex + 1) % this.players.length;
+    this.currentTurn = this.turnOrder[firstPlayerIndex];
 
     this.pendingCapture = null;
 

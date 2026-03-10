@@ -35,14 +35,36 @@ export function PlayerZone({ player, position, isCurrentTurn = false }: PlayerZo
     <div className={`flex ${isVertical ? 'flex-row' : 'flex-col'} items-center gap-2`}>
       {/* Nameplate */}
       <motion.div
-        animate={isCurrentTurn ? { boxShadow: ['0 0 0px #d4af37', '0 0 12px #d4af37', '0 0 0px #d4af37'] } : {}}
-        transition={{ duration: 2, repeat: Infinity }}
+        animate={isCurrentTurn ? {
+          boxShadow: ['0 0 0px #d4af37', '0 0 14px #d4af37', '0 0 0px #d4af37'],
+        } : { boxShadow: '0 0 0px transparent' }}
+        transition={{ duration: 2, repeat: isCurrentTurn ? Infinity : 0 }}
         className={`wood-nameplate px-2 sm:px-3 py-0.5 sm:py-1 rounded-lg flex items-center gap-1 sm:gap-2 ${!player.isConnected ? 'opacity-40 grayscale' : ''}`}
       >
-        <div className={`w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full ${player.isConnected ? 'bg-green-400' : 'bg-red-400/50'}`} />
+        {/* Turn dot: gold when active, green when connected, red when disconnected */}
+        <motion.div
+          animate={isCurrentTurn ? { scale: [1, 1.4, 1] } : { scale: 1 }}
+          transition={{ duration: 1.5, repeat: isCurrentTurn ? Infinity : 0 }}
+          className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full ${
+            isCurrentTurn
+              ? 'bg-brass shadow-[0_0_6px_rgba(212,175,55,0.8)]'
+              : player.isConnected
+                ? 'bg-green-400'
+                : 'bg-red-400/50'
+          }`}
+        />
         <span className="font-ancient text-[8px] sm:text-[10px] md:text-xs text-brass font-bold truncate max-w-[50px] sm:max-w-[80px]">
           {player.nickname}
         </span>
+        {isCurrentTurn && (
+          <motion.span
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="text-[7px] sm:text-[8px] font-ancient text-brass/70 uppercase tracking-wider"
+          >
+            playing
+          </motion.span>
+        )}
         {player.capturedCount > 0 && (
           <span className="text-[9px] font-ancient text-cream-dark/50 bg-black/20 px-1 rounded">
             {player.capturedCount}

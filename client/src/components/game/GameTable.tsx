@@ -19,6 +19,14 @@ export function GameTable() {
   const is4Player = gameState.players.length >= 4;
   const isMyTurn = gameState.currentTurn === playerId;
 
+  // Who has the current turn?
+  const turnPlayer = gameState.players.find((p) => p.id === gameState.currentTurn);
+  const turnName = turnPlayer
+    ? turnPlayer.id === playerId
+      ? 'Your Turn'
+      : `${turnPlayer.nickname}'s Turn`
+    : '';
+
   let topPlayer, leftPlayer, rightPlayer;
 
   if (is4Player) {
@@ -54,13 +62,25 @@ export function GameTable() {
 
         {/* Table Container */}
         <div className="bg-wood table-edge-responsive w-full h-full p-2 sm:p-4 md:p-6 flex flex-col shadow-inner-dark overflow-hidden relative">
-          
+
           {/* Subtle scratches and texture overlay */}
           <div className="absolute inset-0 opacity-10 pointer-events-none mix-blend-overlay bg-[url('https://www.transparenttextures.com/patterns/wood-pattern.png')]" />
 
-          {/* The Felt Center */}
-          <div className="flex-1 w-full bg-felt rounded-xl shadow-[inset_0_0_60px_rgba(0,0,0,0.8)] flex flex-col relative overflow-hidden">
-            
+          {/* The Felt Center — glow border when it's your turn */}
+          <motion.div
+            animate={isMyTurn ? {
+              boxShadow: [
+                'inset 0 0 60px rgba(0,0,0,0.8), 0 0 0px rgba(212,175,55,0)',
+                'inset 0 0 60px rgba(0,0,0,0.8), 0 0 20px rgba(212,175,55,0.4)',
+                'inset 0 0 60px rgba(0,0,0,0.8), 0 0 0px rgba(212,175,55,0)',
+              ],
+            } : {
+              boxShadow: 'inset 0 0 60px rgba(0,0,0,0.8)',
+            }}
+            transition={isMyTurn ? { duration: 2.5, repeat: Infinity, ease: 'easeInOut' } : { duration: 0.4 }}
+            className="flex-1 w-full bg-felt rounded-xl flex flex-col relative overflow-hidden"
+          >
+
             {/* Embossed pattern */}
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-10">
                <svg width="200" height="200" viewBox="0 0 100 100" className="text-black fill-current sm:w-[300px] sm:h-[300px] md:w-[400px] md:h-[400px]">
@@ -70,7 +90,7 @@ export function GameTable() {
 
             {/* Grid Layout inside the Felt */}
             <div className="flex-1 w-full h-full relative z-10 flex flex-col justify-center items-center py-4 sm:py-8 md:py-12">
-              
+
               {/* Ambiance Props (positioned on top of the felt but on edges) */}
               <div className="absolute inset-0 z-30 pointer-events-none">
                 <CafeAmbiance />
@@ -84,23 +104,35 @@ export function GameTable() {
                 <CapturedStack count={oppTeamCaptured} label="Their Cards" variant="opponent" />
               </div>
 
-              {/* Turn Indicator */}
-              <AnimatePresence>
-                {isMyTurn && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0 }}
-                    className="absolute top-2 sm:top-6 left-1/2 -translate-x-1/2 px-3 sm:px-4 py-1 bg-black/40 border border-brass/30 rounded-full backdrop-blur-sm shadow-glow-gold"
+              {/* Turn Indicator — always visible */}
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={gameState.currentTurn}
+                  initial={{ opacity: 0, y: -8, scale: 0.9 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 8, scale: 0.9 }}
+                  transition={{ duration: 0.3 }}
+                  className={`absolute top-2 sm:top-5 left-1/2 -translate-x-1/2 px-4 sm:px-5 py-1.5 rounded-full backdrop-blur-sm z-40 ${
+                    isMyTurn
+                      ? 'bg-brass/20 border border-brass/50 shadow-glow-gold'
+                      : 'bg-black/30 border border-white/10'
+                  }`}
+                >
+                  <motion.span
+                    animate={isMyTurn ? { opacity: [1, 0.6, 1] } : { opacity: 0.7 }}
+                    transition={isMyTurn ? { duration: 1.8, repeat: Infinity, ease: 'easeInOut' } : {}}
+                    className={`font-ancient text-[10px] sm:text-xs uppercase tracking-widest font-bold ${
+                      isMyTurn ? 'text-brass' : 'text-cream-dark/60'
+                    }`}
                   >
-                    <span className="text-brass font-ancient text-[10px] sm:text-xs uppercase tracking-widest">Your Turn</span>
-                  </motion.div>
-                )}
+                    {turnName}
+                  </motion.span>
+                </motion.div>
               </AnimatePresence>
 
               <TableCards cards={gameState.tableCards} />
             </div>
-          </div>
+          </motion.div>
         </div>
 
         {/* Player Zones (positioned around the table) */}

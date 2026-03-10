@@ -42,8 +42,26 @@ export function PlayerHand() {
 
   return (
     <div className="flex flex-col items-center gap-2 sm:gap-4 w-full relative mt-2 sm:mt-4">
+      {/* Turn glow behind cards */}
+      <AnimatePresence>
+        {isMyTurn && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: [0.3, 0.6, 0.3] }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
+            className="absolute inset-0 -inset-y-4 rounded-2xl pointer-events-none"
+            style={{
+              background: 'radial-gradient(ellipse at 50% 80%, rgba(212,175,55,0.15) 0%, transparent 70%)',
+            }}
+          />
+        )}
+      </AnimatePresence>
+
       {/* Hand Cards */}
-      <div className="flex justify-center -space-x-6 sm:-space-x-4 relative h-[100px] sm:h-[130px] md:h-[150px] items-end pb-2 sm:pb-4">
+      <div className={`flex justify-center -space-x-6 sm:-space-x-4 relative h-[100px] sm:h-[130px] md:h-[150px] items-end pb-2 sm:pb-4 transition-opacity duration-300 ${
+        isMyTurn ? 'opacity-100' : 'opacity-60'
+      }`}>
         <AnimatePresence mode="popLayout">
           {gameState.hand.map((card, index) => {
             const isSelected = selectedCardIndex === index;
@@ -70,7 +88,7 @@ export function PlayerHand() {
                 }}
                 whileHover={isMyTurn && !isSelected ? { y: arc.y - 15, scale: 1.03 } : undefined}
                 transition={{ type: 'spring', stiffness: 300, damping: 22 }}
-                className="relative cursor-pointer"
+                className={`relative ${isMyTurn ? 'cursor-pointer' : 'cursor-default'}`}
                 onClick={() => handleCardClick(index)}
                 style={{ transformOrigin: 'bottom center' }}
               >
@@ -118,7 +136,7 @@ export function PlayerHand() {
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 0.7 }}
-          className="absolute -bottom-6 text-cream-dark font-ancient italic tracking-wider text-sm"
+          className="absolute -bottom-6 text-cream-dark font-ancient italic tracking-wider text-xs sm:text-sm"
         >
           Waiting for opponent...
         </motion.div>
