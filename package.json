@@ -5,11 +5,8 @@
   "description": "A minimalist browser-based multiplayer implementation of the Tunisian card game Chkobba",
   "main": "dist/server/index.js",
   "scripts": {
-    "start": "node dist/server/index.js",
     "dev": "tsx watch server/index.ts",
-    "build": "tsc && cd client && npm run build",
-    "dev:client": "cd client && npm run dev",
-    "postinstall": "cd client && npm install"
+    "build": "tsc"
   },
   "keywords": [
     "chkobba",
