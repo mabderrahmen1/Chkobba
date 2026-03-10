@@ -23,10 +23,12 @@ const io = new Server(server, {
     }
 });
 // Serve static files from client dist directory
-app.use(express.static(path.join(__dirname, '../client/dist')));
+// Path is relative to project root, not compiled dist/server/
+const clientDistPath = path.join(__dirname, '../../client/dist');
+app.use(express.static(clientDistPath));
 // Serve main HTML for all routes (SPA behavior)
 app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, '../client/dist/index.html'));
+    res.sendFile(path.join(clientDistPath, 'index.html'));
 });
 // Game instances stored by room ID
 const games = new Map();
