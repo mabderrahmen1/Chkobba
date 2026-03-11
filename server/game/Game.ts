@@ -43,6 +43,7 @@ export class Game {
   winner: Winner | null = null;
   lastRoundResult: any = null;
   roundJustEnded: boolean = false;
+  continuePlayers: Set<string> = new Set();
 
   /**
    * Create a new game
@@ -101,12 +102,24 @@ export class Game {
   }
 
   /**
+   * Mark a player as ready to continue to the next round
+   * @param {string} playerId - Player who clicked continue
+   * @param {string[]} connectedPlayerIds - IDs of currently connected players (from Room)
+   * @returns {boolean} True if ALL connected players are now ready (new round should start)
+   */
+  playerContinue(playerId: string, connectedPlayerIds: string[]): boolean {
+    this.continuePlayers.add(playerId);
+    return connectedPlayerIds.every(id => this.continuePlayers.has(id));
+  }
+
+  /**
    * Start a new round
    */
   startNewRound(): void {
     this.roundNumber++;
     this.roundScores = { team0: 0, team1: 0 };
     this.lastCapturer = null;
+    this.continuePlayers.clear();
 
     // Reset player hands and captured cards
     for (const player of this.players) {
@@ -329,6 +342,8 @@ export class Game {
         handCount: p.hand.length,
         capturedCount: p.capturedCards.length,
         chkobbaCount: p.chkobbaCount,
+        dinariCount: p.capturedCards.filter(c => c.suit === 'diamonds').length,
+        sevensCount: p.capturedCards.filter(c => c.rank === '7').length,
         isConnected: p.isConnected,
         isHost: p.isHost,
         isReady: p.isReady

@@ -125,11 +125,11 @@ export function PlayerHand() {
         disabled={!canConfirm}
         className={`absolute -right-4 sm:-right-8 bottom-10 px-4 sm:px-6 py-2 rounded-lg font-ancient font-bold tracking-widest uppercase text-xs sm:text-sm transition-all duration-300 ${
           canConfirm
-            ? 'brass-plate shadow-glow-gold cursor-pointer hover:brightness-110'
+            ? 'bg-emerald-600 border-2 border-emerald-400/60 text-white shadow-[0_0_16px_rgba(16,185,129,0.4)] cursor-pointer hover:bg-emerald-500 hover:shadow-[0_0_24px_rgba(16,185,129,0.5)]'
             : 'bg-wood-dark border-2 border-wood-light text-foreground-muted opacity-40 cursor-not-allowed'
         }`}
       >
-        <span className={canConfirm ? 'engraved-text' : ''}>Play</span>
+        Play
       </motion.button>
 
       {!isMyTurn && (

@@ -93,7 +93,9 @@ export class Room {
       isReady: false,
       handCount: 0,
       capturedCount: 0,
-      chkobbaCount: 0
+      chkobbaCount: 0,
+      dinariCount: 0,
+      sevensCount: 0
     };
 
     this.players.push(player);

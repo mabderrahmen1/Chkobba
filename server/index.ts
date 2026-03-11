@@ -398,11 +398,18 @@ io.on('connection', (socket: Socket) => {
    * Play a card
    */
   socket.on('play_card', ({ cardIndex, tableIndices }: { cardIndex: number, tableIndices?: number[] }) => {
-    if (!currentRoom || !currentPlayer) return;
+    if (!currentRoom || !currentPlayer) {
+      socket.emit('error', { message: 'Not connected to a room' });
+      return;
+    }
 
     const game = games.get(currentRoom.id);
-    if (!game) return;
+    if (!game) {
+      socket.emit('error', { message: 'Game not found' });
+      return;
+    }
 
+    currentRoom.lastActivity = Date.now();
     const result = game.playCard(currentPlayer.id, cardIndex, tableIndices || []);
 
     if (result.error) {
@@ -444,13 +451,26 @@ io.on('connection', (socket: Socket) => {
    * Continue to next round (after round end modal)
    */
   socket.on('continue_round', () => {
-    if (!currentRoom || !currentPlayer) return;
+    if (!currentRoom || !currentPlayer) {
+      socket.emit('error', { message: 'Not connected to a room. Please refresh.' });
+      return;
+    }
 
     const game = games.get(currentRoom.id);
-    if (!game) return;
+    if (!game) {
+      socket.emit('error', { message: 'Game not found. Please refresh.' });
+      return;
+    }
 
-    // Only start new round if game isn't over
-    if (!game.winner) {
+    currentRoom.lastActivity = Date.now();
+
+    // Don't start a new round if game is over
+    if (game.winner) return;
+
+    // Mark this player as ready to continue; only start when all connected players confirm
+    const connectedIds = currentRoom.getConnectedPlayers().map(p => p.id);
+    const allReady = game.playerContinue(currentPlayer.id, connectedIds);
+    if (allReady) {
       game.startNewRound();
       broadcastGameState(currentRoom.id);
     }

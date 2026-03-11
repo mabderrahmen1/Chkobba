@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useGameStore } from '../../stores/useGameStore';
 import { socket } from '../../lib/socket';
 import { Modal } from '../ui/Modal';
@@ -8,6 +9,24 @@ export function RoundEndModal() {
   const gameState = useGameStore((s) => s.gameState);
   const playerId = useGameStore((s) => s.playerId);
   const setRoundResult = useGameStore((s) => s.setRoundResult);
+  const [waiting, setWaiting] = useState(false);
+
+  const gameIsOver = !!gameState?.winner;
+
+  const handleContinue = () => {
+    if (gameIsOver) {
+      // Game is over — just dismiss the round summary so GameOverModal shows
+      setRoundResult(null);
+      return;
+    }
+    setWaiting(true);
+    socket.emit('continue_round');
+  };
+
+  // If roundResult is null, reset waiting for next time
+  if (!roundResult && waiting) {
+    setWaiting(false);
+  }
 
   const categories = roundResult
     ? [
@@ -63,10 +82,13 @@ export function RoundEndModal() {
         </div>
       )}
       <div className="mt-6">
-        <Button onClick={() => {
-          setRoundResult(null);
-          socket.emit('continue_round');
-        }}>Continue</Button>
+        {waiting ? (
+          <p className="text-cream-dark/60 font-ancient text-sm italic text-center">
+            Waiting for other players...
+          </p>
+        ) : (
+          <Button onClick={handleContinue}>Continue</Button>
+        )}
       </div>
     </Modal>
   );

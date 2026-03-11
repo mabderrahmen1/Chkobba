@@ -94,7 +94,13 @@ export function useSocket() {
     socket.on('game_state', (data: any) => {
       const g = useGameStore.getState();
       const prevWinner = g.gameState?.winner;
+      const prevRound = g.gameState?.roundNumber;
       g.setGameState(data);
+
+      // New round started — clear the round end modal
+      if (prevRound && data.roundNumber > prevRound) {
+        g.setRoundResult(null);
+      }
 
       // Detect game over from game state
       if (data.winner && !prevWinner) {

@@ -16,6 +16,8 @@ export interface Player {
   handCount: number;
   capturedCount: number;
   chkobbaCount: number;
+  dinariCount: number;
+  sevensCount: number;
 }
 
 export interface RoomState {
