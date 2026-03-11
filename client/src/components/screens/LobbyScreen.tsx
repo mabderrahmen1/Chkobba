@@ -146,16 +146,16 @@ export function LobbyScreen() {
           </div>
         )}
 
-        <div className="flex gap-4 flex-wrap w-full max-w-md">
-          <Button onClick={handleReady} disabled={isReady} className="flex-1 min-w-[120px]">
+        <div className="flex gap-2 sm:gap-3 flex-wrap w-full max-w-sm">
+          <Button size="sm" onClick={handleReady} disabled={isReady} className="flex-1 min-w-[90px]">
             {isReady ? '\u2713 Ready' : 'Ready'}
           </Button>
           {isHost && room.players.length >= 2 && (
-            <Button variant="success" onClick={handleStart} className="flex-1 min-w-[120px]">
+            <Button size="sm" variant="success" onClick={handleStart} className="flex-1 min-w-[90px]">
               Start Game
             </Button>
           )}
-          <Button variant="danger" onClick={handleLeave} className="flex-1 min-w-[120px]">
+          <Button size="sm" variant="danger" onClick={handleLeave} className="flex-1 min-w-[90px]">
             Leave
           </Button>
         </div>

@@ -62,6 +62,13 @@ export function ChkobbaEffect() {
   useEffect(() => {
     if (chkobbaPlayer) {
       setShow(true);
+      // Trigger screen shake
+      const el = document.getElementById('game-screen');
+      if (el) {
+        el.classList.add('chkobba-shake');
+        const onEnd = () => el.classList.remove('chkobba-shake');
+        el.addEventListener('animationend', onEnd, { once: true });
+      }
     } else {
       const t = setTimeout(() => setShow(false), 500);
       return () => clearTimeout(t);

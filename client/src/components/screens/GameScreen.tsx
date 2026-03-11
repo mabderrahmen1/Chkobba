@@ -49,6 +49,7 @@ export function GameScreen() {
 
   return (
     <motion.section
+      id="game-screen"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
