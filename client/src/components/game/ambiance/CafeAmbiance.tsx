@@ -37,20 +37,20 @@ export function CafeAmbiance() {
             <CigarettePack />
           </motion.div>
 
-          {/* Hookah - Bottom Right Corner */}
+          {/* Hookah - Bottom Right Corner - Lifted to show full image */}
           <motion.div
             initial={{ opacity: 0, x: 50, y: 50 }}
             animate={{ opacity: 1, x: 0, y: 0 }}
-            className="absolute bottom-[-8%] sm:bottom-[-12%] lg:bottom-[-15%] right-[-2%] sm:right-[-4%] lg:right-[-3%] z-20"
+            className="absolute bottom-[2%] sm:bottom-[-6%] right-[1%] sm:right-[1%] z-20"
           >
             <Hookah />
           </motion.div>
 
-          {/* Coffee Cup - Bottom Left Corner */}
+          {/* Coffee Cup - Bottom Left side, super close to our cards */}
           <motion.div
             initial={{ opacity: 0, x: -50, y: 50 }}
             animate={{ opacity: 1, x: 0, y: 0 }}
-            className="absolute bottom-[2%] left-[1%] z-20"
+            className="absolute bottom-[2%] left-[18%] sm:left-[8%] z-20"
           >
             <CoffeeCup />
           </motion.div>

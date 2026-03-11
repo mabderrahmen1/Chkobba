@@ -125,6 +125,30 @@ const PIP_LAYOUTS: Record<number, { x: number; y: number }[]> = {
     { x: 32, y: 70 }, { x: 68, y: 70 },
     { x: 32, y: 112 }, { x: 68, y: 112 },
   ],
+  8: [
+    { x: 32, y: 28 }, { x: 68, y: 28 },
+    { x: 50, y: 49 },
+    { x: 32, y: 70 }, { x: 68, y: 70 },
+    { x: 50, y: 91 },
+    { x: 32, y: 112 }, { x: 68, y: 112 },
+  ],
+  9: [
+    { x: 32, y: 26 }, { x: 68, y: 26 },
+    { x: 50, y: 44 },
+    { x: 32, y: 62 }, { x: 68, y: 62 },
+    { x: 50, y: 78 },
+    { x: 32, y: 96 }, { x: 68, y: 96 },
+    { x: 50, y: 114 },
+  ],
+  10: [
+    { x: 32, y: 24 }, { x: 68, y: 24 },
+    { x: 50, y: 40 },
+    { x: 32, y: 56 }, { x: 68, y: 56 },
+    { x: 50, y: 70 },
+    { x: 32, y: 84 }, { x: 68, y: 84 },
+    { x: 50, y: 100 },
+    { x: 32, y: 116 }, { x: 68, y: 116 },
+  ],
 };
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
@@ -138,7 +162,31 @@ function pipScale(count: number): number {
 
 const RANK_TO_PIPS: Record<string, number> = {
   A: 1, '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7,
+  '8': 8, '9': 9, '10': 10,
 };
+
+// ── Corner rank indicator ──────────────────────────────────────────────────
+
+function generateCornerRank(rank: string, suit: SuitDef, isTop: boolean = true): string {
+  const transform = isTop ? '' : `rotate(180 50 70)`;
+  const x = isTop ? 14 : 86;
+  const y = isTop ? 22 : 118;
+  const textAnchor = isTop ? 'start' : 'end';
+  
+  // Handle 10 specially (wider)
+  const isTen = rank === '10';
+  const fontSize = isTen ? 10 : 11;
+  const rankX = isTop ? (isTen ? 10 : 14) : (isTen ? 90 : 86);
+  
+  return `
+    <g transform="${transform}">
+      <text x="${rankX}" y="${y}" 
+            font-family="'Playfair Display','Cinzel','Georgia',serif" 
+            font-size="${fontSize}" font-weight="700" fill="${suit.color}"
+            text-anchor="${textAnchor}">${rank}</text>
+      <g transform="translate(${rankX}, ${y + 10}) scale(0.5)">${suit.mini}</g>
+    </g>`;
+}
 
 // ── Face cards ──────────────────────────────────────────────────────────────
 
@@ -159,16 +207,74 @@ function faceCardContent(rank: string, suit: SuitDef): string {
           font-size="40" font-weight="700" fill="${c}"
           text-anchor="middle" dominant-baseline="middle">${rank}</text>`;
 
-  // Mini suit pips: top-left and rotated bottom-right
-  const tl = `<g transform="translate(22, 34)">${suit.mini}</g>`;
-  const br = `<g transform="translate(78, 106) rotate(180)">${suit.mini}</g>`;
+  // Corner rank indicators (top-left and bottom-right)
+  const cornerRanks = `
+    <g transform="translate(0, 0)">
+      <text x="14" y="24" 
+            font-family="'Playfair Display','Cinzel','Georgia',serif" 
+            font-size="11" font-weight="700" fill="${c}"
+            text-anchor="start">${rank}</text>
+      <g transform="translate(14, 34) scale(0.55)">${suit.mini}</g>
+    </g>
+    <g transform="rotate(180 50 70)">
+      <text x="14" y="24" 
+            font-family="'Playfair Display','Cinzel','Georgia',serif" 
+            font-size="11" font-weight="700" fill="${c}"
+            text-anchor="start">${rank}</text>
+      <g transform="translate(14, 34) scale(0.55)">${suit.mini}</g>
+    </g>`;
 
-  return frame + letter + tl + br;
+  return frame + letter + cornerRanks;
+}
+
+function jokerCardSVG(): string {
+  const gradient = `
+    <defs>
+      <linearGradient id="jokerGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" style="stop-color:#9b59b6;stop-opacity:1" />
+        <stop offset="50%" style="stop-color:#e74c3c;stop-opacity:1" />
+        <stop offset="100%" style="stop-color:#f39c12;stop-opacity:1" />
+      </linearGradient>
+      <pattern id="jokerPattern" patternUnits="userSpaceOnUse" width="15" height="15">
+        <circle cx="7.5" cy="7.5" r="2" fill="#fff" opacity="0.3"/>
+      </pattern>
+    </defs>`;
+  
+  const frame = `
+    <rect x="2" y="2" width="96" height="136" rx="7" fill="#2c1810" stroke="#9b59b6" stroke-width="1.5"/>
+    <rect x="5" y="5" width="90" height="130" rx="5" fill="url(#jokerPattern)" opacity="0.2"/>
+    <rect x="8" y="8" width="84" height="124" rx="3" fill="none" stroke="url(#jokerGradient)" stroke-width="1"/>`;
+  
+  const star = `
+    <g transform="translate(50, 50)">
+      <path d="M0-18 L4-6 L17-6 L7 3 L11 15 L0 8 L-11 15 L-7 3 L-17-6 L-4-6 Z" 
+            fill="url(#jokerGradient)" stroke="#fff" stroke-width="0.5"/>
+    </g>`;
+  
+  const text = `
+    <text x="50" y="95" font-family="'Cinzel','Georgia',serif" font-size="28" 
+          font-weight="700" fill="#fff" text-anchor="middle" letter-spacing="3">JOKER</text>
+    <text x="22" y="28" font-family="'Cinzel','Georgia',serif" font-size="14" fill="#e74c3c">J</text>
+    <g transform="translate(78, 22) rotate(180)">
+      <text font-family="'Cinzel','Georgia',serif" font-size="14" fill="#e74c3c">J</text>
+    </g>`;
+  
+  return `<svg viewBox="0 0 100 140" xmlns="http://www.w3.org/2000/svg" class="card-svg">
+    ${gradient}
+    ${frame}
+    ${star}
+    ${text}
+  </svg>`;
 }
 
 // ── Public API ──────────────────────────────────────────────────────────────
 
 export function generateCardSVG(rank: string, suit: string): string {
+  // Handle Joker cards
+  if (rank === 'Joker') {
+    return jokerCardSVG();
+  }
+
   const s = SUITS[suit];
   if (!s) return '';
 
@@ -187,11 +293,19 @@ export function generateCardSVG(rank: string, suit: string): string {
   }
 
   const c = s.color;
+  
+  // Add corner rank indicators for non-face cards
+  const cornerRanks = isFace ? '' : `
+    ${generateCornerRank(rank, s, true)}
+    ${generateCornerRank(rank, s, false)}
+  `;
+  
   return `<svg viewBox="0 0 100 140" xmlns="http://www.w3.org/2000/svg" class="card-svg">
   <rect width="100" height="140" rx="7" ry="7" fill="#fdfdfd"
         stroke="#b5b5b5" stroke-width="1"/>
   <rect x="2" y="2" width="96" height="136" rx="5" ry="5"
         fill="none" stroke="${c}" stroke-width="0.4" opacity="0.18"/>
+  ${cornerRanks}
   ${inner}
 </svg>`;
 }

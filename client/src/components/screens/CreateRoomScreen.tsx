@@ -5,15 +5,17 @@ import { useUIStore } from '../../stores/useUIStore';
 import { socket } from '../../lib/socket';
 import { Button } from '../ui/Button';
 import { Select } from '../ui/Select';
+import type { GameType } from '@shared/rules.js';
 
 export function CreateRoomScreen() {
+  const [gameType, setGameType] = useState<GameType>('chkobba');
   const [targetScore, setTargetScore] = useState(21);
   const [maxPlayers, setMaxPlayers] = useState(2);
   const nickname = useGameStore((s) => s.nickname);
   const setScreen = useUIStore((s) => s.setScreen);
 
   const handleCreate = () => {
-    socket.emit('create_room', { nickname, targetScore, maxPlayers });
+    socket.emit('create_room', { nickname, targetScore, maxPlayers, gameType });
   };
 
   return (
@@ -29,6 +31,14 @@ export function CreateRoomScreen() {
 
       <div className="flex flex-col gap-4 sm:gap-6 px-4 sm:px-8 max-w-md w-full relative z-10">
         <h2 className="text-2xl font-ancient font-bold text-center text-brass">Create New Room</h2>
+
+        <div className="flex flex-col gap-2">
+          <label className="font-ancient text-sm text-cream-dark">Game Type</label>
+          <Select value={gameType} onChange={(e) => setGameType(e.target.value as GameType)}>
+            <option value="chkobba">Chkobba</option>
+            <option value="rummy">Rummy</option>
+          </Select>
+        </div>
 
         <div className="flex flex-col gap-2">
           <label className="font-ancient text-sm text-cream-dark">Target Score</label>

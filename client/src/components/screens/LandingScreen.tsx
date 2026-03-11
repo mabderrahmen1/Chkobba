@@ -1,12 +1,14 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useGameStore } from '../../stores/useGameStore';
 import { useUIStore, type Screen } from '../../stores/useUIStore';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
+import { socket } from '../../lib/socket';
 
 export function LandingScreen() {
   const [nickname, setNicknameLocal] = useState(useGameStore.getState().nickname);
+  const { roomId, playerId } = useGameStore((s) => ({ roomId: s.roomId, playerId: s.playerId }));
   const setNickname = useGameStore((s) => s.setNickname);
   const setScreen = useUIStore((s) => s.setScreen);
   const addToast = useUIStore((s) => s.addToast);
@@ -24,6 +26,25 @@ export function LandingScreen() {
     setNickname(trimmed);
     setScreen(target);
   };
+
+  const handleRejoin = () => {
+    if (roomId && playerId) {
+      socket.emit('rejoin_game', { roomId, playerId });
+    }
+  };
+
+  // Automatically clear session if server rejects it (e.g. server restarted)
+  useEffect(() => {
+    const handleError = (data: { message: string }) => {
+      const msg = data.message.toLowerCase();
+      if (msg.includes('room not found') || msg.includes('session not found')) {
+        useGameStore.getState().setRoomId(null);
+        useGameStore.getState().setPlayer('', false);
+      }
+    };
+    socket.on('error', handleError);
+    return () => { socket.off('error', handleError); };
+  }, []);
 
   return (
     <motion.section
@@ -80,7 +101,30 @@ export function LandingScreen() {
         </div>
 
         <div className="flex flex-col gap-3">
-          <Button onClick={() => validateAndProceed('createRoom')}>Create Room</Button>
+          {roomId && playerId && (
+            <motion.div 
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mb-4 p-4 rounded-xl bg-brass/5 border border-brass/20 text-center"
+            >
+              <p className="text-xs text-brass/60 mb-2 uppercase tracking-widest font-ancient">Session Found</p>
+              <p className="text-cream text-sm mb-3">You were recently in room <span className="text-brass font-bold">{roomId}</span></p>
+              <Button onClick={handleRejoin} className="w-full">Rejoin Game</Button>
+              <button 
+                onClick={() => {
+                  useGameStore.getState().setRoomId(null);
+                  useGameStore.getState().setPlayer('', false);
+                }}
+                className="mt-2 text-[10px] text-cream/30 hover:text-cream/60 transition-colors uppercase tracking-widest underline decoration-dotted"
+              >
+                Clear Session
+              </button>
+            </motion.div>
+          )}
+
+          <Button onClick={() => validateAndProceed('createRoom')} variant={roomId ? 'secondary' : 'primary'}>
+            {roomId ? 'Create New Room' : 'Create Room'}
+          </Button>
           <Button variant="secondary" onClick={() => validateAndProceed('joinRoom')}>
             Join Room
           </Button>

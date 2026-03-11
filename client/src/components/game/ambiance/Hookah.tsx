@@ -40,7 +40,7 @@ export function Hookah() {
 
       <motion.div
         className="relative cursor-pointer pointer-events-auto"
-        style={{ width: 'clamp(80px, 12vw, 180px)', height: 'clamp(150px, 22vw, 330px)' }}
+        style={{ width: 'clamp(110px, 16vw, 220px)', height: 'clamp(200px, 28vw, 400px)' }}
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
         onClick={handleInteract}

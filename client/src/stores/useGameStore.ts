@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { RoomState as Room, GameState, CaptureOption, RoundResult, Winner } from '@shared/types.js';
+import type { RoomState as Room, GameState, CaptureOption, RoundResult, Winner, RummyGameState } from '@shared/types.js';
+import type { GameType } from '@shared/rules.js';
 
 interface GameOverData {
   winner: Winner;
@@ -19,6 +20,8 @@ interface GameStore {
   isHost: boolean;
   room: Room | null;
   gameState: GameState | null;
+  rummyGameState: RummyGameState | null;
+  gameType: GameType | null;
   selectedCardIndex: number | null;
   selectedTableIndices: number[];
   roundResult: RoundResult | null;
@@ -33,6 +36,8 @@ interface GameStore {
   setRoom: (room: Room | null) => void;
   setRoomId: (roomId: string | null) => void;
   setGameState: (gameState: GameState) => void;
+  setRummyGameState: (gameState: RummyGameState) => void;
+  setGameType: (gameType: GameType) => void;
   setSelectedCard: (index: number | null) => void;
   toggleTableCard: (index: number) => void;
   clearSelections: () => void;
@@ -54,6 +59,8 @@ export const useGameStore = create<GameStore>()(
       isHost: false,
       room: null,
       gameState: null,
+      rummyGameState: null,
+      gameType: null,
       selectedCardIndex: null,
       selectedTableIndices: [],
       roundResult: null,
@@ -67,10 +74,15 @@ export const useGameStore = create<GameStore>()(
       setPlayer: (playerId, isHost) => set({ playerId, isHost }),
       setRoom: (room) => set({ room }),
       setRoomId: (roomId) => set({ roomId }),
-      setGameState: (gameState) => set({ 
-        gameState,
-        selectedTableIndices: [] // Clear selections when game state updates (new turn/round)
-      }),
+      setGameState: (gameState) => {
+        console.log('[Store] Updating game state', !!gameState);
+        set({
+          gameState,
+          selectedTableIndices: [] // Clear selections when game state updates (new turn/round)
+        });
+      },
+      setRummyGameState: (rummyGameState) => set({ rummyGameState }),
+      setGameType: (gameType) => set({ gameType }),
       setSelectedCard: (selectedCardIndex) => set({ selectedCardIndex }),
       toggleTableCard: (index) => set((state) => {
         const isSelected = state.selectedTableIndices.includes(index);
@@ -95,6 +107,8 @@ export const useGameStore = create<GameStore>()(
           isHost: false,
           room: null,
           gameState: null,
+          rummyGameState: null,
+          gameType: null,
           selectedCardIndex: null,
           selectedTableIndices: [],
           roundResult: null,
@@ -107,10 +121,20 @@ export const useGameStore = create<GameStore>()(
     }),
     {
       name: 'chkobba-storage',
-      partialize: (state) => ({ 
-        nickname: state.nickname, 
+      storage: {
+        getItem: (name) => {
+          const str = sessionStorage.getItem(name);
+          return str ? JSON.parse(str) : null;
+        },
+        setItem: (name, value) => sessionStorage.setItem(name, JSON.stringify(value)),
+        removeItem: (name) => sessionStorage.removeItem(name),
+      },
+      partialize: (state) => ({
+        nickname: state.nickname,
         roomId: state.roomId,
-        playerId: state.playerId
+        playerId: state.playerId,
+        room: state.room,
+        gameType: state.gameType
       }),
     }
   )

@@ -5,6 +5,7 @@
 
 import config from './config.js';
 import Room from './game/Room.js';
+import { GameType } from '../shared/rules.js';
 
 // Store rooms in memory
 const rooms = new Map<string, Room>();
@@ -30,18 +31,19 @@ function generateRoomCode(): string {
  * @param {string} hostId - Host player ID
  * @param {number} targetScore - Target score to win
  * @param {number} maxPlayers - Maximum players (2 or 4)
+ * @param {GameType} gameType - Type of game to play
  * @returns {Room} The created room
  */
-export function createRoom(hostId: string, targetScore: number, maxPlayers: number): Room {
+export function createRoom(hostId: string, targetScore: number, maxPlayers: number, gameType: GameType = 'chkobba'): Room {
   let roomCode: string;
   do {
     roomCode = generateRoomCode();
   } while (rooms.has(roomCode));
-  
-  const room = new Room(roomCode, hostId, targetScore, maxPlayers);
+
+  const room = new Room(roomCode, hostId, targetScore, maxPlayers, gameType);
   rooms.set(roomCode, room);
-  
-  console.log(`[Store] Room created: ${roomCode} by ${hostId}`);
+
+  console.log(`[Store] Room created: ${roomCode} by ${hostId} (${gameType})`);
   return room;
 }
 

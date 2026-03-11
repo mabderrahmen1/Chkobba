@@ -21,6 +21,7 @@ export class Game {
   roomId: string;
   targetScore: number;
   players: GamePlayer[];
+  originalPlayers: Player[]; // Persistent session stats reference
   deck: Card[] = [];
   tableCards: Card[] = [];
   currentTurn: string = '';
@@ -54,6 +55,7 @@ export class Game {
   constructor(roomId: string, players: Player[], targetScore: number) {
     this.roomId = roomId;
     this.targetScore = targetScore;
+    this.originalPlayers = players;
     this.players = players.map(p => ({
       ...p,
       hand: [],
@@ -319,13 +321,30 @@ export class Game {
   }
 
   endGame(): void {
+    let winningTeam = -1;
     if (this.scores.team0 > this.scores.team1) {
+      winningTeam = 0;
       this.winner = { team: 0, players: this.getTeam(0).map(p => p.nickname) };
     } else if (this.scores.team1 > this.scores.team0) {
+      winningTeam = 1;
       this.winner = { team: 1, players: this.getTeam(1).map(p => p.nickname) };
     } else {
       this.startNewRound();
       return;
+    }
+
+    if (winningTeam !== -1) {
+      // Update persistent stats in the original player objects (reference to Room players)
+      this.players.forEach(p => {
+        const orig = this.originalPlayers.find(op => op.id === p.id);
+        if (p.team === winningTeam) {
+          p.wins = (p.wins || 0) + 1;
+          if (orig) orig.wins = (orig.wins || 0) + 1;
+        } else {
+          p.losses = (p.losses || 0) + 1;
+          if (orig) orig.losses = (orig.losses || 0) + 1;
+        }
+      });
     }
   }
 
@@ -335,19 +354,26 @@ export class Game {
       targetScore: this.targetScore,
       roundNumber: this.roundNumber,
       tableCards: this.tableCards,
-      players: this.players.map(p => ({
-        id: p.id,
-        nickname: p.nickname,
-        team: p.team,
-        handCount: p.hand.length,
-        capturedCount: p.capturedCards.length,
-        chkobbaCount: p.chkobbaCount,
-        dinariCount: p.capturedCards.filter(c => c.suit === 'diamonds').length,
-        sevensCount: p.capturedCards.filter(c => c.rank === '7').length,
-        isConnected: p.isConnected,
-        isHost: p.isHost,
-        isReady: p.isReady
-      })),
+      players: this.players.map(p => {
+        // Sync isHost from the original players reference
+        const orig = this.originalPlayers.find(op => op.id === p.id);
+        return {
+          id: p.id,
+          nickname: p.nickname,
+          team: p.team,
+          handCount: p.hand?.length || 0,
+          capturedCount: p.capturedCards?.length || 0,
+          chkobbaCount: p.chkobbaCount || 0,
+          dinariCount: p.capturedCards ? p.capturedCards.filter(c => c.suit === 'diamonds').length : 0,
+          sevensCount: p.capturedCards ? p.capturedCards.filter(c => c.rank === '7').length : 0,
+          hasHaya: p.capturedCards ? p.capturedCards.some(c => c.rank === '7' && c.suit === 'diamonds') : false,
+          wins: p.wins || 0,
+          losses: p.losses || 0,
+          isConnected: p.isConnected,
+          isHost: orig?.isHost || p.isHost,
+          isReady: p.isReady
+        };
+      }),
       currentTurn: this.currentTurn,
       scores: this.scores,
       roundScores: this.roundScores,
@@ -371,6 +397,19 @@ export class Game {
       state.hand = player.hand;
     }
     return state;
+  }
+
+  /**
+   * DEBUG FEATURE: Force a team to win
+   * @param {number} team - Team to win
+   */
+  forceWin(team: number): void {
+    if (team === 0) {
+      this.scores.team0 = this.targetScore;
+    } else {
+      this.scores.team1 = this.targetScore;
+    }
+    this.endGame();
   }
 }
 

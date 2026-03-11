@@ -100,5 +100,43 @@ export function useAmbianceSound() {
     });
   }, [getCtx]);
 
-  return { playClink, playLighter, playBubble, playWaitressVoice };
+  // Card slide sound (drawing card)
+  const playCardSlide = useCallback(() => {
+    const ctx = getCtx();
+    const now = ctx.currentTime;
+    const bufLen = ctx.sampleRate * 0.15;
+    const buf = ctx.createBuffer(1, bufLen, ctx.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < bufLen; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / bufLen) * 0.3;
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.value = 800;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0, now);
+    g.gain.linearRampToValueAtTime(0.15, now + 0.05);
+    g.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+    src.connect(filter).connect(g).connect(ctx.destination);
+    src.start(now);
+  }, [getCtx]);
+
+  // Card place sound (discarding/playing card)
+  const playCardPlace = useCallback(() => {
+    const ctx = getCtx();
+    const now = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(800, now);
+    osc.frequency.exponentialRampToValueAtTime(200, now + 0.1);
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0, now);
+    g.gain.linearRampToValueAtTime(0.1, now + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+    osc.connect(g).connect(ctx.destination);
+    osc.start(now);
+    osc.stop(now + 0.2);
+  }, [getCtx]);
+
+  return { playClink, playLighter, playBubble, playWaitressVoice, playCardSlide, playCardPlace };
 }

@@ -1,9 +1,10 @@
-import { Rank, Suit, GameStatus } from './rules.js';
+import { Rank, Suit, GameStatus, GameType, CardRank, RummyRank } from './rules.js';
 
 export interface Card {
-  rank: Rank;
+  rank: CardRank | RummyRank;
   suit: Suit;
   value: number;
+  isJoker?: boolean;
 }
 
 export interface Player {
@@ -18,6 +19,9 @@ export interface Player {
   chkobbaCount: number;
   dinariCount: number;
   sevensCount: number;
+  hasHaya: boolean;
+  wins: number;
+  losses: number;
 }
 
 export interface RoomState {
@@ -29,6 +33,7 @@ export interface RoomState {
   players: Player[];
   createdAt: number;
   lastActivity: number;
+  gameType: GameType;
 }
 
 export interface CaptureOption {
@@ -80,4 +85,39 @@ export interface Winner {
   team: number;
   players?: string[];
   reason?: string;
+}
+
+// Rummy-specific types
+export type MeldType = 'set' | 'sequence';
+
+export interface Meld {
+  id: string;
+  type: MeldType;
+  cards: Card[];
+  playerId: string;
+  isPure: boolean; // No jokers used
+}
+
+export interface RummyPlayer {
+  id: string;
+  nickname: string;
+  isHost: boolean;
+  isReady: boolean;
+  isConnected: boolean;
+  hand: Card[];
+  melds: Meld[];
+  points: number; // Points from melds
+  penaltyPoints: number; // Points from unmelded cards
+}
+
+export interface RummyGameState {
+  roomId: string;
+  currentTurn: string;
+  drawPile: Card[];
+  discardPile: Card[];
+  players: RummyPlayer[];
+  tableMelds: Meld[]; // All melds on the table
+  winner: Winner | null;
+  deckCount: number; // Number of decks used
+  canLayOff: boolean; // Can players lay off cards on existing melds
 }

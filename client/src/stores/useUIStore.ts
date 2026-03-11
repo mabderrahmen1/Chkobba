@@ -1,85 +1,73 @@
 import { create } from 'zustand';
 
 export type Screen = 'landing' | 'createRoom' | 'joinRoom' | 'lobby' | 'game';
+export type ToastType = 'info' | 'success' | 'error';
+export type WaitressStatus = 'idle' | 'serving';
 
-interface Toast {
+interface ToastMessage {
   id: string;
   message: string;
-  type: 'error' | 'success' | 'info';
+  type: ToastType;
 }
 
 interface UIStore {
   screen: Screen;
-  toasts: Toast[];
   showAmbiance: boolean;
-  ambianceSoundOn: boolean;
-  musicVolume: number;
-  waitressStatus: 'idle' | 'serving';
+  toasts: ToastMessage[];
+  waitressStatus: WaitressStatus;
   isWaitressVisible: boolean;
-
   setScreen: (screen: Screen) => void;
-  addToast: (message: string, type: Toast['type']) => void;
-  removeToast: (id: string) => void;
   toggleAmbiance: () => void;
-  toggleAmbianceSound: () => void;
-  setMusicVolume: (volume: number) => void;
-  setWaitressStatus: (status: 'idle' | 'serving') => void;
+  addToast: (message: string, type?: ToastType) => void;
+  removeToast: (id: string) => void;
+  setWaitressStatus: (status: WaitressStatus) => void;
   setWaitressVisible: (visible: boolean) => void;
 }
 
-const savedAmbiance =
-  typeof localStorage !== 'undefined'
-    ? localStorage.getItem('chkobba_ambiance') !== 'false'
-    : true;
-const savedSound =
-  typeof localStorage !== 'undefined'
-    ? localStorage.getItem('chkobba_ambiance_sound') !== 'false'
-    : true;
-const savedVolume =
-  typeof localStorage !== 'undefined'
-    ? parseFloat(localStorage.getItem('chkobba_music_volume') ?? '0.35')
-    : 0.35;
+// Check if we have a persisted session immediately on load
+const getInitialScreen = (): Screen => {
+  try {
+    // Use sessionStorage so multiple tabs on localhost have independent sessions
+    const raw = sessionStorage.getItem('chkobba-storage');
+    if (raw) {
+      const data = JSON.parse(raw);
+      if (data.state && data.state.roomId && data.state.playerId) {
+        // If we have a session, start in 'lobby' as a loading state
+        return 'lobby'; 
+      }
+    }
+  } catch (e) {}
+  return 'landing';
+};
 
 export const useUIStore = create<UIStore>((set) => ({
-  screen: 'landing',
+  screen: getInitialScreen(),
+  showAmbiance: true,
   toasts: [],
-  showAmbiance: savedAmbiance,
-  ambianceSoundOn: savedSound,
-  musicVolume: savedVolume,
   waitressStatus: 'idle',
   isWaitressVisible: false,
 
   setScreen: (screen) => set({ screen }),
+  toggleAmbiance: () => set((state) => ({ showAmbiance: !state.showAmbiance })),
 
-  addToast: (message, type) =>
+  addToast: (message, type = 'info') => {
+    const id = Math.random().toString(36).substr(2, 9);
     set((state) => ({
-      toasts: [...state.toasts, { id: Date.now().toString() + Math.random(), message, type }],
-    })),
+      toasts: [...state.toasts, { id, message, type }],
+    }));
+
+    setTimeout(() => {
+      set((state) => ({
+        toasts: state.toasts.filter((t) => t.id !== id),
+      }));
+    }, 3000);
+  },
 
   removeToast: (id) =>
     set((state) => ({
       toasts: state.toasts.filter((t) => t.id !== id),
     })),
 
-  toggleAmbiance: () =>
-    set((state) => {
-      const next = !state.showAmbiance;
-      localStorage.setItem('chkobba_ambiance', String(next));
-      return { showAmbiance: next };
-    }),
-
-  toggleAmbianceSound: () =>
-    set((state) => {
-      const next = !state.ambianceSoundOn;
-      localStorage.setItem('chkobba_ambiance_sound', String(next));
-      return { ambianceSoundOn: next };
-    }),
-
-  setMusicVolume: (volume) => {
-    localStorage.setItem('chkobba_music_volume', String(volume));
-    set({ musicVolume: volume });
-  },
-
-  setWaitressStatus: (status) => set({ waitressStatus: status }),
-  setWaitressVisible: (visible) => set({ isWaitressVisible: visible }),
+  setWaitressStatus: (waitressStatus) => set({ waitressStatus }),
+  setWaitressVisible: (isWaitressVisible) => set({ isWaitressVisible }),
 }));

@@ -5,6 +5,7 @@ import { PlayerHand } from './PlayerHand';
 import { CapturedStack } from './CapturedStack';
 import { CafeAmbiance } from './ambiance/CafeAmbiance';
 import { motion } from 'framer-motion';
+import { socket } from '../../lib/socket';
 
 export function GameTable() {
   const gameState = useGameStore((s) => s.gameState);
@@ -42,8 +43,21 @@ export function GameTable() {
   const myTeamCaptured = currentPlayer.team === 0 ? team0Captured : team1Captured;
   const oppTeamCaptured = currentPlayer.team === 0 ? team1Captured : team0Captured;
 
+  const handleDebugWin = () => {
+    if (window.confirm('DEBUG: Force your team to win (21 pts)?')) {
+      socket.emit('debug_force_win');
+    }
+  };
+
   return (
     <div className="flex-1 w-full h-full cafe-scene flex flex-col items-center justify-center p-1 sm:p-2 md:p-4">
+      {/* DEBUG BUTTON - TEMPORARY */}
+      <button 
+        onClick={handleDebugWin}
+        className="fixed bottom-20 right-4 z-[60] bg-red-900/60 hover:bg-red-800 text-white font-ancient text-[10px] px-3 py-2 rounded-full border border-red-500/50 shadow-2xl transition-all active:scale-95"
+      >
+        DEBUG: WIN
+      </button>
       {/* Background Silhouettes & Lighting */}
       <div className="vignette" />
       <div className="ambient-light top-[-100px] left-[-100px]" />

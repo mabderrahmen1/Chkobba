@@ -312,12 +312,12 @@ export function VintageRadio() {
           <div id="yt-radio-player" />
         </div>
         <motion.button
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.95 }}
           onClick={() => setIsMinimized(false)}
-          className="fixed bottom-2 left-2 sm:bottom-3 sm:left-3 z-50 cursor-pointer"
+          className="fixed top-20 left-2 sm:top-24 sm:left-3 z-50 cursor-pointer"
           title="Open Radio"
           style={{
             width: isMobile ? 36 : 48,
@@ -361,10 +361,10 @@ export function VintageRadio() {
       </div>
 
       <motion.div
-        initial={{ opacity: 0, y: 40, scale: 0.9 }}
+        initial={{ opacity: 0, y: -40, scale: 0.9 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ type: 'spring', stiffness: 200, damping: 20 }}
-        className="fixed bottom-2 left-2 sm:bottom-3 sm:left-3 z-50 select-none"
+        className="fixed top-20 left-2 sm:top-24 sm:left-3 z-50 select-none"
         style={{ width: isMobile ? 190 : 250 }}
       >
         {/* ─── RADIO BODY ─── */}

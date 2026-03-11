@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGameStore } from '../../stores/useGameStore';
 import { GameTable } from '../game/GameTable';
@@ -9,27 +9,33 @@ import { RoundEndModal } from '../game/RoundEndModal';
 import { GameOverModal } from '../game/GameOverModal';
 import { VintageRadio } from '../game/ambiance/VintageRadio';
 import { useAmbianceSound } from '../../hooks/useAmbianceSound';
+import { RummyGameScreen } from '../game/RummyGameScreen';
+import { useUIStore } from '../../stores/useUIStore';
+import { socket } from '../../lib/socket';
+import { Button } from '../ui/Button';
 
 export function GameScreen() {
   const gameState = useGameStore((s) => s.gameState);
+  const rummyGameState = useGameStore((s) => s.rummyGameState);
+  const gameType = useGameStore((s) => s.gameType);
   const playerId = useGameStore((s) => s.playerId);
   const autoWinWarning = useGameStore((s) => s.autoWinWarning);
 
   const { playClink, playLighter } = useAmbianceSound();
   const lighterPlayed = useRef(false);
   const prevRound = useRef(gameState?.roundNumber ?? 0);
+  const [copied, setCopied] = useState(false);
 
   // Play lighter flick once on first mount
   useEffect(() => {
     if (!lighterPlayed.current) {
       lighterPlayed.current = true;
-      // Small delay so user interaction has occurred
       const t = setTimeout(() => playLighter(), 600);
       return () => clearTimeout(t);
     }
   }, [playLighter]);
 
-  // Play clink on round start
+  // Play clink on round start (Chkobba only)
   useEffect(() => {
     if (gameState && gameState.roundNumber !== prevRound.current) {
       prevRound.current = gameState.roundNumber;
@@ -37,15 +43,36 @@ export function GameScreen() {
     }
   }, [gameState?.roundNumber, playClink, gameState]);
 
+  if (gameType === 'rummy') {
+    return <RummyGameScreen />;
+  }
+
   if (!gameState || !playerId) return null;
 
   const isMyTurn = gameState.currentTurn === playerId;
   const turnPlayer = gameState.players.find((p) => p.id === gameState.currentTurn);
   const turnName = turnPlayer
     ? turnPlayer.id === playerId
-      ? 'Your Turn'
-      : `${turnPlayer.nickname}'s Turn`
+      ? "It's Your Turn!"
+      : `${turnPlayer.nickname} is thinking...`
     : '';
+
+  const handleCopyCode = () => {
+    navigator.clipboard.writeText(gameState.roomId);
+    setCopied(true);
+    useUIStore.getState().addToast('Room code copied!', 'success');
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleQuit = () => {
+    if (window.confirm('Are you sure you want to quit? You will forfeit the match and leave the room.')) {
+      socket.emit('forfeit');
+      socket.emit('leave_room');
+      useGameStore.getState().reset();
+      useUIStore.getState().setScreen('landing');
+      sessionStorage.removeItem('chkobba-storage');
+    }
+  };
 
   return (
     <motion.section
@@ -67,47 +94,85 @@ export function GameScreen() {
       <AnimatePresence mode="wait">
         <motion.div
           key={gameState.currentTurn}
-          initial={{ opacity: 0, y: -12, scale: 0.9 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: -12, scale: 0.9 }}
-          transition={{ duration: 0.3, type: 'spring', stiffness: 250 }}
-          className={`fixed top-0 left-0 right-0 z-50 flex items-center justify-center py-1 sm:py-1.5 ${
-            isMyTurn
-              ? 'bg-gradient-to-b from-brass/20 to-transparent'
-              : 'bg-gradient-to-b from-black/30 to-transparent'
-          }`}
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -20 }}
+          transition={{ duration: 0.4, type: 'spring', stiffness: 200 }}
+          className="fixed top-0 left-0 right-0 z-[60] flex items-center justify-center pointer-events-none"
         >
-          <motion.div
-            animate={isMyTurn ? {
-              boxShadow: [
-                '0 0 0px rgba(212,175,55,0)',
-                '0 0 15px rgba(212,175,55,0.3)',
-                '0 0 0px rgba(212,175,55,0)',
-              ],
-            } : {}}
-            transition={isMyTurn ? { duration: 2, repeat: Infinity, ease: 'easeInOut' } : {}}
-            className={`px-3 sm:px-5 py-1 sm:py-1.5 rounded-full backdrop-blur-md ${
-              isMyTurn
-                ? 'bg-brass/20 border border-brass/50'
-                : 'bg-black/25 border border-white/10'
-            }`}
-          >
-            <motion.span
-              animate={isMyTurn ? { opacity: [1, 0.6, 1] } : { opacity: 0.7 }}
-              transition={isMyTurn ? { duration: 1.8, repeat: Infinity, ease: 'easeInOut' } : {}}
-              className={`font-ancient text-xs sm:text-sm md:text-base uppercase tracking-[0.15em] font-bold ${
-                isMyTurn ? 'text-brass' : 'text-cream-dark/60'
-              }`}
-              style={isMyTurn ? { textShadow: '0 0 12px rgba(212,175,55,0.4)' } : {}}
-            >
-              {turnName}
-            </motion.span>
-          </motion.div>
+          <div className="relative w-full max-w-sm flex items-center justify-center pt-4 sm:pt-2 px-4">
+             <motion.div 
+               animate={isMyTurn ? { opacity: [0.3, 0.7, 0.3] } : { opacity: 0.2 }}
+               transition={{ duration: 2, repeat: Infinity }}
+               className={`absolute inset-0 blur-2xl ${isMyTurn ? 'bg-brass' : 'bg-black'}`}
+             />
+             
+             <div className={`relative px-6 py-2 rounded-full border backdrop-blur-xl shadow-2xl flex items-center gap-3 transition-colors duration-500 ${
+                isMyTurn 
+                  ? 'bg-brass/20 border-brass/50' 
+                  : 'bg-black/60 border-white/10'
+             }`}>
+                {/* Active Indicator Pulse */}
+                <div className="relative flex items-center justify-center w-2 h-2">
+                  <motion.div
+                    animate={isMyTurn ? { scale: [1, 2.5, 1], opacity: [0.8, 0, 0.8] } : { scale: 1, opacity: 0.5 }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                    className={`absolute w-full h-full rounded-full ${isMyTurn ? 'bg-brass' : 'bg-cream/40'}`}
+                  />
+                  <div className={`w-2 h-2 rounded-full ${isMyTurn ? 'bg-brass' : 'bg-cream/40'}`} />
+                </div>
+
+                <span className={`font-ancient text-sm sm:text-base md:text-lg uppercase tracking-[0.2em] font-bold ${
+                  isMyTurn ? 'text-brass drop-shadow-[0_0_8px_rgba(212,175,55,0.4)]' : 'text-cream-dark/60'
+                }`}>
+                  {turnName}
+                </span>
+             </div>
+          </div>
         </motion.div>
       </AnimatePresence>
 
       {/* Scoreboard */}
       <Scoreboard />
+
+      {/* Quit Button — Top Left (opposite scoreboard) */}
+      <div className="fixed top-3 left-3 z-[45]">
+        <motion.button 
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={handleQuit}
+          className="bg-red-900/20 hover:bg-red-900/40 text-red-500/70 hover:text-red-500 border border-red-500/20 px-3 py-1.5 rounded-lg font-ancient text-[10px] uppercase tracking-widest transition-all backdrop-blur-sm shadow-lg"
+        >
+          Quit Game
+        </motion.button>
+      </div>
+
+      {/* Room Info — Bottom Left */}
+      <div className="fixed bottom-3 left-3 z-[45] hidden sm:flex flex-col gap-1">
+        <motion.div 
+          whileTap={{ scale: 0.95 }}
+          className="flex items-center gap-2 bg-black/40 backdrop-blur-md border border-brass/20 rounded-lg px-3 py-1.5 cursor-pointer hover:bg-black/60 transition-colors group relative"
+          onClick={handleCopyCode}
+        >
+          <AnimatePresence>
+            {copied && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: -25 }}
+                exit={{ opacity: 0 }}
+                className="absolute left-0 right-0 text-center pointer-events-none"
+              >
+                <span className="bg-brass text-black text-[9px] font-bold px-2 py-0.5 rounded uppercase tracking-tighter shadow-glow-gold">Copied!</span>
+              </motion.div>
+            )}
+          </AnimatePresence>
+          <span className="text-[10px] text-brass/60 font-ancient uppercase tracking-widest">Room:</span>
+          <span className="text-xs text-brass font-mono font-bold tracking-wider">{gameState.roomId}</span>
+          <svg className="w-3 h-3 text-brass/40 group-hover:text-brass transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" />
+          </svg>
+        </motion.div>
+      </div>
 
       {/* Vintage Radio */}
       <VintageRadio />
@@ -120,12 +185,17 @@ export function GameScreen() {
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="fixed top-16 left-1/2 -translate-x-1/2 z-40 copper-plate text-cream px-6 py-3 rounded-lg text-center"
+          className="fixed top-16 left-1/2 -translate-x-1/2 z-40 copper-plate text-cream px-6 py-4 rounded-xl text-center shadow-2xl border border-brass/30 backdrop-blur-lg bg-black/60"
         >
-          <p className="font-ancient text-sm engraved-text">{autoWinWarning.playerNickname} disconnected</p>
-          <p className="text-2xl font-ancient font-bold engraved-text mt-1">
+          <p className="font-ancient text-sm text-brass/80 tracking-widest uppercase mb-1">{autoWinWarning.playerNickname} disconnected</p>
+          <p className="text-xl font-ancient font-bold text-cream mb-4">
             Auto-win in {Math.round(autoWinWarning.timeRemaining / 1000)}s
           </p>
+          <Button size="sm" variant="secondary" onClick={() => {
+            if (window.confirm('End match and return to lobby?')) {
+              socket.emit('reset_game');
+            }
+          }} className="w-full">Return to Lobby</Button>
         </motion.div>
       )}
 

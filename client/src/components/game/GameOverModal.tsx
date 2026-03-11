@@ -12,50 +12,89 @@ export function GameOverModal() {
   const setGameOverData = useGameStore((s) => s.setGameOverData);
   const setScreen = useUIStore((s) => s.setScreen);
 
-  if (!gameOverData) return null;
+  if (!gameOverData || !gameState) return null;
 
   const { winner, scores } = gameOverData;
 
   const playerTeam = gameState?.players.find((p) => p.id === playerId)?.team ?? -1;
   const didWin = playerTeam === winner.team;
-  const isForfeit = winner.reason === 'opponents_timeout' || winner.reason === 'timeout';
+  const isForfeit = winner.reason === 'opponents_timeout' || winner.reason === 'timeout' || winner.reason === 'forfeit';
 
-  const handleNewGame = () => {
+  const handlePlayAgain = () => {
     setGameOverData(null);
-    reset();
-    setScreen('landing');
+    socket.emit('play_again');
   };
 
   const handleBackToLobby = () => {
     setGameOverData(null);
-    useGameStore.getState().setGameState(null as any);
-    socket.emit('reset_lobby');
+    useUIStore.getState().setScreen('lobby');
+    socket.emit('reset_game');
   };
+
+  const handleLeaveRoom = () => {
+    socket.emit('leave_room');
+    setGameOverData(null);
+    useGameStore.getState().setGameState(null as any);
+    useGameStore.getState().setRoomId(null);
+    useGameStore.getState().setRoom(null);
+    useUIStore.getState().setScreen('landing');
+    // Clear storage so the "Session Found" box disappears
+    sessionStorage.removeItem('chkobba-storage');
+  };
+
+  const myNickname = useGameStore.getState().nickname;
+  const myPlayer = gameState.players.find(p => p.id === playerId);
+  const oppPlayer = gameState.players.find(p => p.id !== playerId);
+  const oppNickname = oppPlayer?.nickname || 'Opponent';
+
+  const isHost = useGameStore.getState().isHost;
 
   return (
     <Modal isOpen={!!gameOverData}>
       <h3 className="text-2xl font-ancient font-bold text-brass mb-4">Game Over!</h3>
       <p className={`text-xl font-ancient font-bold mb-6 ${didWin ? 'text-accent-success' : 'text-accent'}`}>
         {isForfeit
-          ? `Team ${winner.team + 1} wins by forfeit!`
+          ? `${winner.players.join(' & ')} wins by forfeit!`
           : didWin
             ? 'You Win!'
             : 'You Lose!'}
       </p>
-      <div className="flex flex-col gap-2 mb-6 p-4 bg-surface-card rounded-lg border border-brass/10">
-        <div className="flex justify-between p-2">
-          <span className="text-cream-dark font-ancient">Team 1</span>
-          <span className="font-bold text-accent font-ancient">{scores.team0}</span>
-        </div>
-        <div className="flex justify-between p-2">
-          <span className="text-cream-dark font-ancient">Team 2</span>
-          <span className="font-bold text-turquoise font-ancient">{scores.team1}</span>
+      
+      <div className="flex flex-col gap-4 mb-8">
+        <div className="text-[10px] text-brass/40 uppercase font-ancient tracking-[0.2em] text-center mb-1">Match Score</div>
+        <div className="flex justify-center items-center gap-8 bg-surface-card p-6 rounded-xl border border-brass/10 shadow-inner">
+          <div className="flex flex-col items-center">
+            <span className="text-xs text-accent font-ancient uppercase mb-1">{myNickname}</span>
+            <span className="text-4xl font-ancient font-bold text-accent">{scores.team0}</span>
+            <span className="text-[9px] text-accent/40 font-ancient font-bold mt-2 tracking-widest">SESSION: {myPlayer?.wins || 0} - {myPlayer?.losses || 0}</span>
+          </div>
+          
+          <div className="text-brass/20 font-ancient text-xl">VS</div>
+
+          <div className="flex flex-col items-center">
+            <span className="text-xs text-turquoise font-ancient uppercase mb-1">{oppNickname}</span>
+            <span className="text-4xl font-ancient font-bold text-turquoise">{scores.team1}</span>
+            <span className="text-[9px] text-turquoise/40 font-ancient font-bold mt-2 tracking-widest">SESSION: {oppPlayer?.wins || 0} - {oppPlayer?.losses || 0}</span>
+          </div>
         </div>
       </div>
-      <div className="flex gap-4 justify-center">
-        <Button variant="secondary" onClick={handleNewGame}>Leave</Button>
-        <Button onClick={handleBackToLobby}>Back to Lobby</Button>
-      </div>
+
+      {isHost ? (
+        <div className="flex flex-col gap-3">
+          {!isForfeit && <Button className="w-full" onClick={handlePlayAgain}>Play Again</Button>}
+          <Button className="w-full" variant="secondary" onClick={handleBackToLobby}>Back to Lobby</Button>
+          <Button className="w-full" variant="danger" onClick={handleLeaveRoom}>Leave Room</Button>
+        </div>
+      ) : (
+        <div className="flex flex-col gap-3">
+          <div className="p-4 bg-brass/5 border border-brass/10 rounded-lg text-center">
+            <p className="text-brass font-ancient animate-pulse uppercase tracking-widest text-sm">
+              Waiting for host to replay...
+            </p>
+          </div>
+          <Button className="w-full" variant="danger" onClick={handleLeaveRoom}>Leave Room</Button>
+        </div>
+      )}
     </Modal>
   );
 }

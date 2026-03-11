@@ -7,33 +7,57 @@ import { useSocketStore } from '../stores/useSocketStore';
 
 export function useSocket() {
   const initialized = useRef(false);
+  const reconnectAttempted = useRef(false);
 
   useEffect(() => {
     if (initialized.current) return;
     initialized.current = true;
 
+    const { roomId, playerId, room } = useGameStore.getState();
+    
+    // IMMEDIATELY restore the correct screen on load
+    if (roomId && playerId) {
+      if (room && room.status === 'playing') {
+        console.log('[App] Session was in-game, restoring Game screen');
+        useUIStore.getState().setScreen('game');
+      } else {
+        console.log('[App] Session was in lobby, restoring Lobby screen');
+        useUIStore.getState().setScreen('lobby');
+      }
+    }
+
     // Connection events
     socket.on('connect', () => {
+      console.log('[Socket] Connected. ID:', socket.id);
       useSocketStore.getState().setConnected(true);
-      const { roomId, nickname } = useGameStore.getState();
-      if (roomId && nickname) {
-        socket.emit('rejoin_room', { roomId, nickname });
+      
+      const currentState = useGameStore.getState();
+      if (currentState.roomId && currentState.playerId) {
+        socket.emit('rejoin_game', { 
+          roomId: currentState.roomId, 
+          playerId: currentState.playerId 
+        });
+        reconnectAttempted.current = true;
       }
     });
 
     socket.on('disconnect', () => {
       useSocketStore.getState().setConnected(false);
-      useUIStore.getState().addToast('Disconnected from server', 'error');
     });
 
     socket.on('error', (data: { message: string }) => {
-      useUIStore.getState().addToast(data.message || 'Something went wrong', 'error');
-    });
-
-    // Room events
-    socket.on('room_created', (data: { roomId: string }) => {
-      useGameStore.getState().setRoomId(data.roomId);
-      useUIStore.getState().setScreen('lobby');
+      console.error('[Socket] Server Error:', data.message);
+      
+      const msg = data.message.toLowerCase();
+      // Only clear session if the server definitively says the room or player is gone
+      if (msg.includes('room not found') || msg.includes('session not found')) {
+         console.warn('[Socket] Session invalid, clearing local storage.');
+         useGameStore.getState().reset();
+         useUIStore.getState().setScreen('landing');
+      } else {
+         // Show as toast for other errors (like "You are now host")
+         useUIStore.getState().addToast(data.message, msg.includes('now the host') ? 'success' : 'error');
+      }
     });
 
     socket.on('room_joined', (data: { room: any; player: any }) => {
@@ -41,8 +65,8 @@ export function useSocket() {
       g.setRoomId(data.room.id);
       g.setPlayer(data.player.id, data.player.isHost);
       g.setRoom(data.room);
-      
-      // If we joined and the game is already playing, jump straight to game
+      g.setGameType(data.room.gameType || 'chkobba');
+
       if (data.room.status === 'playing') {
         useUIStore.getState().setScreen('game');
       } else {
@@ -50,8 +74,28 @@ export function useSocket() {
       }
     });
 
+    socket.on('game_state', (data: any) => {
+      const g = useGameStore.getState();
+      if ('drawPile' in data || 'discardPile' in data) {
+        g.setRummyGameState(data);
+      } else {
+        g.setGameState(data);
+      }
+      
+      // Critical: Ensure we stay on game screen if we have state
+      useUIStore.getState().setScreen('game');
+    });
+
     socket.on('room_update', (data: any) => {
       useGameStore.getState().setRoom(data);
+      // Ensure we are on the correct screen based on room status
+      if (data.status === 'lobby') {
+        const currentScreen = useUIStore.getState().screen;
+        if (currentScreen === 'game') {
+          console.log('[Socket] Room returned to lobby, switching screen');
+          useUIStore.getState().setScreen('lobby');
+        }
+      }
     });
 
     socket.on('player_joined', (data: { player: { nickname: string } }) => {
@@ -86,29 +130,12 @@ export function useSocket() {
       }
     });
 
-    // Game events
     socket.on('game_started', () => {
-      useUIStore.getState().setScreen('game');
-    });
-
-    socket.on('game_state', (data: any) => {
+      console.log('[Socket] game_started received');
       const g = useGameStore.getState();
-      const prevWinner = g.gameState?.winner;
-      const prevRound = g.gameState?.roundNumber;
-      g.setGameState(data);
-
-      // New round started — clear the round end modal
-      if (prevRound && data.roundNumber > prevRound) {
-        g.setRoundResult(null);
-      }
-
-      // Detect game over from game state
-      if (data.winner && !prevWinner) {
-        g.setGameOverData({
-          winner: data.winner,
-          scores: data.scores,
-        });
-      }
+      g.setGameOverData(null);
+      g.setRoundResult(null);
+      useUIStore.getState().setScreen('game');
     });
 
     socket.on('chkobba', (data: { playerNickname: string }) => {
@@ -141,6 +168,7 @@ export function useSocket() {
       const g = useGameStore.getState();
       g.setGameOverData(null);
       g.setGameState(null as any);
+      g.setRummyGameState(null as any);
       g.setRoundResult(null);
       useUIStore.getState().setScreen('lobby');
     });
@@ -154,14 +182,11 @@ export function useSocket() {
       });
     });
 
-    // Chat
     socket.on('chat_message', (data: any) => {
       useChatStore.getState().addMessage(data);
     });
 
-    // Start game event from server (auto-start when all ready)
     socket.on('start_game', () => {
-      // Server tells host to start - relay it back
       socket.emit('start_game');
     });
   }, []);
