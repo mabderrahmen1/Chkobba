@@ -1,26 +1,10 @@
-import { useEffect, useRef, useCallback } from 'react';
-import { useUIStore } from '../stores/useUIStore';
-
-// Singleton music instance — shared across all hook consumers
-let musicInstance: HTMLAudioElement | null = null;
-
-function getMusicInstance() {
-  if (!musicInstance) {
-    musicInstance = new Audio('/pics/song.mp3');
-    musicInstance.loop = true;
-    musicInstance.volume = useUIStore.getState().musicVolume;
-  }
-  return musicInstance;
-}
+import { useRef, useCallback } from 'react';
 
 /**
- * Enhanced sound system.
- * ambianceSoundOn + musicVolume control the background MUSIC.
- * Interaction sounds (Hookah, Coffee, Lighter) ALWAYS work with synthetic fallbacks.
+ * Sound system for interaction sounds (Hookah, Coffee, Lighter, Waitress).
+ * Background music is now handled by the VintageRadio YouTube player.
  */
 export function useAmbianceSound() {
-  const ambianceSoundOn = useUIStore((s) => s.ambianceSoundOn);
-  const musicVolume = useUIStore((s) => s.musicVolume);
   const ctxRef = useRef<AudioContext | null>(null);
 
   const getCtx = useCallback(() => {
@@ -30,22 +14,6 @@ export function useAmbianceSound() {
     if (ctxRef.current.state === 'suspended') ctxRef.current.resume();
     return ctxRef.current;
   }, []);
-
-  // Handle music play/pause based on toggle
-  useEffect(() => {
-    const music = getMusicInstance();
-    if (ambianceSoundOn) {
-      music.play().catch(() => {});
-    } else {
-      music.pause();
-    }
-  }, [ambianceSoundOn]);
-
-  // Handle volume changes
-  useEffect(() => {
-    const music = getMusicInstance();
-    music.volume = musicVolume;
-  }, [musicVolume]);
 
   // Hookah smoking sound
   const playBubble = useCallback(() => {

@@ -4,7 +4,7 @@ import { TableCards } from './TableCards';
 import { PlayerHand } from './PlayerHand';
 import { CapturedStack } from './CapturedStack';
 import { CafeAmbiance } from './ambiance/CafeAmbiance';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 
 export function GameTable() {
   const gameState = useGameStore((s) => s.gameState);
@@ -18,14 +18,6 @@ export function GameTable() {
   const opponents = gameState.players.filter((p) => p.id !== playerId);
   const is4Player = gameState.players.length >= 4;
   const isMyTurn = gameState.currentTurn === playerId;
-
-  // Who has the current turn?
-  const turnPlayer = gameState.players.find((p) => p.id === gameState.currentTurn);
-  const turnName = turnPlayer
-    ? turnPlayer.id === playerId
-      ? 'Your Turn'
-      : `${turnPlayer.nickname}'s Turn`
-    : '';
 
   let topPlayer, leftPlayer, rightPlayer;
 
@@ -105,30 +97,6 @@ export function GameTable() {
               </div>
 
               {/* Turn Indicator — always visible */}
-              <AnimatePresence mode="wait">
-                <motion.div
-                  key={gameState.currentTurn}
-                  initial={{ opacity: 0, y: -8, scale: 0.9 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: 8, scale: 0.9 }}
-                  transition={{ duration: 0.3 }}
-                  className={`absolute top-2 sm:top-5 left-1/2 -translate-x-1/2 px-4 sm:px-5 py-1.5 rounded-full backdrop-blur-sm z-40 ${
-                    isMyTurn
-                      ? 'bg-brass/20 border border-brass/50 shadow-glow-gold'
-                      : 'bg-black/30 border border-white/10'
-                  }`}
-                >
-                  <motion.span
-                    animate={isMyTurn ? { opacity: [1, 0.6, 1] } : { opacity: 0.7 }}
-                    transition={isMyTurn ? { duration: 1.8, repeat: Infinity, ease: 'easeInOut' } : {}}
-                    className={`font-ancient text-[10px] sm:text-xs uppercase tracking-widest font-bold ${
-                      isMyTurn ? 'text-brass' : 'text-cream-dark/60'
-                    }`}
-                  >
-                    {turnName}
-                  </motion.span>
-                </motion.div>
-              </AnimatePresence>
 
               <TableCards cards={gameState.tableCards} />
             </div>

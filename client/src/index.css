@@ -100,6 +100,15 @@
   }
 }
 
+/* Vintage Radio title scroll */
+@keyframes radio-scroll-title {
+  0% { transform: translateX(0%); }
+  10% { transform: translateX(0%); }
+  90% { transform: translateX(-100%); }
+  100% { transform: translateX(-100%); }
+}
+
+
 :root {
   --bg-primary: #0a0500;
   --bg-secondary: #1a120e;

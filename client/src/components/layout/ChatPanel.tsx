@@ -7,12 +7,34 @@ export function ChatPanel() {
   const [message, setMessage] = useState('');
   const isOpen = useChatStore((s) => s.isOpen);
   const messages = useChatStore((s) => s.messages);
+  const unreadCount = useChatStore((s) => s.unreadCount);
   const toggleChat = useChatStore((s) => s.toggleChat);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const prevMessageCount = useRef(messages.length);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  // Play notification sound when new message arrives and chat is closed
+  useEffect(() => {
+    if (messages.length > prevMessageCount.current && !isOpen) {
+      try {
+        const ctx = new AudioContext();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.frequency.value = 800;
+        osc.type = 'sine';
+        gain.gain.setValueAtTime(0.15, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+        osc.start(ctx.currentTime);
+        osc.stop(ctx.currentTime + 0.3);
+      } catch {}
+    }
+    prevMessageCount.current = messages.length;
+  }, [messages.length, isOpen]);
 
   const handleSend = (e: React.FormEvent) => {
     e.preventDefault();
@@ -92,6 +114,15 @@ export function ChatPanel() {
         }}
       >
         <span className="relative z-10" style={{ textShadow: '1px 1px 3px rgba(0,0,0,0.5)' }}>&#128172;</span>
+        {unreadCount > 0 && !isOpen && (
+          <motion.span
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            className="absolute -top-1 -right-1 sm:-top-1.5 sm:-right-1.5 min-w-[18px] h-[18px] sm:min-w-[22px] sm:h-[22px] bg-red-500 text-white text-[10px] sm:text-xs font-bold rounded-full flex items-center justify-center px-1 border-2 border-surface-alt shadow-lg"
+          >
+            {unreadCount > 9 ? '9+' : unreadCount}
+          </motion.span>
+        )}
       </button>
     </div>
   );
