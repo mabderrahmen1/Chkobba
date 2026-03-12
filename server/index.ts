@@ -190,7 +190,7 @@ function handleDisconnect(socket: Socket, room: Room, player: Player): void {
   room.removePlayer(player.id);
   
   // If host left, and we are not playing, we should promote new host immediately
-  if (wasHost && room.status === config.GAME_STATUS.LOBBY) {
+  if (wasHost && (room.status as string) === config.GAME_STATUS.LOBBY) {
     const newHost = room.players.find(p => p.isHost && p.isConnected);
     if (newHost) {
       const hostSocket = getSocketByPlayerId(newHost.id);
@@ -205,7 +205,7 @@ function handleDisconnect(socket: Socket, room: Room, player: Player): void {
   broadcastRoomUpdate(room.id);
 
   // If game is playing, start disconnect timer
-  if (room.status === config.GAME_STATUS.PLAYING) {
+  if ((room.status as string) === config.GAME_STATUS.PLAYING) {
     // Clear existing timer
     if (room.disconnectTimer) {
       clearTimeout(room.disconnectTimer);
@@ -232,7 +232,7 @@ function handleDisconnect(socket: Socket, room: Room, player: Player): void {
       const updatedPlayer = updatedRoom.players.find(p => p.id === player.id);
       if (updatedPlayer && !updatedPlayer.isConnected) {
         // Still disconnected - auto win for other team
-        updatedRoom.status = 'finished';
+        updatedRoom.status = config.GAME_STATUS.FINISHED;
         const winningTeam = player.team === 0 ? 1 : 0;
         io.to(room.id).emit('auto_win', {
           winner: { team: updatedRoom.gameType === 'rummy' ? 0 : winningTeam, reason: 'timeout' }
@@ -349,7 +349,7 @@ io.on('connection', (socket: Socket) => {
       });
 
       // Crucial: Send immediate game state if playing
-      if (room.status === config.GAME_STATUS.PLAYING) {
+      if ((room.status as string) === config.GAME_STATUS.PLAYING) {
         const game = room.gameType === 'rummy' ? rummyGames.get(room.id) : chkobbaGames.get(room.id);
         if (game) {
           const fullState = game.getFullState(playerId);
@@ -377,7 +377,7 @@ io.on('connection', (socket: Socket) => {
         return;
       }
 
-      if (room.status !== 'lobby') {
+      if ((room.status as string) !== config.GAME_STATUS.LOBBY) {
         socket.emit('error', { message: 'Game already started' });
         return;
       }
@@ -469,7 +469,7 @@ io.on('connection', (socket: Socket) => {
       });
 
       // Send game state if game is playing
-      if (room.status === config.GAME_STATUS.PLAYING) {
+      if ((room.status as string) === config.GAME_STATUS.PLAYING) {
         const game = room.gameType === 'rummy' ? rummyGames.get(room.id) : chkobbaGames.get(room.id);
         if (game) {
           socket.emit('game_state', game.getFullState(player.id));
@@ -539,7 +539,7 @@ io.on('connection', (socket: Socket) => {
     }
 
     // Create and start game based on game type
-    currentRoom.status = 'playing';
+    currentRoom.status = config.GAME_STATUS.PLAYING;
     
     if (currentRoom.gameType === 'rummy') {
       const game = getOrCreateRummyGame(currentRoom.id, currentRoom);
@@ -852,7 +852,7 @@ io.on('connection', (socket: Socket) => {
     console.log(`[Server] Resetting game for room ${currentRoom.id} (triggered by ${currentPlayer.nickname})`);
     
     // Reset room status but KEEP players and their wins/losses
-    currentRoom.status = 'lobby';
+    currentRoom.status = config.GAME_STATUS.LOBBY;
     for (const player of currentRoom.players) {
       player.isReady = false;
     }
@@ -877,7 +877,7 @@ io.on('connection', (socket: Socket) => {
     deleteGames(currentRoom.id);
 
     // Reset room to lobby state
-    currentRoom.status = 'lobby';
+    currentRoom.status = config.GAME_STATUS.LOBBY;
     for (const player of currentRoom.players) {
       player.isReady = false;
     }
@@ -941,7 +941,7 @@ io.on('connection', (socket: Socket) => {
 
     // If host left, we MUST reset the room to lobby so new host can manage it
     if (wasHost) {
-      currentRoom.status = 'lobby';
+      currentRoom.status = config.GAME_STATUS.LOBBY;
       // Clear any active games
       deleteGames(currentRoom.id);
       
