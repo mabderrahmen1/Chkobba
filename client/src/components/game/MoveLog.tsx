@@ -41,6 +41,7 @@ export function MoveLog() {
 
   // 2. Process new actions
   useEffect(() => {
+    // Only log capture actions (eated cards)
     if (lastAction && lastAction.type === 'capture' && lastAction.timestamp > lastProcessedTimestamp.current) {
       lastProcessedTimestamp.current = lastAction.timestamp;
       
@@ -62,7 +63,7 @@ export function MoveLog() {
       <div className="flex items-center gap-2 mb-4 ml-1">
         <div className="w-1.5 h-1.5 bg-brass rounded-full shadow-glow-brass" />
         <div className="text-[10px] text-brass/60 font-ancient uppercase tracking-[0.3em] font-bold">
-          Match History
+          Captured Cards
         </div>
       </div>
       

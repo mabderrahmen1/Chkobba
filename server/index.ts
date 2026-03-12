@@ -777,6 +777,7 @@ io.on('connection', (socket: Socket) => {
     const allReady = game.playerContinue(currentPlayer.id, connectedIds);
     if (allReady) {
       game.startNewRound();
+      io.to(currentRoom.id).emit('new_round');
       broadcastGameState(currentRoom.id);
     }
   });

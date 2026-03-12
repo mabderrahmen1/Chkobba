@@ -109,7 +109,7 @@ export function Scoreboard() {
     return (
       <div className={`flex items-center justify-between py-4 border-b border-white/5 last:border-0 relative ${isLeading ? 'bg-accent/5' : isLosing ? 'bg-turquoise/5' : ''} transition-colors px-2 rounded-lg`}>
         <div className="w-14 text-right">
-          <AnimatedNumber value={myVal} className={`font-ancient font-bold text-xl sm:text-2xl ${isLeading ? 'text-accent drop-shadow-glow-accent' : 'text-accent/60'}`} />
+          <AnimatedNumber value={myVal} className={`font-ancient font-bold text-xl sm:text-2xl ${isLeading ? 'text-accent drop-shadow-glow-accent' : 'text-accent'}`} />
         </div>
         
         <div className="flex flex-col items-center flex-1 px-4">
@@ -132,7 +132,7 @@ export function Scoreboard() {
         </div>
 
         <div className="w-14 text-left">
-          <AnimatedNumber value={oppVal} className={`font-ancient font-bold text-xl sm:text-2xl ${isLosing ? 'text-turquoise drop-shadow-glow-turquoise' : 'text-turquoise/60'}`} />
+          <AnimatedNumber value={oppVal} className={`font-ancient font-bold text-xl sm:text-2xl ${isLosing ? 'text-turquoise drop-shadow-glow-turquoise' : 'text-turquoise'}`} />
         </div>
       </div>
     );

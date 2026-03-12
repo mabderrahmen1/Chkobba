@@ -54,19 +54,24 @@ function GlowRing({ delay, size }: { delay: number; size: number }) {
 
 export function HayyaEffect() {
   const hayyaPlayer = useGameStore((s) => s.hayyaPlayer);
+  const nickname = useGameStore((s) => s.nickname);
   const [show, setShow] = useState(false);
 
+  // Only show if someone else made the Hayya
+  const isOpponentHayya = hayyaPlayer && hayyaPlayer !== nickname;
+
   useEffect(() => {
-    if (hayyaPlayer) {
+    if (isOpponentHayya) {
       setShow(true);
     } else {
-      const t = setTimeout(() => setShow(false), 400);
+      // Faster hide
+      const t = setTimeout(() => setShow(false), 300);
       return () => clearTimeout(t);
     }
-  }, [hayyaPlayer]);
+  }, [isOpponentHayya]);
 
   const diamonds = Array.from({ length: 16 }, (_, i) => ({
-    delay: Math.random() * 0.5,
+    delay: Math.random() * 0.4,
     x: (Math.random() - 0.5) * 400,
     y: (Math.random() - 0.5) * 350,
     size: 6 + Math.random() * 14,
@@ -75,25 +80,25 @@ export function HayyaEffect() {
 
   const rings = [
     { delay: 0, size: 80 },
-    { delay: 0.2, size: 160 },
-    { delay: 0.4, size: 260 },
+    { delay: 0.1, size: 160 },
+    { delay: 0.2, size: 260 },
   ];
 
   return (
     <AnimatePresence>
-      {show && hayyaPlayer && (
+      {show && isOpponentHayya && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 0.3 }}
+          transition={{ duration: 0.2 }}
           className="fixed inset-0 z-[100] flex items-center justify-center pointer-events-none"
         >
           {/* Orange radial flash */}
           <motion.div
             initial={{ opacity: 0 }}
-            animate={{ opacity: [0, 0.25, 0] }}
-            transition={{ duration: 0.8 }}
+            animate={{ opacity: [0, 0.3, 0] }}
+            transition={{ duration: 0.5 }}
             className="absolute inset-0"
             style={{ background: 'radial-gradient(circle, rgba(230,126,34,0.4) 0%, transparent 60%)' }}
           />
@@ -111,14 +116,14 @@ export function HayyaEffect() {
           {/* Center diamond icon + text */}
           <motion.div
             initial={{ scale: 0 }}
-            animate={{ scale: [0, 1.2, 1] }}
-            transition={{ duration: 0.5, ease: 'easeOut' }}
+            animate={{ scale: [0, 1.3, 1] }}
+            transition={{ duration: 0.4, ease: 'easeOut' }}
             className="relative z-10 flex flex-col items-center"
           >
             {/* Large diamond symbol */}
             <motion.div
               animate={{ rotate: [0, 10, -10, 0], scale: [1, 1.1, 1] }}
-              transition={{ duration: 2, repeat: 0, ease: 'easeInOut' }}
+              transition={{ duration: 1.2, repeat: 0, ease: 'easeInOut' }}
               className="text-5xl sm:text-7xl mb-2"
               style={{
                 filter: 'drop-shadow(0 0 20px rgba(230, 126, 34, 0.8))',
@@ -130,7 +135,7 @@ export function HayyaEffect() {
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
+              transition={{ delay: 0.25 }}
               className="text-2xl sm:text-4xl font-ancient font-bold tracking-wider"
               style={{
                 color: '#f39c12',
@@ -142,7 +147,7 @@ export function HayyaEffect() {
             <motion.div
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5 }}
+              transition={{ delay: 0.4 }}
               className="text-xs sm:text-sm font-ancient mt-1"
               style={{ color: '#e67e22', textShadow: '0 0 8px rgba(230,126,34,0.4)' }}
             >

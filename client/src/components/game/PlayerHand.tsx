@@ -81,10 +81,7 @@ export function PlayerHand() {
                 }}
                 exit={{
                   opacity: 0,
-                  y: -120,
-                  scale: 0.6,
-                  rotate: 0,
-                  transition: { duration: 0.4, ease: 'easeIn' },
+                  transition: { duration: 0 },
                 }}
                 whileHover={isMyTurn && !isSelected ? { y: arc.y - 15, scale: 1.03 } : undefined}
                 transition={{ type: 'spring', stiffness: 300, damping: 22 }}

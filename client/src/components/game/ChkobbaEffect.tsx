@@ -57,10 +57,14 @@ function Spark({ delay, angle, distance }: { delay: number; angle: number; dista
 
 export function ChkobbaEffect() {
   const chkobbaPlayer = useGameStore((s) => s.chkobbaPlayer);
+  const nickname = useGameStore((s) => s.nickname);
   const [show, setShow] = useState(false);
 
+  // Only show if someone else made the Chkobba
+  const isOpponentChkobba = chkobbaPlayer && chkobbaPlayer !== nickname;
+
   useEffect(() => {
-    if (chkobbaPlayer) {
+    if (isOpponentChkobba) {
       setShow(true);
       // Trigger screen shake
       const el = document.getElementById('game-screen');
@@ -70,13 +74,14 @@ export function ChkobbaEffect() {
         el.addEventListener('animationend', onEnd, { once: true });
       }
     } else {
-      const t = setTimeout(() => setShow(false), 500);
+      // Faster hide
+      const t = setTimeout(() => setShow(false), 300);
       return () => clearTimeout(t);
     }
-  }, [chkobbaPlayer]);
+  }, [isOpponentChkobba]);
 
   const particles = Array.from({ length: 24 }, (_, i) => ({
-    delay: Math.random() * 0.4,
+    delay: Math.random() * 0.3,
     x: (Math.random() - 0.5) * 500,
     y: (Math.random() - 0.5) * 400,
     size: 8 + Math.random() * 20,
@@ -84,26 +89,26 @@ export function ChkobbaEffect() {
   }));
 
   const sparks = Array.from({ length: 32 }, (_, i) => ({
-    delay: Math.random() * 0.6,
+    delay: Math.random() * 0.4,
     angle: (i * 360) / 32 + Math.random() * 15,
     distance: 100 + Math.random() * 200,
   }));
 
   return (
     <AnimatePresence>
-      {show && chkobbaPlayer && (
+      {show && isOpponentChkobba && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 0.3 }}
+          transition={{ duration: 0.2 }}
           className="fixed inset-0 z-[100] flex items-center justify-center pointer-events-none"
         >
           {/* Screen flash */}
           <motion.div
             initial={{ opacity: 0 }}
-            animate={{ opacity: [0, 0.3, 0] }}
-            transition={{ duration: 0.6 }}
+            animate={{ opacity: [0, 0.4, 0] }}
+            transition={{ duration: 0.4 }}
             className="absolute inset-0"
             style={{ background: 'radial-gradient(circle, rgba(212,175,55,0.4) 0%, transparent 70%)' }}
           />
@@ -112,7 +117,7 @@ export function ChkobbaEffect() {
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: [0, 0.8, 0.4, 0] }}
-            transition={{ duration: 2 }}
+            transition={{ duration: 1.2 }}
             className="absolute inset-0"
             style={{ boxShadow: 'inset 0 0 120px 40px rgba(212, 175, 55, 0.5)' }}
           />
@@ -130,13 +135,13 @@ export function ChkobbaEffect() {
           {/* Main text */}
           <motion.div
             initial={{ scale: 0, rotate: -15 }}
-            animate={{ scale: [0, 1.3, 1], rotate: [-15, 5, 0] }}
-            transition={{ duration: 0.6, ease: 'easeOut' }}
+            animate={{ scale: [0, 1.4, 1], rotate: [-15, 5, 0] }}
+            transition={{ duration: 0.4, ease: 'easeOut' }}
             className="relative z-10 flex flex-col items-center"
           >
             <motion.div
-              animate={{ scale: [1, 1.05, 1] }}
-              transition={{ duration: 1.5, repeat: 1, ease: 'easeInOut' }}
+              animate={{ scale: [1, 1.1, 1] }}
+              transition={{ duration: 0.8, repeat: 1, ease: 'easeInOut' }}
               className="text-4xl sm:text-6xl md:text-7xl font-ancient font-bold tracking-wider"
               style={{
                 color: '#f9e596',
@@ -148,7 +153,7 @@ export function ChkobbaEffect() {
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4 }}
+              transition={{ delay: 0.3 }}
               className="text-sm sm:text-lg font-ancient mt-2"
               style={{
                 color: '#d4af37',

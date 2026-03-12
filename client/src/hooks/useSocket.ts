@@ -98,6 +98,10 @@ export function useSocket() {
       setTimeout(() => useGameStore.getState().setChkobbaPlayer(null), 3500);
     });
 
+    socket.on('new_round', () => {
+      useGameStore.getState().setRoundResult(null);
+    });
+
     socket.on('hayya_captured', (data: { playerNickname: string }) => {
       useGameStore.getState().setHayyaPlayer(data.playerNickname);
       setTimeout(() => useGameStore.getState().setHayyaPlayer(null), 3000);

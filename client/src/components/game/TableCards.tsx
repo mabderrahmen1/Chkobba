@@ -24,6 +24,9 @@ export function TableCards({ cards }: TableCardsProps) {
     prevCount.current = cards.length;
   }, [cards.length]);
 
+  const lastAction = gameState?.lastAction;
+  const wasMe = lastAction?.playerId === playerId && lastAction.type === 'capture';
+
   if (cards.length === 0) {
     return (
       <div className="flex items-center justify-center min-h-[var(--card-height)] p-4">
@@ -47,7 +50,7 @@ export function TableCards({ cards }: TableCardsProps) {
                 scale: isSelected ? 1.06 : 1,
                 y: isSelected ? -8 : 0,
               }}
-              exit={{
+              exit={wasMe ? { opacity: 0, scale: 0, transition: { duration: 0 } } : {
                 opacity: 0,
                 scale: 0.3,
                 y: 40,
