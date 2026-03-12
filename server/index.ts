@@ -190,7 +190,7 @@ function handleDisconnect(socket: Socket, room: Room, player: Player): void {
   room.removePlayer(player.id);
   
   // If host left, and we are not playing, we should promote new host immediately
-  if (wasHost && room.status === 'lobby') {
+  if (wasHost && room.status === config.GAME_STATUS.LOBBY) {
     const newHost = room.players.find(p => p.isHost && p.isConnected);
     if (newHost) {
       const hostSocket = getSocketByPlayerId(newHost.id);
@@ -205,7 +205,7 @@ function handleDisconnect(socket: Socket, room: Room, player: Player): void {
   broadcastRoomUpdate(room.id);
 
   // If game is playing, start disconnect timer
-  if (room.status === 'playing') {
+  if (room.status === config.GAME_STATUS.PLAYING) {
     // Clear existing timer
     if (room.disconnectTimer) {
       clearTimeout(room.disconnectTimer);
@@ -349,7 +349,7 @@ io.on('connection', (socket: Socket) => {
       });
 
       // Crucial: Send immediate game state if playing
-      if (room.status === 'playing') {
+      if (room.status === config.GAME_STATUS.PLAYING) {
         const game = room.gameType === 'rummy' ? rummyGames.get(room.id) : chkobbaGames.get(room.id);
         if (game) {
           const fullState = game.getFullState(playerId);
@@ -409,7 +409,7 @@ io.on('connection', (socket: Socket) => {
       });
 
       // Send game state if game is playing and player is rejoining
-      if (room.status === 'playing') {
+      if (room.status === config.GAME_STATUS.PLAYING) {
         const game = room.gameType === 'rummy' ? rummyGames.get(room.id) : chkobbaGames.get(room.id);
         if (game) {
           socket.emit('game_state', game.getFullState(player.id));
@@ -477,7 +477,7 @@ io.on('connection', (socket: Socket) => {
       });
 
       // Send game state if game is playing
-      if (room.status === 'playing') {
+      if (room.status === config.GAME_STATUS.PLAYING) {
         const game = room.gameType === 'rummy' ? rummyGames.get(room.id) : chkobbaGames.get(room.id);
         if (game) {
           socket.emit('game_state', game.getFullState(player.id));
