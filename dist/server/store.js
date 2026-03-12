@@ -25,16 +25,17 @@ function generateRoomCode() {
  * @param {string} hostId - Host player ID
  * @param {number} targetScore - Target score to win
  * @param {number} maxPlayers - Maximum players (2 or 4)
+ * @param {GameType} gameType - Type of game to play
  * @returns {Room} The created room
  */
-export function createRoom(hostId, targetScore, maxPlayers) {
+export function createRoom(hostId, targetScore, maxPlayers, gameType = 'chkobba') {
     let roomCode;
     do {
         roomCode = generateRoomCode();
     } while (rooms.has(roomCode));
-    const room = new Room(roomCode, hostId, targetScore, maxPlayers);
+    const room = new Room(roomCode, hostId, targetScore, maxPlayers, gameType);
     rooms.set(roomCode, room);
-    console.log(`[Store] Room created: ${roomCode} by ${hostId}`);
+    console.log(`[Store] Room created: ${roomCode} by ${hostId} (${gameType})`);
     return room;
 }
 /**

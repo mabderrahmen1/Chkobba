@@ -408,19 +408,11 @@ io.on('connection', (socket: Socket) => {
         player
       });
 
-      // Send game state if game is playing and player is rejoining
-      if (room.status === config.GAME_STATUS.PLAYING) {
-        const game = room.gameType === 'rummy' ? rummyGames.get(room.id) : chkobbaGames.get(room.id);
-        if (game) {
-          socket.emit('game_state', game.getFullState(player.id));
-        }
-      }
-
       // Notify others
       socket.to(room.id).emit('player_joined', { player });
       broadcastRoomUpdate(room.id);
 
-      console.log(`[Server] ${nickname} joined/rejoined room ${roomId}`);
+      console.log(`[Server] ${nickname} joined room ${roomId}`);
     } catch (err) {
       console.error('[Server] Error joining room:', err);
       socket.emit('error', { message: 'Failed to join room' });

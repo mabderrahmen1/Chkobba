@@ -13,6 +13,7 @@ export class Game {
     roomId;
     targetScore;
     players;
+    originalPlayers; // Persistent session stats reference
     deck = [];
     tableCards = [];
     currentTurn = '';
@@ -31,6 +32,7 @@ export class Game {
     winner = null;
     lastRoundResult = null;
     roundJustEnded = false;
+    continuePlayers = new Set();
     /**
      * Create a new game
      * @param {string} roomId - Room ID
@@ -40,6 +42,7 @@ export class Game {
     constructor(roomId, players, targetScore) {
         this.roomId = roomId;
         this.targetScore = targetScore;
+        this.originalPlayers = players;
         this.players = players.map(p => ({
             ...p,
             hand: [],
@@ -83,12 +86,23 @@ export class Game {
         return this.getState();
     }
     /**
+     * Mark a player as ready to continue to the next round
+     * @param {string} playerId - Player who clicked continue
+     * @param {string[]} connectedPlayerIds - IDs of currently connected players (from Room)
+     * @returns {boolean} True if ALL connected players are now ready (new round should start)
+     */
+    playerContinue(playerId, connectedPlayerIds) {
+        this.continuePlayers.add(playerId);
+        return connectedPlayerIds.every(id => this.continuePlayers.has(id));
+    }
+    /**
      * Start a new round
      */
     startNewRound() {
         this.roundNumber++;
         this.roundScores = { team0: 0, team1: 0 };
         this.lastCapturer = null;
+        this.continuePlayers.clear();
         // Reset player hands and captured cards
         for (const player of this.players) {
             player.hand = [];
@@ -248,15 +262,34 @@ export class Game {
         }
     }
     endGame() {
+        let winningTeam = -1;
         if (this.scores.team0 > this.scores.team1) {
+            winningTeam = 0;
             this.winner = { team: 0, players: this.getTeam(0).map(p => p.nickname) };
         }
         else if (this.scores.team1 > this.scores.team0) {
+            winningTeam = 1;
             this.winner = { team: 1, players: this.getTeam(1).map(p => p.nickname) };
         }
         else {
             this.startNewRound();
             return;
+        }
+        if (winningTeam !== -1) {
+            // Update persistent stats in the original player objects (reference to Room players)
+            this.players.forEach(p => {
+                const orig = this.originalPlayers.find(op => op.id === p.id);
+                if (p.team === winningTeam) {
+                    p.wins = (p.wins || 0) + 1;
+                    if (orig)
+                        orig.wins = (orig.wins || 0) + 1;
+                }
+                else {
+                    p.losses = (p.losses || 0) + 1;
+                    if (orig)
+                        orig.losses = (orig.losses || 0) + 1;
+                }
+            });
         }
     }
     getState() {
@@ -265,17 +298,26 @@ export class Game {
             targetScore: this.targetScore,
             roundNumber: this.roundNumber,
             tableCards: this.tableCards,
-            players: this.players.map(p => ({
-                id: p.id,
-                nickname: p.nickname,
-                team: p.team,
-                handCount: p.hand.length,
-                capturedCount: p.capturedCards.length,
-                chkobbaCount: p.chkobbaCount,
-                isConnected: p.isConnected,
-                isHost: p.isHost,
-                isReady: p.isReady
-            })),
+            players: this.players.map(p => {
+                // Sync isHost from the original players reference
+                const orig = this.originalPlayers.find(op => op.id === p.id);
+                return {
+                    id: p.id,
+                    nickname: p.nickname,
+                    team: p.team,
+                    handCount: p.hand?.length || 0,
+                    capturedCount: p.capturedCards?.length || 0,
+                    chkobbaCount: p.chkobbaCount || 0,
+                    dinariCount: p.capturedCards ? p.capturedCards.filter(c => c.suit === 'diamonds').length : 0,
+                    sevensCount: p.capturedCards ? p.capturedCards.filter(c => c.rank === '7').length : 0,
+                    hasHaya: p.capturedCards ? p.capturedCards.some(c => c.rank === '7' && c.suit === 'diamonds') : false,
+                    wins: p.wins || 0,
+                    losses: p.losses || 0,
+                    isConnected: p.isConnected,
+                    isHost: orig?.isHost || p.isHost,
+                    isReady: p.isReady
+                };
+            }),
             currentTurn: this.currentTurn,
             scores: this.scores,
             roundScores: this.roundScores,
@@ -298,6 +340,19 @@ export class Game {
             state.hand = player.hand;
         }
         return state;
+    }
+    /**
+     * DEBUG FEATURE: Force a team to win
+     * @param {number} team - Team to win
+     */
+    forceWin(team) {
+        if (team === 0) {
+            this.scores.team0 = this.targetScore;
+        }
+        else {
+            this.scores.team1 = this.targetScore;
+        }
+        this.endGame();
     }
 }
 export default Game;

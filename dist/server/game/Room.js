@@ -25,14 +25,16 @@ export class Room {
     lastActivity;
     disconnectTimer = null;
     chatHistory = [];
+    gameType = 'chkobba';
     /**
      * Create a new room
      * @param {string} id - Room code
      * @param {string} hostId - Host player ID
      * @param {number} targetScore - Target score to win
      * @param {number} maxPlayers - Maximum players (2 or 4)
+     * @param {GameType} gameType - Type of game to play
      */
-    constructor(id, hostId, targetScore, maxPlayers) {
+    constructor(id, hostId, targetScore, maxPlayers, gameType) {
         this.id = id;
         this.hostId = hostId;
         this.targetScore = targetScore || config.DEFAULT_TARGET_SCORE;
@@ -43,6 +45,7 @@ export class Room {
         this.lastActivity = Date.now();
         this.disconnectTimer = null;
         this.chatHistory = [];
+        this.gameType = gameType || 'chkobba';
     }
     /**
      * Add a player to the room
@@ -51,25 +54,33 @@ export class Room {
      * @returns {Object} { player, error }
      */
     addPlayer(nickname, rejoinId = null) {
-        // Check if rejoining
+        // Check if rejoining by ID
         if (rejoinId) {
             const existingPlayer = this.players.find(p => p.id === rejoinId);
             if (existingPlayer) {
                 existingPlayer.isConnected = true;
-                existingPlayer.nickname = nickname; // Update nickname if changed
+                existingPlayer.nickname = nickname;
                 this.lastActivity = Date.now();
-                console.log(`[Room ${this.id}] Player reconnected: ${nickname}`);
+                console.log(`[Room ${this.id}] Player reconnected by ID: ${nickname}`);
                 return { player: existingPlayer, error: null };
             }
         }
-        // Check if room is full
-        if (this.players.length >= this.maxPlayers) {
-            return { player: null, error: 'Room is full' };
+        // Auto-detect rejoin by nickname if disconnected
+        const disconnectedSameName = this.players.find(p => !p.isConnected && p.nickname.toLowerCase() === nickname.toLowerCase());
+        if (disconnectedSameName) {
+            disconnectedSameName.isConnected = true;
+            this.lastActivity = Date.now();
+            console.log(`[Room ${this.id}] Player reconnected by nickname: ${nickname}`);
+            return { player: disconnectedSameName, error: null };
         }
-        // Check if nickname is taken (for non-disconnected players)
+        // Check if nickname is taken by an ACTIVE player
         const nicknameTaken = this.players.some(p => p.nickname.toLowerCase() === nickname.toLowerCase() && p.isConnected);
         if (nicknameTaken) {
             return { player: null, error: 'Nickname already taken' };
+        }
+        // Check if room is full (only if not rejoining)
+        if (this.players.length >= this.maxPlayers) {
+            return { player: null, error: 'Room is full' };
         }
         // Create new player
         const player = {
@@ -81,8 +92,16 @@ export class Room {
             isReady: false,
             handCount: 0,
             capturedCount: 0,
-            chkobbaCount: 0
+            chkobbaCount: 0,
+            dinariCount: 0,
+            sevensCount: 0,
+            hasHaya: false,
+            wins: 0,
+            losses: 0
         };
+        if (player.isHost) {
+            this.hostId = player.id;
+        }
         this.players.push(player);
         this.lastActivity = Date.now();
         console.log(`[Room ${this.id}] Player joined: ${nickname} (team ${player.team})`);
@@ -103,26 +122,43 @@ export class Room {
         }
     }
     /**
-     * Remove a player from the room
+     * Remove a player from the room (mark as disconnected)
      * @param {string} playerId - Player ID
+     * @param {boolean} permanent - If true, remove from players array entirely
      * @returns {Player|null} The removed player or null
      */
-    removePlayer(playerId) {
+    removePlayer(playerId, permanent = false) {
         const index = this.players.findIndex(p => p.id === playerId);
         if (index === -1)
             return null;
         const player = this.players[index];
+        const wasHost = player.isHost;
         player.isConnected = false;
+        if (permanent) {
+            this.players.splice(index, 1);
+        }
         this.lastActivity = Date.now();
-        console.log(`[Room ${this.id}] Player disconnected: ${player.nickname}`);
-        // If host disconnected, assign new host
-        if (player.isHost) {
-            const connectedPlayer = this.players.find(p => p.id !== playerId && p.isConnected);
-            if (connectedPlayer) {
-                connectedPlayer.isHost = true;
+        console.log(`[Room ${this.id}] Player ${permanent ? 'removed' : 'disconnected'}: ${player.nickname}`);
+        // If host left, assign new host to another CONNECTED player
+        if (wasHost) {
+            player.isHost = false;
+            const nextHost = this.players.find(p => p.isConnected);
+            if (nextHost) {
+                nextHost.isHost = true;
+                this.hostId = nextHost.id;
+                console.log(`[Room ${this.id}] New host assigned: ${nextHost.nickname}`);
             }
         }
         return player;
+    }
+    /**
+     * Update room settings (Host only)
+     */
+    updateSettings(maxPlayers, gameType, targetScore) {
+        this.maxPlayers = maxPlayers;
+        this.gameType = gameType;
+        this.targetScore = targetScore;
+        this.lastActivity = Date.now();
     }
     /**
      * Mark a player as ready
@@ -199,9 +235,14 @@ export class Room {
             targetScore: this.targetScore,
             maxPlayers: this.maxPlayers,
             status: this.status,
-            players: this.players.map(p => ({ ...p })),
+            players: this.players.map(p => ({
+                ...p,
+                wins: p.wins || 0,
+                losses: p.losses || 0
+            })),
             createdAt: this.createdAt,
-            lastActivity: this.lastActivity
+            lastActivity: this.lastActivity,
+            gameType: this.gameType
         };
     }
 }

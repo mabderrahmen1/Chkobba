@@ -9,6 +9,8 @@ export const SUITS = {
     SPADES: 'spades'
 };
 export const RANKS = ['A', '2', '3', '4', '5', '6', '7', 'J', 'Q', 'K'];
+export const JOKER_RANK = 'Joker';
+export const RUMMY_RANKS = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
 export const CARD_VALUES = {
     'A': 1,
     '2': 2,
@@ -41,3 +43,21 @@ export const GAME_STATUS = {
     PLAYING: 'playing',
     FINISHED: 'finished'
 };
+export const GAME_TYPE = {
+    CHKOBBA: 'chkobba',
+    RUMMY: 'rummy'
+};
+// Rummy-specific constants
+export const RUMMY_INITIAL_HAND_SIZE = 13;
+export const RUMMY_MIN_SEQUENCE_LENGTH = 3;
+export const RUMMY_MIN_SET_SIZE = 3;
+export const RUMMY_MAX_PLAYERS_SINGLE_DECK = 6;
+export const RUMMY_MAX_PLAYERS_TWO_DECKS = 8;
+export const RUMMY_MAX_PLAYERS_THREE_DECKS = 12;
+export function getDeckCountForPlayers(playerCount) {
+    if (playerCount <= RUMMY_MAX_PLAYERS_SINGLE_DECK)
+        return 1;
+    if (playerCount <= RUMMY_MAX_PLAYERS_TWO_DECKS)
+        return 2;
+    return 3;
+}
