@@ -19,17 +19,17 @@ const server = http.createServer(app);
 // Initialize Socket.IO
 const io = new Server(server, {
     cors: {
-        origin: '*',
-        methods: ['GET', 'POST']
+        origin: true, // Dynamically allow any origin for development/testing
+        methods: ["GET", "POST"],
+        credentials: true
     }
 });
-// Serve static files from client dist directory
-// Path is relative to project root, not compiled dist/server/
-const clientDistPath = path.join(__dirname, '../../client/dist');
+// Serve static files from client build (for Render deployment)
+const clientDistPath = path.join(__dirname, '..', '..', 'client', 'dist');
 app.use(express.static(clientDistPath));
-// Serve main HTML for all routes (SPA behavior)
-app.get('*', (req, res) => {
-    res.sendFile(path.join(clientDistPath, 'index.html'));
+// Health check route
+app.get("/health", (req, res) => {
+    res.status(200).send("OK");
 });
 // Game instances stored by room ID
 const chkobbaGames = new Map();
@@ -656,6 +656,7 @@ io.on('connection', (socket) => {
         const allReady = game.playerContinue(currentPlayer.id, connectedIds);
         if (allReady) {
             game.startNewRound();
+            io.to(currentRoom.id).emit('new_round');
             broadcastGameState(currentRoom.id);
         }
     });
@@ -850,6 +851,10 @@ io.on('connection', (socket) => {
         currentRoom = null;
         currentPlayer = null;
     });
+});
+// SPA fallback — serve index.html for all non-API/socket routes
+app.get('*', (_req, res) => {
+    res.sendFile(path.join(clientDistPath, 'index.html'));
 });
 // Start cleanup timer
 store.startCleanupTimer();

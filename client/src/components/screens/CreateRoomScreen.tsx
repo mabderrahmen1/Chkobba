@@ -4,7 +4,6 @@ import { useGameStore } from '../../stores/useGameStore';
 import { useUIStore } from '../../stores/useUIStore';
 import { socket } from '../../lib/socket';
 import { Button } from '../ui/Button';
-import { Select } from '../ui/Select';
 import type { GameType } from '@shared/rules.js';
 
 export function CreateRoomScreen() {
@@ -23,43 +22,116 @@ export function CreateRoomScreen() {
       initial={{ opacity: 0, x: 20 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -20 }}
-      className="h-full flex items-center justify-center relative"
+      className="h-full flex items-center justify-center relative overflow-hidden"
     >
       <div className="absolute inset-0" style={{
         background: 'radial-gradient(ellipse at 50% 40%, rgba(90,53,32,0.3) 0%, rgba(26,18,14,1) 70%)'
       }} />
 
-      <div className="flex flex-col gap-4 sm:gap-6 px-4 sm:px-8 max-w-md w-full relative z-10">
-        <h2 className="text-2xl font-ancient font-bold text-center text-brass">Create New Room</h2>
+      {/* The Table — bigger */}
+      <div className="relative z-10 w-full max-w-xl mx-4">
+        <div
+          className="relative rounded-[32px] sm:rounded-[40px] border-[5px] sm:border-[7px] border-amber-900/80 px-6 py-7 sm:px-10 sm:py-9"
+          style={{
+            background: 'radial-gradient(circle, #3a6b35 0%, #2d5429 60%, #1e3a1c 100%)',
+            boxShadow: 'inset 0 0 50px rgba(0,0,0,0.5), 0 10px 40px rgba(0,0,0,0.6)',
+          }}
+        >
+          <div className="absolute inset-0 rounded-[28px] sm:rounded-[36px] pointer-events-none"
+            style={{ boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.05)' }} />
 
-        <div className="flex flex-col gap-2">
-          <label className="font-ancient text-sm text-cream-dark">Game Type</label>
-          <Select value={gameType} onChange={(e) => setGameType(e.target.value as GameType)}>
-            <option value="chkobba">Chkobba</option>
-            <option value="rummy">Rummy</option>
-          </Select>
-        </div>
+          <h2 className="text-center text-brass font-ancient text-lg sm:text-xl font-bold mb-6 sm:mb-8 uppercase tracking-widest">
+            Set Up Game
+          </h2>
 
-        <div className="flex flex-col gap-2">
-          <label className="font-ancient text-sm text-cream-dark">Target Score</label>
-          <Select value={targetScore} onChange={(e) => setTargetScore(Number(e.target.value))}>
-            <option value={11}>11</option>
-            <option value={21}>21</option>
-            <option value={31}>31</option>
-          </Select>
-        </div>
+          {/* Game Type — two toggle buttons */}
+          <div className="mb-6 sm:mb-8">
+            <div className="text-cream/30 font-ancient text-[9px] sm:text-[10px] uppercase tracking-[0.25em] text-center mb-3">
+              Game
+            </div>
+            <div className="flex justify-center gap-0 rounded-lg overflow-hidden border border-brass/30 max-w-xs mx-auto">
+              <button
+                onClick={() => setGameType('chkobba')}
+                className={`flex-1 py-2.5 sm:py-3 font-ancient text-sm sm:text-base font-bold uppercase tracking-wider transition-all duration-200 ${
+                  gameType === 'chkobba'
+                    ? 'bg-brass/90 text-black'
+                    : 'bg-black/40 text-cream/25 hover:text-cream/40'
+                }`}
+              >
+                Chkobba
+              </button>
+              <button
+                onClick={() => setGameType('rummy')}
+                className={`flex-1 py-2.5 sm:py-3 font-ancient text-sm sm:text-base font-bold uppercase tracking-wider transition-all duration-200 ${
+                  gameType === 'rummy'
+                    ? 'bg-brass/90 text-black'
+                    : 'bg-black/40 text-cream/25 hover:text-cream/40'
+                }`}
+              >
+                Rummy
+              </button>
+            </div>
+          </div>
 
-        <div className="flex flex-col gap-2">
-          <label className="font-ancient text-sm text-cream-dark">Players</label>
-          <Select value={maxPlayers} onChange={(e) => setMaxPlayers(Number(e.target.value))}>
-            <option value={2}>2 Players</option>
-            <option value={4}>4 Players (2v2)</option>
-          </Select>
-        </div>
+          {/* Target Score — chips */}
+          <div className="mb-6 sm:mb-8">
+            <div className="text-cream/30 font-ancient text-[9px] sm:text-[10px] uppercase tracking-[0.25em] text-center mb-3">
+              Target Score
+            </div>
+            <div className="flex justify-center gap-3 sm:gap-4">
+              {[11, 21, 31].map((score) => (
+                <motion.button
+                  key={score}
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setTargetScore(score)}
+                  className={`w-12 h-12 sm:w-14 sm:h-14 rounded-full font-ancient font-bold text-sm sm:text-base
+                    transition-all duration-200 border-2 ${
+                    targetScore === score
+                      ? 'bg-brass/90 text-black border-brass shadow-[0_0_16px_rgba(212,175,55,0.5)] scale-110'
+                      : 'bg-black/30 text-cream/40 border-brass/20 hover:border-brass/40'
+                  }`}
+                >
+                  {score}
+                </motion.button>
+              ))}
+            </div>
+          </div>
 
-        <div className="flex gap-4 mt-4">
-          <Button onClick={handleCreate} className="flex-1">Create</Button>
-          <Button variant="secondary" onClick={() => setScreen('landing')} className="flex-1">Cancel</Button>
+          {/* Players */}
+          <div className="mb-7 sm:mb-9">
+            <div className="text-cream/30 font-ancient text-[9px] sm:text-[10px] uppercase tracking-[0.25em] text-center mb-3">
+              Players
+            </div>
+            <div className="flex justify-center gap-0 rounded-lg overflow-hidden border border-brass/30 max-w-[200px] mx-auto">
+              <button
+                onClick={() => setMaxPlayers(2)}
+                className={`flex-1 py-2 sm:py-2.5 font-ancient text-xs sm:text-sm font-bold tracking-wider transition-all duration-200 ${
+                  maxPlayers === 2
+                    ? 'bg-brass/90 text-black'
+                    : 'bg-black/40 text-cream/25 hover:text-cream/40'
+                }`}
+              >
+                1 vs 1
+              </button>
+              <button
+                onClick={() => setMaxPlayers(4)}
+                className={`flex-1 py-2 sm:py-2.5 font-ancient text-xs sm:text-sm font-bold tracking-wider transition-all duration-200 ${
+                  maxPlayers === 4
+                    ? 'bg-brass/90 text-black'
+                    : 'bg-black/40 text-cream/25 hover:text-cream/40'
+                }`}
+              >
+                2 vs 2
+              </button>
+            </div>
+          </div>
+
+          {/* Action buttons */}
+          <div className="flex gap-3 sm:gap-4 max-w-sm mx-auto">
+            <Button onClick={handleCreate} className="flex-1">Create</Button>
+            <Button variant="secondary" onClick={() => setScreen('landing')} className="flex-1">Cancel</Button>
+          </div>
         </div>
       </div>
     </motion.section>

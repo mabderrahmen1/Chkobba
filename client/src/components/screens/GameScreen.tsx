@@ -18,7 +18,7 @@ import { Button } from '../ui/Button';
 export function GameScreen() {
   const gameState = useGameStore((s) => s.gameState);
   const rummyGameState = useGameStore((s) => s.rummyGameState);
-  const gameType = useGameStore((s) => s.gameType);
+  const gameType = useGameStore((s) => s.gameType || s.room?.gameType);
   const playerId = useGameStore((s) => s.playerId);
   const autoWinWarning = useGameStore((s) => s.autoWinWarning);
 

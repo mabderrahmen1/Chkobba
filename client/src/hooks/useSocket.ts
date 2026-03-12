@@ -63,7 +63,10 @@ export function useSocket() {
       const ui = useUIStore.getState();
       if (ui.screen === 'landing') return; // Do not update if we are leaving
 
-      useGameStore.getState().setRoom(data);
+      const g = useGameStore.getState();
+      g.setRoom(data);
+      // Keep gameType in sync with the room's gameType
+      if (data.gameType) g.setGameType(data.gameType);
       if (data.status === 'lobby' && ui.screen === 'game') {
         ui.setScreen('lobby');
       }
@@ -82,12 +85,17 @@ export function useSocket() {
     socket.on('game_state', (data: any) => {
       const g = useGameStore.getState();
       const ui = useUIStore.getState();
-      
+
       if (ui.screen === 'landing') return;
 
-      if ('drawPile' in data) g.setRummyGameState(data);
-      else g.setGameState(data);
-      
+      if ('drawPile' in data) {
+        g.setRummyGameState(data);
+        g.setGameType('rummy');
+      } else {
+        g.setGameState(data);
+        if (!g.gameType || g.gameType !== 'rummy') g.setGameType('chkobba');
+      }
+
       if (ui.screen === 'lobby') {
         ui.setScreen('game');
       }

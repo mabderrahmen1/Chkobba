@@ -466,7 +466,8 @@ export class RummyGame {
       tableMelds: this.tableMelds,
       winner: this.winner,
       deckCount: this.deckCount,
-      canLayOff: this.canLayOff
+      canLayOff: this.canLayOff,
+      hasDrawn: this.hasDrawn
     };
   }
 

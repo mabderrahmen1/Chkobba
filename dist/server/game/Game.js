@@ -33,6 +33,7 @@ export class Game {
     lastRoundResult = null;
     roundJustEnded = false;
     continuePlayers = new Set();
+    lastAction = null;
     /**
      * Create a new game
      * @param {string} roomId - Room ID
@@ -103,6 +104,7 @@ export class Game {
         this.roundScores = { team0: 0, team1: 0 };
         this.lastCapturer = null;
         this.continuePlayers.clear();
+        this.lastAction = null;
         // Reset player hands and captured cards
         for (const player of this.players) {
             player.hand = [];
@@ -193,13 +195,21 @@ export class Game {
             }
             player.capturedCards.push(...capturedCards);
             this.lastCapturer = playerId;
+            // Track last action for animation
+            this.lastAction = {
+                type: 'capture',
+                playerId,
+                card: { ...playedCard },
+                capturedCards: selectedTableCards.map(c => ({ ...c })),
+                isChkobba: this.tableCards.length === 0 && !this.isRoundOver(),
+                isHayya: capturedCards.some(c => c.rank === '7' && c.suit === 'diamonds'),
+                timestamp: Date.now()
+            };
             // Check for Chkobba
             const isChkobba = this.tableCards.length === 0 && !this.isRoundOver();
             if (isChkobba) {
                 player.chkobbaCount++;
             }
-            // Check for Hayya (7 of diamonds captured)
-            const isHayya = capturedCards.some(c => c.rank === '7' && c.suit === 'diamonds');
             this.afterCardPlayed(playerId, isChkobba);
             return {
                 success: true,
@@ -207,7 +217,7 @@ export class Game {
                     player: playerId,
                     cards: capturedCards,
                     isChkobba,
-                    isHayya
+                    isHayya: this.lastAction.isHayya
                 }
             };
         }
@@ -216,6 +226,13 @@ export class Game {
         // For now, allow discard if user explicitly chose no table cards.
         player.hand.splice(cardIndex, 1);
         this.tableCards.push(playedCard);
+        // Track last action for animation
+        this.lastAction = {
+            type: 'play',
+            playerId,
+            card: { ...playedCard },
+            timestamp: Date.now()
+        };
         console.log(`[Game ${this.roomId}] ${player.nickname} played ${playedCard.rank} of ${playedCard.suit} (discard)`);
         this.afterCardPlayed(playerId);
         return { success: true };
@@ -330,7 +347,8 @@ export class Game {
                     cards: o.cards
                 }))
             } : null,
-            winner: this.winner
+            winner: this.winner,
+            lastAction: this.lastAction
         };
     }
     getFullState(playerId) {

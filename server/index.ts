@@ -33,14 +33,13 @@ const io = new Server(server, {
     }
   });
 
-// Add a root route for the Render URL so it's not a blank page
-app.get('/', (req, res) => {
-  res.status(200).send('Chkobba Backend is Running! 🃏 Please use the Vercel URL to play.');
-});
+// Serve static files from client build (for Render deployment)
+const clientDistPath = path.join(__dirname, '..', '..', 'client', 'dist');
+app.use(express.static(clientDistPath));
 
 // Health check route
 app.get("/health", (req, res) => {
-  res.status(200).send("Backend is running perfectly! 🃏");
+  res.status(200).send("OK");
 });
 
 // Game instances stored by room ID
@@ -827,19 +826,23 @@ io.on('connection', (socket: Socket) => {
    */
   socket.on('play_again', () => {
     if (!currentRoom || !currentPlayer) return;
-    const game = chkobbaGames.get(currentRoom.id);
-    
+
     // Clear the current game data
     chkobbaGames.delete(currentRoom.id);
     rummyGames.delete(currentRoom.id);
 
-    // Start a fresh game in same room
-    const newGame = getOrCreateChkobbaGame(currentRoom.id, currentRoom);
-    newGame.start();
+    // Start a fresh game in same room, respecting current game type
+    if (currentRoom.gameType === 'rummy') {
+      const newGame = getOrCreateRummyGame(currentRoom.id, currentRoom);
+      newGame.start();
+    } else {
+      const newGame = getOrCreateChkobbaGame(currentRoom.id, currentRoom);
+      newGame.start();
+    }
 
     io.to(currentRoom.id).emit('game_started');
     broadcastGameState(currentRoom.id);
-    console.log(`[Server] Room ${currentRoom.id} started a new match (Play Again)`);
+    console.log(`[Server] Room ${currentRoom.id} started a new ${currentRoom.gameType} match (Play Again)`);
   });
 
   /**
@@ -1003,6 +1006,11 @@ io.on('connection', (socket: Socket) => {
     currentRoom = null;
     currentPlayer = null;
   });
+});
+
+// SPA fallback — serve index.html for all non-API/socket routes
+app.get('*', (_req, res) => {
+  res.sendFile(path.join(clientDistPath, 'index.html'));
 });
 
 // Start cleanup timer

@@ -29,7 +29,14 @@ export function RummyGameScreen() {
 
   const [isOverMeldZone, setIsOverMeldZone] = useState(false);
 
-  if (!gameState) return null;
+  if (!gameState) {
+    return (
+      <div className="h-full flex flex-col items-center justify-center bg-[#1a120e]">
+        <div className="w-12 h-12 border-4 border-brass border-t-transparent rounded-full animate-spin mb-4" />
+        <p className="text-brass font-ancient animate-pulse uppercase tracking-widest">Preparing Table...</p>
+      </div>
+    );
+  }
 
   const currentPlayer = gameState.players.find((p) => p.id === playerId);
   const isCurrentTurn = gameState.currentTurn === playerId;
@@ -63,7 +70,7 @@ export function RummyGameScreen() {
   };
 
   const sortedHand = getSortedHand();
-  const hasDrawn = true; // Simplified - would track from game state
+  const hasDrawn = gameState.hasDrawn;
 
   const handleDraw = () => {
     if (!isCurrentTurn || !isConnected) return;

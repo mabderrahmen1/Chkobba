@@ -1,6 +1,8 @@
 import { motion } from 'framer-motion';
 import type { Card as CardType } from '@shared/types.js';
 import { generateCardSVG, generateCardBackSVG } from '../../lib/cardUtils';
+import { useGameStore } from '../../stores/useGameStore';
+import type { CardStyle } from '../../lib/cardUtils';
 
 interface CardProps {
   card?: CardType;
@@ -19,7 +21,9 @@ export function Card({
   small = false,
   onClick,
 }: CardProps) {
-  const svg = faceDown || !card ? generateCardBackSVG() : generateCardSVG(card.rank, card.suit);
+  const gameType = useGameStore((s) => s.gameType || s.room?.gameType);
+  const style: CardStyle = gameType === 'rummy' ? 'bicycle' : 'chkobba';
+  const svg = faceDown || !card ? generateCardBackSVG() : generateCardSVG(card.rank, card.suit, style);
 
   return (
     <motion.div

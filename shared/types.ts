@@ -129,4 +129,5 @@ export interface RummyGameState {
   winner: Winner | null;
   deckCount: number; // Number of decks used
   canLayOff: boolean; // Can players lay off cards on existing melds
+  hasDrawn: boolean; // Whether current player has drawn this turn
 }

@@ -1,17 +1,16 @@
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { useGameStore } from '../../stores/useGameStore';
 import { useUIStore } from '../../stores/useUIStore';
 import { socket } from '../../lib/socket';
 import { Button } from '../ui/Button';
 import { Badge } from '../ui/Badge';
-import { Select } from '../ui/Select';
 import { useState, useEffect } from 'react';
 import type { GameType } from '@shared/rules.js';
 
 export function LobbyScreen() {
   const room = useGameStore((s) => s.room);
   const playerId = useGameStore((s) => s.playerId);
-  const isHost = room?.hostId === playerId; // React directly to room hostId
+  const isHost = room?.hostId === playerId;
   const setScreen = useUIStore((s) => s.setScreen);
   const addToast = useUIStore((s) => s.addToast);
   const reset = useGameStore((s) => s.reset);
@@ -19,16 +18,15 @@ export function LobbyScreen() {
   const [settings, setSettings] = useState({
     maxPlayers: room?.maxPlayers || 2,
     gameType: (room?.gameType || 'chkobba') as GameType,
-    targetScore: room?.targetScore || 21
+    targetScore: room?.targetScore || 21,
   });
 
-  // Sync settings when room updates from server
   useEffect(() => {
     if (room) {
       setSettings({
         maxPlayers: room.maxPlayers,
         gameType: room.gameType,
-        targetScore: room.targetScore
+        targetScore: room.targetScore,
       });
     }
   }, [room?.id, room?.maxPlayers, room?.gameType, room?.targetScore]);
@@ -43,9 +41,7 @@ export function LobbyScreen() {
   }
 
   const currentPlayer = room.players.find((p) => p.id === playerId);
-  
   if (!currentPlayer) {
-    console.warn('[Lobby] Player not found in room players list');
     return (
       <div className="h-full flex flex-col items-center justify-center bg-[#1a120e]">
         <div className="w-12 h-12 border-4 border-brass border-t-transparent rounded-full animate-spin mb-4" />
@@ -76,7 +72,6 @@ export function LobbyScreen() {
     addToast('Settings updated', 'success');
   };
 
-  // Calculate positions around the table
   const maxSeats = room.maxPlayers;
   const seats = Array.from({ length: maxSeats }, (_, i) => {
     const player = room.players[i] || null;
@@ -85,6 +80,10 @@ export function LobbyScreen() {
     return { player, angle, rad };
   });
 
+  // Responsive seat radius
+  const smRadius = 120;
+  const lgRadius = 160;
+
   return (
     <motion.section
       initial={{ opacity: 0 }}
@@ -92,113 +91,130 @@ export function LobbyScreen() {
       exit={{ opacity: 0 }}
       className="h-full flex items-center justify-center overflow-y-auto relative bg-black"
     >
-      {/* Immersive Background Image */}
-      <div 
+      {/* Background */}
+      <div
         className="absolute inset-0 z-0 bg-cover bg-center opacity-30 grayscale-[10%]"
         style={{ backgroundImage: "url('/tun1.jpg')" }}
       />
-
       <div className="absolute inset-0 z-0" style={{
         background: 'radial-gradient(ellipse at 50% 40%, rgba(26,18,14,0.7) 0%, rgba(26,18,14,1) 90%)'
       }} />
 
-      <div className="flex flex-col gap-4 sm:gap-6 px-4 sm:px-8 max-w-2xl w-full py-4 sm:py-8 relative z-10 items-center">
+      <div className="flex flex-col gap-4 sm:gap-5 px-4 sm:px-8 max-w-3xl w-full py-4 sm:py-8 relative z-10 items-center">
+        {/* Room code */}
         <div className="text-center">
-          <h2 className="text-2xl font-ancient font-bold text-brass mb-4">Lobby</h2>
+          <h2 className="text-xl sm:text-2xl font-ancient font-bold text-brass mb-3">Lobby</h2>
           <div className="flex items-center justify-center gap-3 flex-wrap">
             <span className="text-cream-dark/60 font-ancient text-sm">Room:</span>
-            <span className="font-mono text-2xl tracking-widest bg-surface-card px-4 py-2 rounded-lg text-brass border border-brass/20">
+            <span className="font-mono text-xl sm:text-2xl tracking-widest bg-surface-card px-4 py-2 rounded-lg text-brass border border-brass/20">
               {room.id}
             </span>
             <Button size="sm" variant="secondary" onClick={handleCopy}>Copy</Button>
           </div>
         </div>
 
-        {/* Host Settings - Matches Create Room UI */}
-        {isHost && (
-          <div className="w-full max-w-sm p-5 bg-black/40 border border-brass/20 rounded-xl space-y-4 shadow-2xl backdrop-blur-md">
-            <div className="text-[10px] text-brass font-ancient uppercase tracking-[0.3em] text-center border-b border-brass/10 pb-2 mb-2">
-              Room Configuration
-            </div>
-            
-            <div className="grid grid-cols-1 gap-3">
-              <div className="flex flex-col gap-1">
-                <label className="text-[10px] text-cream/40 uppercase font-ancient ml-1">Game Type</label>
-                <Select 
-                  value={settings.gameType} 
-                  onChange={(e) => setSettings(s => ({ ...s, gameType: e.target.value as GameType }))}
-                >
-                  <option value="chkobba">Chkobba</option>
-                  <option value="rummy">Rummy</option>
-                </Select>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div className="flex flex-col gap-1">
-                  <label className="text-[10px] text-cream/40 uppercase font-ancient ml-1">Target Score</label>
-                  <Select 
-                    value={settings.targetScore} 
-                    onChange={(e) => setSettings(s => ({ ...s, targetScore: Number(e.target.value) }))}
-                  >
-                    <option value={11}>11 Pts</option>
-                    <option value={21}>21 Pts</option>
-                    <option value={31}>31 Pts</option>
-                  </Select>
-                </div>
-                <div className="flex flex-col gap-1">
-                  <label className="text-[10px] text-cream/40 uppercase font-ancient ml-1">Max Players</label>
-                  <Select 
-                    value={settings.maxPlayers} 
-                    onChange={(e) => setSettings(s => ({ ...s, maxPlayers: Number(e.target.value) }))}
-                  >
-                    <option value={2}>1 vs 1</option>
-                    <option value={4}>2 vs 2</option>
-                  </Select>
-                </div>
-              </div>
-            </div>
-            
-            <Button size="sm" className="w-full mt-2 py-3" onClick={handleUpdateSettings}>Update Settings</Button>
-          </div>
-        )}
-
-        {!isHost && (
-          <div className="text-center text-cream-dark/50 flex justify-center gap-4 flex-wrap font-ancient text-sm">
-            <span className="bg-brass/5 px-3 py-1 rounded border border-brass/10">{room.gameType.toUpperCase()}</span>
-            <span className="bg-brass/5 px-3 py-1 rounded border border-brass/10">{room.maxPlayers} PLAYERS</span>
-            <span className="bg-brass/5 px-3 py-1 rounded border border-brass/10">TARGET: {room.targetScore}</span>
-          </div>
-        )}
-
-        {/* Round Table Visual */}
-        <div className="relative w-[220px] h-[220px] sm:w-[280px] sm:h-[280px] my-4">
-          <div className="absolute inset-[40px] sm:inset-[50px] rounded-full border-4 sm:border-[6px] border-amber-900/80"
+        {/* Table with settings and seats */}
+        <div className="relative w-[280px] h-[280px] sm:w-[360px] sm:h-[360px] my-2">
+          {/* Felt surface */}
+          <div
+            className="absolute inset-[40px] sm:inset-[44px] rounded-full border-4 sm:border-[7px] border-amber-900/80"
             style={{
               background: 'radial-gradient(circle, #3a6b35 0%, #2d5429 60%, #1e3a1c 100%)',
-              boxShadow: 'inset 0 0 30px rgba(0,0,0,0.5), 0 6px 18px rgba(0,0,0,0.6)',
+              boxShadow: 'inset 0 0 40px rgba(0,0,0,0.5), 0 6px 18px rgba(0,0,0,0.6)',
             }}
           >
-            <div className="absolute inset-0 flex flex-col items-center justify-center">
-              <span className="text-cream/30 font-ancient text-[8px] sm:text-[10px] uppercase tracking-widest">{room.gameType}</span>
-              <span className="text-cream/20 font-ancient text-[7px] sm:text-[9px] mt-0.5">
-                {room.players.length}/{maxSeats}
-              </span>
+            {/* Settings ON the table */}
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-1.5 sm:gap-2 px-3">
+              {isHost ? (
+                <>
+                  {/* Game type toggle */}
+                  <div className="flex rounded overflow-hidden border border-brass/25 w-full max-w-[160px] sm:max-w-[180px]">
+                    <button
+                      onClick={() => { setSettings(s => ({ ...s, gameType: 'chkobba' })); }}
+                      className={`flex-1 py-1 sm:py-1.5 font-ancient text-[9px] sm:text-[10px] font-bold uppercase tracking-wider transition-all ${
+                        settings.gameType === 'chkobba'
+                          ? 'bg-brass/80 text-black'
+                          : 'bg-black/30 text-cream/20'
+                      }`}
+                    >Chkobba</button>
+                    <button
+                      onClick={() => { setSettings(s => ({ ...s, gameType: 'rummy' })); }}
+                      className={`flex-1 py-1 sm:py-1.5 font-ancient text-[9px] sm:text-[10px] font-bold uppercase tracking-wider transition-all ${
+                        settings.gameType === 'rummy'
+                          ? 'bg-brass/80 text-black'
+                          : 'bg-black/30 text-cream/20'
+                      }`}
+                    >Rummy</button>
+                  </div>
+
+                  {/* Score chips */}
+                  <div className="flex gap-1.5 sm:gap-2">
+                    {[11, 21, 31].map((s) => (
+                      <button
+                        key={s}
+                        onClick={() => setSettings(st => ({ ...st, targetScore: s }))}
+                        className={`w-8 h-8 sm:w-9 sm:h-9 rounded-full font-ancient font-bold text-[10px] sm:text-xs border transition-all ${
+                          settings.targetScore === s
+                            ? 'bg-brass/80 text-black border-brass scale-110'
+                            : 'bg-black/25 text-cream/30 border-brass/15'
+                        }`}
+                      >{s}</button>
+                    ))}
+                  </div>
+
+                  {/* Player count */}
+                  <div className="flex rounded overflow-hidden border border-brass/25 w-full max-w-[120px] sm:max-w-[140px]">
+                    <button
+                      onClick={() => setSettings(s => ({ ...s, maxPlayers: 2 }))}
+                      className={`flex-1 py-1 font-ancient text-[8px] sm:text-[9px] font-bold tracking-wider transition-all ${
+                        settings.maxPlayers === 2
+                          ? 'bg-brass/80 text-black'
+                          : 'bg-black/30 text-cream/20'
+                      }`}
+                    >1v1</button>
+                    <button
+                      onClick={() => setSettings(s => ({ ...s, maxPlayers: 4 }))}
+                      className={`flex-1 py-1 font-ancient text-[8px] sm:text-[9px] font-bold tracking-wider transition-all ${
+                        settings.maxPlayers === 4
+                          ? 'bg-brass/80 text-black'
+                          : 'bg-black/30 text-cream/20'
+                      }`}
+                    >2v2</button>
+                  </div>
+
+                  <button
+                    onClick={handleUpdateSettings}
+                    className="mt-0.5 text-[8px] sm:text-[9px] text-brass/50 font-ancient uppercase tracking-widest hover:text-brass transition-colors"
+                  >
+                    Update
+                  </button>
+                </>
+              ) : (
+                <>
+                  <span className="text-cream/40 font-ancient text-[10px] sm:text-xs uppercase tracking-widest">{room.gameType}</span>
+                  <span className="text-cream/25 font-ancient text-[9px] sm:text-[10px]">Target: {room.targetScore}</span>
+                  <span className="text-cream/20 font-ancient text-[8px] sm:text-[9px]">
+                    {room.players.length}/{maxSeats} players
+                  </span>
+                </>
+              )}
             </div>
           </div>
 
+          {/* Seats around the table */}
           {seats.map((seat, i) => {
             const rad = seat.rad;
-            const x = Math.cos(rad) * 95;
-            const y = Math.sin(rad) * 95;
-            const smX = Math.cos(rad) * 125;
-            const smY = Math.sin(rad) * 125;
+            const sx = Math.cos(rad) * smRadius;
+            const sy = Math.sin(rad) * smRadius;
+            const lx = Math.cos(rad) * lgRadius;
+            const ly = Math.sin(rad) * lgRadius;
 
             return (
               <div key={i} className="absolute left-1/2 top-1/2">
-                <div className="hidden sm:block absolute" style={{ transform: `translate(calc(${smX}px - 50%), calc(${smY}px - 50%))` }}>
+                <div className="hidden sm:block absolute" style={{ transform: `translate(calc(${lx}px - 50%), calc(${ly}px - 50%))` }}>
                   <SeatContent seat={seat} playerId={playerId} />
                 </div>
-                <div className="sm:hidden absolute" style={{ transform: `translate(calc(${x}px - 50%), calc(${y}px - 50%))` }}>
+                <div className="sm:hidden absolute" style={{ transform: `translate(calc(${sx}px - 50%), calc(${sy}px - 50%))` }}>
                   <SeatContent seat={seat} playerId={playerId} small />
                 </div>
               </div>
@@ -206,7 +222,8 @@ export function LobbyScreen() {
           })}
         </div>
 
-        <div className="flex gap-2 sm:gap-3 flex-wrap w-full max-w-sm mt-4">
+        {/* Buttons */}
+        <div className="flex gap-2 sm:gap-3 flex-wrap w-full max-w-sm mt-2">
           <Button size="sm" onClick={handleReady} disabled={isReady} className="flex-1 min-w-[90px]">
             {isReady ? '✓ Ready' : 'Ready'}
           </Button>
@@ -241,7 +258,7 @@ function SeatContent({ seat, playerId, small }: any) {
       >
         <span className="font-ancient font-bold text-cream">{player.nickname.charAt(0).toUpperCase()}</span>
         {player.isHost && (
-          <div className="absolute -top-2 left-1/2 -translate-x-1/2 text-brass">👑</div>
+          <div className="absolute -top-2 left-1/2 -translate-x-1/2 text-brass text-xs">👑</div>
         )}
       </div>
       <span className="text-[9px] text-cream/80 font-ancient">{player.nickname}</span>

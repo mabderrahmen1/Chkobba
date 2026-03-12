@@ -1,10 +1,15 @@
 import { io, Socket } from 'socket.io-client';
 
-// Use the Vercel environment variable or fallback to local
-const SERVER_URL = import.meta.env.VITE_SERVER_URL || "http://localhost:3000";
+// When VITE_SERVER_URL is set, connect to that URL (local dev with separate server).
+// Otherwise connect to the same origin (Render deployment serves both).
+const SERVER_URL = import.meta.env.VITE_SERVER_URL;
 
-export const socket: Socket = io(SERVER_URL, {
-  transports: ['websocket', 'polling'],
+const socketOptions = {
+  transports: ['websocket', 'polling'] as string[],
   autoConnect: true,
   reconnection: true
-});
+};
+
+export const socket: Socket = SERVER_URL
+  ? io(SERVER_URL, socketOptions)
+  : io(socketOptions);

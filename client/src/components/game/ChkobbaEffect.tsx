@@ -57,14 +57,12 @@ function Spark({ delay, angle, distance }: { delay: number; angle: number; dista
 
 export function ChkobbaEffect() {
   const chkobbaPlayer = useGameStore((s) => s.chkobbaPlayer);
-  const nickname = useGameStore((s) => s.nickname);
   const [show, setShow] = useState(false);
 
-  // Only show if someone else made the Chkobba
-  const isOpponentChkobba = chkobbaPlayer && chkobbaPlayer !== nickname;
+  const hasChkobba = !!chkobbaPlayer;
 
   useEffect(() => {
-    if (isOpponentChkobba) {
+    if (hasChkobba) {
       setShow(true);
       // Trigger screen shake
       const el = document.getElementById('game-screen');
@@ -78,7 +76,7 @@ export function ChkobbaEffect() {
       const t = setTimeout(() => setShow(false), 300);
       return () => clearTimeout(t);
     }
-  }, [isOpponentChkobba]);
+  }, [hasChkobba]);
 
   const particles = Array.from({ length: 24 }, (_, i) => ({
     delay: Math.random() * 0.3,
@@ -96,7 +94,7 @@ export function ChkobbaEffect() {
 
   return (
     <AnimatePresence>
-      {show && isOpponentChkobba && (
+      {show && hasChkobba && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}

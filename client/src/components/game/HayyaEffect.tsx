@@ -54,21 +54,19 @@ function GlowRing({ delay, size }: { delay: number; size: number }) {
 
 export function HayyaEffect() {
   const hayyaPlayer = useGameStore((s) => s.hayyaPlayer);
-  const nickname = useGameStore((s) => s.nickname);
   const [show, setShow] = useState(false);
 
-  // Only show if someone else made the Hayya
-  const isOpponentHayya = hayyaPlayer && hayyaPlayer !== nickname;
+  const hasHayya = !!hayyaPlayer;
 
   useEffect(() => {
-    if (isOpponentHayya) {
+    if (hasHayya) {
       setShow(true);
     } else {
       // Faster hide
       const t = setTimeout(() => setShow(false), 300);
       return () => clearTimeout(t);
     }
-  }, [isOpponentHayya]);
+  }, [hasHayya]);
 
   const diamonds = Array.from({ length: 16 }, (_, i) => ({
     delay: Math.random() * 0.4,
@@ -86,7 +84,7 @@ export function HayyaEffect() {
 
   return (
     <AnimatePresence>
-      {show && isOpponentHayya && (
+      {show && hasHayya && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
