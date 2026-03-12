@@ -205,7 +205,7 @@ function handleDisconnect(socket, room, player) {
             const updatedPlayer = updatedRoom.players.find(p => p.id === player.id);
             if (updatedPlayer && !updatedPlayer.isConnected) {
                 // Still disconnected - auto win for other team
-                updatedRoom.status = 'finished';
+                updatedRoom.status = config.GAME_STATUS.FINISHED;
                 const winningTeam = player.team === 0 ? 1 : 0;
                 io.to(room.id).emit('auto_win', {
                     winner: { team: updatedRoom.gameType === 'rummy' ? 0 : winningTeam, reason: 'timeout' }
@@ -329,7 +329,7 @@ io.on('connection', (socket) => {
                 socket.emit('error', { message: 'Room not found' });
                 return;
             }
-            if (room.status !== 'lobby') {
+            if (room.status !== config.GAME_STATUS.LOBBY) {
                 socket.emit('error', { message: 'Game already started' });
                 return;
             }
@@ -461,7 +461,7 @@ io.on('connection', (socket) => {
             return;
         }
         // Create and start game based on game type
-        currentRoom.status = 'playing';
+        currentRoom.status = config.GAME_STATUS.PLAYING;
         if (currentRoom.gameType === 'rummy') {
             const game = getOrCreateRummyGame(currentRoom.id, currentRoom);
             game.start();
@@ -721,7 +721,7 @@ io.on('connection', (socket) => {
         }
         console.log(`[Server] Resetting game for room ${currentRoom.id} (triggered by ${currentPlayer.nickname})`);
         // Reset room status but KEEP players and their wins/losses
-        currentRoom.status = 'lobby';
+        currentRoom.status = config.GAME_STATUS.LOBBY;
         for (const player of currentRoom.players) {
             player.isReady = false;
         }
@@ -742,7 +742,7 @@ io.on('connection', (socket) => {
         // Delete the game instance(s)
         deleteGames(currentRoom.id);
         // Reset room to lobby state
-        currentRoom.status = 'lobby';
+        currentRoom.status = config.GAME_STATUS.LOBBY;
         for (const player of currentRoom.players) {
             player.isReady = false;
         }
@@ -798,7 +798,7 @@ io.on('connection', (socket) => {
         playerSockets.delete(playerId);
         // If host left, we MUST reset the room to lobby so new host can manage it
         if (wasHost) {
-            currentRoom.status = 'lobby';
+            currentRoom.status = config.GAME_STATUS.LOBBY;
             // Clear any active games
             deleteGames(currentRoom.id);
             // Notify everyone about the host change and reset
