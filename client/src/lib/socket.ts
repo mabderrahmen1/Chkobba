@@ -1,5 +1,10 @@
 import { io, Socket } from 'socket.io-client';
 
-export const socket: Socket = io("https://chkobba-2ct4.onrender.com", {
-       transports: ['websocket', 'polling'] 
-     });
+// Use the Vercel environment variable or fallback to local
+const SERVER_URL = import.meta.env.VITE_SERVER_URL || "http://localhost:3000";
+
+export const socket: Socket = io(SERVER_URL, {
+  transports: ['websocket', 'polling'],
+  autoConnect: true,
+  reconnection: true
+});

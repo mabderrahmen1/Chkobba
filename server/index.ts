@@ -27,7 +27,7 @@ const server = http.createServer(app);
 // Initialize Socket.IO
 const io = new Server(server, {
     cors: {
-      origin: "https://https://chkobba-chi.vercel.app", // Dynamically allow the requesting origin (Vercel, Localhost, etc.)
+      origin: process.env.CLIENT_URL || "https://chkobba-chi.vercel.app", // Dynamically allow the requesting origin (Vercel, Localhost, etc.)
       methods: ["GET", "POST"],
       credentials: true
     }
@@ -43,15 +43,6 @@ app.get("/health", (req, res) => {
   res.status(200).send("Backend is running perfectly! 🃏");
 });
 
-// Serve static files (Optional since you are on Vercel, but good for local)
-const clientDistPath = path.join(__dirname, '../../client/dist');
-app.use(express.static(clientDistPath));
-
-// Serve main HTML only if not handled by above routes
-app.get('*', (req, res) => {
-  if (req.url.startsWith('/socket.io')) return; // Let Socket.io handle its own paths
-  res.sendFile(path.join(clientDistPath, 'index.html'));
-});
 // Game instances stored by room ID
 const chkobbaGames = new Map<string, Game>();
 const rummyGames = new Map<string, RummyGame>();
