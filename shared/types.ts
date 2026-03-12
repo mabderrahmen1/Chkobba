@@ -60,6 +60,15 @@ export interface GameState {
   players: Player[];
   pendingCapture: PendingCapture | null;
   winner: Winner | null;
+  lastAction?: {
+    type: 'play' | 'capture';
+    playerId: string;
+    card: Card;
+    capturedCards?: Card[];
+    isChkobba?: boolean;
+    isHayya?: boolean;
+    timestamp: number;
+  } | null;
 }
 
 export interface ChatMessage {

@@ -90,10 +90,16 @@ export function LobbyScreen() {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="h-full flex items-center justify-center overflow-y-auto relative bg-[#1a120e]"
+      className="h-full flex items-center justify-center overflow-y-auto relative bg-black"
     >
-      <div className="absolute inset-0" style={{
-        background: 'radial-gradient(ellipse at 50% 40%, rgba(90,53,32,0.3) 0%, rgba(26,18,14,1) 70%)'
+      {/* Immersive Background Image */}
+      <div 
+        className="absolute inset-0 z-0 bg-cover bg-center opacity-30 grayscale-[10%]"
+        style={{ backgroundImage: "url('/tun1.jpg')" }}
+      />
+
+      <div className="absolute inset-0 z-0" style={{
+        background: 'radial-gradient(ellipse at 50% 40%, rgba(26,18,14,0.7) 0%, rgba(26,18,14,1) 90%)'
       }} />
 
       <div className="flex flex-col gap-4 sm:gap-6 px-4 sm:px-8 max-w-2xl w-full py-4 sm:py-8 relative z-10 items-center">

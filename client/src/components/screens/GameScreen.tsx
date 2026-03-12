@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useGameStore } from '../../stores/useGameStore';
 import { GameTable } from '../game/GameTable';
 import { Scoreboard } from '../game/Scoreboard';
+import { MoveLog } from '../game/MoveLog';
 import { ChkobbaEffect } from '../game/ChkobbaEffect';
 import { HayyaEffect } from '../game/HayyaEffect';
 import { RoundEndModal } from '../game/RoundEndModal';
@@ -47,7 +48,15 @@ export function GameScreen() {
     return <RummyGameScreen />;
   }
 
-  if (!gameState || !playerId) return null;
+  // Handle loading state
+  if (!gameState || !playerId || !gameState.players) {
+    return (
+      <div className="h-full flex flex-col items-center justify-center bg-[#1a120e]">
+        <div className="w-12 h-12 border-4 border-brass border-t-transparent rounded-full animate-spin mb-4" />
+        <p className="text-brass font-ancient animate-pulse uppercase tracking-widest">Preparing Table...</p>
+      </div>
+    );
+  }
 
   const isMyTurn = gameState.currentTurn === playerId;
   const turnPlayer = gameState.players.find((p) => p.id === gameState.currentTurn);
@@ -62,16 +71,6 @@ export function GameScreen() {
     setCopied(true);
     useUIStore.getState().addToast('Room code copied!', 'success');
     setTimeout(() => setCopied(false), 2000);
-  };
-
-  const handleQuit = () => {
-    if (window.confirm('Are you sure you want to quit? You will forfeit the match and leave the room.')) {
-      socket.emit('forfeit');
-      socket.emit('leave_room');
-      useGameStore.getState().reset();
-      useUIStore.getState().setScreen('landing');
-      sessionStorage.removeItem('chkobba-storage');
-    }
   };
 
   return (
@@ -122,7 +121,7 @@ export function GameScreen() {
                   <div className={`w-2 h-2 rounded-full ${isMyTurn ? 'bg-brass' : 'bg-cream/40'}`} />
                 </div>
 
-                <span className={`font-ancient text-sm sm:text-base md:text-lg uppercase tracking-[0.2em] font-bold ${
+                <span className={`font-ancient text-sm sm:text-base uppercase tracking-[0.2em] font-bold ${
                   isMyTurn ? 'text-brass drop-shadow-[0_0_8px_rgba(212,175,55,0.4)]' : 'text-cream-dark/60'
                 }`}>
                   {turnName}
@@ -134,18 +133,9 @@ export function GameScreen() {
 
       {/* Scoreboard */}
       <Scoreboard />
-
-      {/* Quit Button — Top Left (opposite scoreboard) */}
-      <div className="fixed top-3 left-3 z-[45]">
-        <motion.button 
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={handleQuit}
-          className="bg-red-900/20 hover:bg-red-900/40 text-red-500/70 hover:text-red-500 border border-red-500/20 px-3 py-1.5 rounded-lg font-ancient text-[10px] uppercase tracking-widest transition-all backdrop-blur-sm shadow-lg"
-        >
-          Quit Game
-        </motion.button>
-      </div>
+      
+      {/* Action Log — Desktop only */}
+      <MoveLog />
 
       {/* Room Info — Bottom Left */}
       <div className="fixed bottom-3 left-3 z-[45] hidden sm:flex flex-col gap-1">

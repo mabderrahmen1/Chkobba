@@ -4,6 +4,7 @@ import { TableCards } from './TableCards';
 import { PlayerHand } from './PlayerHand';
 import { CapturedStack } from './CapturedStack';
 import { CafeAmbiance } from './ambiance/CafeAmbiance';
+import { CaptureAnimationOverlay } from './CaptureAnimationOverlay';
 import { motion } from 'framer-motion';
 import { socket } from '../../lib/socket';
 
@@ -51,6 +52,8 @@ export function GameTable() {
 
   return (
     <div className="flex-1 w-full h-full cafe-scene flex flex-col items-center justify-center p-1 sm:p-2 md:p-4">
+      <CaptureAnimationOverlay />
+      
       {/* DEBUG BUTTON - TEMPORARY */}
       <button 
         onClick={handleDebugWin}
@@ -110,8 +113,7 @@ export function GameTable() {
                 <CapturedStack count={oppTeamCaptured} label="Their Cards" variant="opponent" />
               </div>
 
-              {/* Turn Indicator — always visible */}
-
+              {/* Table Cards */}
               <TableCards cards={gameState.tableCards} />
             </div>
           </motion.div>

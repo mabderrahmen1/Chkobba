@@ -30,10 +30,16 @@ export function JoinRoomScreen() {
       initial={{ opacity: 0, x: 20 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -20 }}
-      className="h-full flex items-center justify-center relative"
+      className="h-full flex items-center justify-center relative overflow-hidden bg-black"
     >
-      <div className="absolute inset-0" style={{
-        background: 'radial-gradient(ellipse at 50% 40%, rgba(90,53,32,0.3) 0%, rgba(26,18,14,1) 70%)'
+      {/* Immersive Background Image */}
+      <div 
+        className="absolute inset-0 z-0 bg-cover bg-center opacity-40 grayscale-[20%]"
+        style={{ backgroundImage: "url('/tun1.jpg')" }}
+      />
+
+      <div className="absolute inset-0 z-0" style={{
+        background: 'radial-gradient(ellipse at 50% 40%, rgba(26,18,14,0.6) 0%, rgba(26,18,14,1) 85%)'
       }} />
 
       <div className="flex flex-col gap-4 sm:gap-6 px-4 sm:px-8 max-w-md w-full relative z-10">

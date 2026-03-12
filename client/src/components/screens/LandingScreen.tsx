@@ -24,7 +24,18 @@ export function LandingScreen() {
       return;
     }
     setNickname(trimmed);
-    setScreen(target);
+    
+    // Create room instantly
+    if (target === 'createRoom') {
+      socket.emit('create_room', { 
+        nickname: trimmed,
+        targetScore: 21,
+        maxPlayers: 2,
+        gameType: 'chkobba'
+      });
+    } else {
+      setScreen(target);
+    }
   };
 
   const handleRejoin = () => {
@@ -33,13 +44,11 @@ export function LandingScreen() {
     }
   };
 
-  // Automatically clear session if server rejects it (e.g. server restarted)
   useEffect(() => {
     const handleError = (data: { message: string }) => {
-      const msg = data.message.toLowerCase();
-      if (msg.includes('room not found') || msg.includes('session not found')) {
-        useGameStore.getState().setRoomId(null);
-        useGameStore.getState().setPlayer('', false);
+      if (data.message.toLowerCase().includes('not found')) {
+        useGameStore.getState().reset();
+        sessionStorage.removeItem('chkobba-storage');
       }
     };
     socket.on('error', handleError);
@@ -51,51 +60,63 @@ export function LandingScreen() {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="h-full flex items-center justify-center relative overflow-hidden"
+      className="h-full flex items-center justify-center relative overflow-hidden bg-black"
     >
-      {/* Background ambiance */}
-      <div className="absolute inset-0" style={{
-        background: 'radial-gradient(ellipse at 50% 30%, rgba(90,53,32,0.4) 0%, rgba(26,18,14,1) 70%)'
+      {/* Immersive Background Image */}
+      <div 
+        className="absolute inset-0 z-0 bg-cover bg-center opacity-40 grayscale-[20%]"
+        style={{ backgroundImage: "url('/tun1.jpg')" }}
+      />
+      
+      {/* Cinematic Overlays */}
+      <div className="absolute inset-0 z-0" style={{
+        background: 'radial-gradient(ellipse at 50% 30%, rgba(26,18,14,0.6) 0%, rgba(26,18,14,1) 85%)'
       }} />
-      <div className="absolute top-20 left-1/4 w-48 h-48 bg-brass/5 rounded-full blur-[80px] pointer-events-none" />
-      <div className="absolute bottom-20 right-1/4 w-64 h-64 bg-turquoise/3 rounded-full blur-[100px] pointer-events-none" />
-
-      {/* Decorative border frame */}
-      <div className="absolute inset-4 sm:inset-8 border border-brass/10 rounded-2xl pointer-events-none" />
+      <div className="absolute inset-4 sm:inset-8 border border-brass/10 rounded-2xl pointer-events-none z-10" />
 
       <div className="text-center px-4 sm:px-8 max-w-md w-full relative z-10">
-        {/* Logo area */}
-        <div className="mb-8">
+        <div className="mb-8 relative">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.5 }}
+            animate={{ 
+              opacity: 1, 
+              scale: 1,
+              y: [0, -4, 0]
+            }}
+            transition={{ 
+              opacity: { duration: 0.5 },
+              scale: { duration: 0.5 },
+              y: { duration: 3, repeat: Infinity, ease: "easeInOut" }
+            }}
+            className="absolute -top-16 left-1/2 -translate-x-1/2 flex items-center justify-center origin-bottom"
+          >
+            <img 
+              src="/tunisia.png" 
+              alt="Tunisian Flag" 
+              className="w-20 h-auto sm:w-24 drop-shadow-2xl"
+              style={{ filter: 'drop-shadow(0 10px 15px rgba(0,0,0,0.4))' }}
+            />
+          </motion.div>
+
           <motion.div
             animate={{ y: [0, -4, 0] }}
             transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-            className="text-6xl mb-3 drop-shadow-lg"
+            className="text-6xl mb-3 mt-8"
           >
             <span className="inline-block" style={{ filter: 'drop-shadow(0 4px 8px rgba(212,175,55,0.3))' }}>&#127183;</span>
           </motion.div>
-          <h1 className="font-ancient text-4xl sm:text-5xl font-bold text-brass tracking-wide" style={{
-            textShadow: '2px 2px 4px rgba(0,0,0,0.8), 0 0 20px rgba(212,175,55,0.15)'
-          }}>
-            Chkobba
-          </h1>
-          <p className="text-cream-dark/60 font-body mt-2 text-sm tracking-wider">The Traditional Tunisian Card Game</p>
+          <h1 className="font-ancient text-4xl sm:text-5xl font-bold text-brass tracking-wide">Chkobba</h1>
+          <p className="text-cream-dark/60 font-body mt-2 text-sm tracking-wider uppercase opacity-50">Tunisian Tradition</p>
         </div>
 
-        {/* Decorative divider */}
-        <div className="flex items-center gap-3 mb-8">
-          <div className="flex-1 h-px bg-gradient-to-r from-transparent to-brass/30" />
-          <span className="text-brass/40 text-xs">&#9830;</span>
-          <div className="flex-1 h-px bg-gradient-to-l from-transparent to-brass/30" />
-        </div>
-
-        <div className="flex flex-col gap-4 mb-6">
+        <div className="flex flex-col gap-4 mb-8">
           <Input
             value={nickname}
             onChange={(e) => setNicknameLocal(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && validateAndProceed('createRoom')}
-            placeholder="Enter your nickname"
+            placeholder="ENTER NICKNAME"
             maxLength={15}
-            className="text-center"
+            className="text-center font-ancient tracking-widest"
             autoComplete="off"
           />
         </div>
@@ -103,29 +124,28 @@ export function LandingScreen() {
         <div className="flex flex-col gap-3">
           {roomId && playerId && (
             <motion.div 
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="mb-4 p-4 rounded-xl bg-brass/5 border border-brass/20 text-center"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="mb-4 p-5 rounded-2xl bg-black/40 border border-brass/30 text-center backdrop-blur-md shadow-2xl"
             >
-              <p className="text-xs text-brass/60 mb-2 uppercase tracking-widest font-ancient">Session Found</p>
-              <p className="text-cream text-sm mb-3">You were recently in room <span className="text-brass font-bold">{roomId}</span></p>
-              <Button onClick={handleRejoin} className="w-full">Rejoin Game</Button>
+              <p className="text-[10px] text-brass font-ancient uppercase tracking-[0.3em] mb-3 opacity-60">Session Found</p>
+              <Button onClick={handleRejoin} className="w-full py-4 text-lg">Rejoin Game</Button>
               <button 
                 onClick={() => {
-                  useGameStore.getState().setRoomId(null);
-                  useGameStore.getState().setPlayer('', false);
+                  useGameStore.getState().reset();
+                  sessionStorage.removeItem('chkobba-storage');
                 }}
-                className="mt-2 text-[10px] text-cream/30 hover:text-cream/60 transition-colors uppercase tracking-widest underline decoration-dotted"
+                className="mt-3 text-[10px] text-cream/30 hover:text-cream/60 transition-colors uppercase tracking-widest underline decoration-dotted"
               >
                 Clear Session
               </button>
             </motion.div>
           )}
 
-          <Button onClick={() => validateAndProceed('createRoom')} variant={roomId ? 'secondary' : 'primary'}>
-            {roomId ? 'Create New Room' : 'Create Room'}
+          <Button onClick={() => validateAndProceed('createRoom')} variant="primary" className="py-4 text-lg">
+            Create Room
           </Button>
-          <Button variant="secondary" onClick={() => validateAndProceed('joinRoom')}>
+          <Button variant="secondary" onClick={() => validateAndProceed('joinRoom')} className="py-4">
             Join Room
           </Button>
         </div>

@@ -27,7 +27,7 @@ const server = http.createServer(app);
 // Initialize Socket.IO
 const io = new Server(server, {
     cors: {
-      origin: process.env.CLIENT_URL || "https://chkobba-chi.vercel.app", // Dynamically allow the requesting origin (Vercel, Localhost, etc.)
+      origin: true, // Dynamically allow any origin for development/testing
       methods: ["GET", "POST"],
       credentials: true
     }
