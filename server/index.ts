@@ -26,11 +26,12 @@ const server = http.createServer(app);
 
 // Initialize Socket.IO
 const io = new Server(server, {
-  cors: {
-    origin: '*',
-    methods: ['GET', 'POST']
-  }
-});
+    cors: {
+      origin: "https://chkobbaa.vercel.app", // 
+      methods: ["GET", "POST"],
+      credentials: true
+    }
+  });
 
 // Serve static files from client dist directory
 // Path is relative to project root, not compiled dist/server/
@@ -42,6 +43,9 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(clientDistPath, 'index.html'));
 });
 
+app.get("/health", (req, res) => {
+    res.send("Backend is running! 🃏");
+  });
 // Game instances stored by room ID
 const chkobbaGames = new Map<string, Game>();
 const rummyGames = new Map<string, RummyGame>();
