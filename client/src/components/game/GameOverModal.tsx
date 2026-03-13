@@ -8,6 +8,7 @@ export function GameOverModal() {
   const gameOverData = useGameStore((s) => s.gameOverData);
   const playerId = useGameStore((s) => s.playerId);
   const gameState = useGameStore((s) => s.gameState);
+  const rummyGameState = useGameStore((s) => s.rummyGameState);
   const room = useGameStore((s) => s.room);
   
   // Use reactive selector for isHost
@@ -18,12 +19,14 @@ export function GameOverModal() {
   const setGameOverData = useGameStore((s) => s.setGameOverData);
   const setScreen = useUIStore((s) => s.setScreen);
 
-  if (!gameOverData || !gameState) return null;
+  const isRummy = !gameState && !!rummyGameState;
+  if (!gameOverData || (!gameState && !rummyGameState)) return null;
 
   const { winner, scores } = gameOverData;
 
-  const playerTeam = gameState?.players.find((p) => p.id === playerId)?.team ?? -1;
-  const didWin = playerTeam === winner.team;
+  const activePlayers = isRummy ? rummyGameState!.players : gameState!.players;
+  const playerTeam = (activePlayers as any[]).find((p) => p.id === playerId)?.team ?? -1;
+  const didWin = winner.players?.includes(useGameStore.getState().nickname) || playerTeam === winner.team;
   const isForfeit = winner.reason === 'opponents_timeout' || winner.reason === 'timeout' || winner.reason === 'forfeit';
 
   const handlePlayAgain = () => {
@@ -55,8 +58,8 @@ export function GameOverModal() {
   };
 
   const myNickname = useGameStore.getState().nickname;
-  const myPlayer = gameState.players.find(p => p.id === playerId);
-  const oppPlayer = gameState.players.find(p => p.id !== playerId);
+  const myPlayer = (activePlayers as any[]).find(p => p.id === playerId);
+  const oppPlayer = (activePlayers as any[]).find(p => p.id !== playerId);
   const oppNickname = oppPlayer?.nickname || 'Opponent';
 
   return (

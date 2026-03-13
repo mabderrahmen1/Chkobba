@@ -336,7 +336,7 @@ function handleDisconnect(socket, room, player) {
                 updatedRoom.status = config.GAME_STATUS.FINISHED;
                 const winningTeam = player.team === 0 ? 1 : 0;
                 io.to(room.id).emit('auto_win', {
-                    winner: { team: updatedRoom.gameType === 'rummy' ? 0 : winningTeam, reason: 'timeout' }
+                    winner: { team: winningTeam, reason: 'timeout' }
                 });
                 // We STILL don't delete the room here, let them see the result or lobby reset
             }
@@ -849,11 +849,41 @@ io.on('connection', (socket) => {
         broadcastGameState(currentRoom.id);
         // Check if game is over
         if (game.winner) {
-            io.to(currentRoom.id).emit('game_over', {
-                winner: game.winner,
-                scores: {}
-            });
+            // Build penalty scores by team
+            const scores = { team0: 0, team1: 0 };
+            for (const p of game.players) {
+                if (p.team === 0)
+                    scores.team0 += p.penaltyPoints;
+                else
+                    scores.team1 += p.penaltyPoints;
+            }
+            io.to(currentRoom.id).emit('game_over', { winner: game.winner, scores });
         }
+    });
+    /**
+     * Lay off a card on an existing meld (Rummy)
+     */
+    socket.on('rummy_lay_off', ({ meldId, cardIndex }) => {
+        if (!currentRoom || !currentPlayer) {
+            socket.emit('error', { message: 'Not connected to a room' });
+            return;
+        }
+        if (currentRoom.gameType !== 'rummy') {
+            socket.emit('error', { message: 'Not a Rummy game' });
+            return;
+        }
+        const game = rummyGames.get(currentRoom.id);
+        if (!game) {
+            socket.emit('error', { message: 'Game not found' });
+            return;
+        }
+        currentRoom.lastActivity = Date.now();
+        const result = game.layOffCard(currentPlayer.id, meldId, cardIndex);
+        if (result.error) {
+            socket.emit('error', { message: result.error });
+            return;
+        }
+        broadcastGameState(currentRoom.id);
     });
     /**
      * Create meld (Rummy)

@@ -8,7 +8,7 @@ import { Button } from '../ui/Button';
 import { GameOverModal } from './GameOverModal';
 import { VintageRadio } from './ambiance/VintageRadio';
 import { useAmbianceSound } from '../../hooks/useAmbianceSound';
-import type { RummyPlayer, Meld, MeldType } from '@shared/types';
+import type { RummyPlayer, Meld, MeldType, Card as CardType } from '@shared/types';
 
 interface DragCard {
   cardIndex: number;
@@ -17,6 +17,7 @@ interface DragCard {
 
 export function RummyGameScreen() {
   const [selectedCards, setSelectedCards] = useState<number[]>([]);
+  const [layOffMode, setLayOffMode] = useState(false);
   const [draggedCard, setDraggedCard] = useState<DragCard | null>(null);
   const [meldPreview, setMeldPreview] = useState<Meld | null>(null);
   const [sortMode, setSortMode] = useState<'suit' | 'rank' | 'none'>('none');
@@ -97,12 +98,25 @@ export function RummyGameScreen() {
     socket.emit('rummy_meld', { cardIndices: selectedCards, type });
     setSelectedCards([]);
     setMeldPreview(null);
+    setLayOffMode(false);
+  };
+
+  const handleLayOff = (meldId: string) => {
+    if (!isCurrentTurn || !isConnected || selectedCards.length !== 1) return;
+    playCardPlace();
+    socket.emit('rummy_lay_off', { meldId, cardIndex: selectedCards[0] });
+    setSelectedCards([]);
+    setLayOffMode(false);
   };
 
   const toggleCardSelection = (index: number) => {
-    setSelectedCards((prev) =>
-      prev.includes(index) ? prev.filter((i) => i !== index) : [...prev, index]
-    );
+    setSelectedCards((prev) => {
+      const next = prev.includes(index) ? prev.filter((i) => i !== index) : [...prev, index];
+      // Auto-enter lay-off mode when exactly 1 card selected (and has drawn)
+      if (next.length === 1 && hasDrawn) setLayOffMode(true);
+      else setLayOffMode(false);
+      return next;
+    });
   };
 
   // Drag handlers
@@ -180,7 +194,7 @@ export function RummyGameScreen() {
                 isCurrentTurn ? 'text-brass' : 'text-cream-dark/60'
               }`}
             >
-              {isCurrentTurn ? 'Your Turn' : `${currentPlayer?.nickname || 'Player'}'s Turn`}
+              {isCurrentTurn ? 'Your Turn' : `${gameState.players.find(p => p.id === gameState.currentTurn)?.nickname || 'Player'}'s Turn`}
             </motion.span>
           </motion.div>
         </AnimatePresence>
@@ -237,6 +251,8 @@ export function RummyGameScreen() {
             setIsOverMeldZone={setIsOverMeldZone}
             onDrop={handleDropOnMeldZone}
             setDraggedCard={setDraggedCard}
+            layOffMode={layOffMode && isCurrentTurn && hasDrawn}
+            onLayOff={handleLayOff}
           />
         </div>
 
@@ -340,6 +356,8 @@ interface TableAreaProps {
   setIsOverMeldZone: (v: boolean) => void;
   onDrop: () => void;
   setDraggedCard: (c: DragCard | null) => void;
+  layOffMode: boolean;
+  onLayOff: (meldId: string) => void;
 }
 
 function TableArea({
@@ -354,6 +372,8 @@ function TableArea({
   setIsOverMeldZone,
   onDrop,
   setDraggedCard,
+  layOffMode,
+  onLayOff,
 }: TableAreaProps) {
   const currentPlayer = gameState.players.find((p: RummyPlayer) => p.id === playerId);
 
@@ -394,35 +414,59 @@ function TableArea({
             e.preventDefault();
             onDrop();
           }}
-          className={`flex-1 min-w-[200px] sm:min-w-[300px] min-h-[100px] sm:min-h-[140px] rounded-xl border-2 border-dashed transition-all duration-300 flex items-center justify-center p-2 sm:p-4 ${
-            isOverMeldZone
+          className={`relative flex-1 min-w-[200px] sm:min-w-[300px] min-h-[100px] sm:min-h-[140px] rounded-xl border-2 border-dashed transition-all duration-300 p-2 sm:p-4 ${
+            layOffMode
+              ? 'border-emerald-400/70 bg-emerald-400/10 shadow-[0_0_20px_rgba(52,211,153,0.2)]'
+              : isOverMeldZone
               ? 'border-yellow-400/60 bg-yellow-400/10 shadow-[0_0_30px_rgba(212,175,55,0.2)]'
               : 'border-[#5D2906]/40 bg-black/20'
           }`}
         >
-          <div className="text-center pointer-events-none">
-            <div className="text-cream/40 text-[9px] sm:text-xs uppercase tracking-widest mb-1">Meld Zone</div>
-            <div className="text-cream/30 text-[9px] sm:text-xs">Drag cards here</div>
-          </div>
-          
-          {/* Existing melds */}
-          <div className="absolute inset-0 flex flex-wrap items-center justify-center gap-1 sm:gap-2 p-2 sm:p-4 pointer-events-none overflow-hidden">
-            {gameState.players.flatMap((p: RummyPlayer) => p.melds).map((meld: Meld, idx: number) => (
-              <motion.div
-                key={meld.id || idx}
-                initial={{ scale: 0, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-                className="flex gap-0.5 sm:gap-1 p-1 bg-black/30 rounded-lg backdrop-blur-sm"
-              >
-                {meld.cards.map((card, cardIdx) => (
-                  <div key={cardIdx} className="w-8 h-11 sm:w-10 sm:h-14">
-                    <Card card={card} small />
+          {/* All players' melds */}
+          {(() => {
+            const allMelds = gameState.players.flatMap((p: RummyPlayer) => p.melds);
+            if (allMelds.length === 0) {
+              return (
+                <div className="flex items-center justify-center w-full h-full min-h-[80px]">
+                  <div className="text-center">
+                    <div className="text-cream/40 text-[9px] sm:text-xs uppercase tracking-widest mb-1">Meld Zone</div>
+                    <div className="text-cream/30 text-[9px] sm:text-xs">
+                      {layOffMode ? 'No melds to lay off on' : 'Select 3+ cards to meld'}
+                    </div>
                   </div>
+                </div>
+              );
+            }
+            return (
+              <div className="flex flex-wrap gap-1 sm:gap-2 items-start">
+                {allMelds.map((meld: Meld, idx: number) => (
+                  <motion.div
+                    key={meld.id || idx}
+                    initial={{ scale: 0, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+                    onClick={() => layOffMode && onLayOff(meld.id)}
+                    className={`flex gap-0.5 sm:gap-1 p-1 rounded-lg backdrop-blur-sm transition-all duration-200 ${
+                      layOffMode
+                        ? 'bg-emerald-900/50 border border-emerald-400/50 cursor-pointer hover:border-emerald-300 hover:shadow-[0_0_12px_rgba(52,211,153,0.4)]'
+                        : 'bg-black/30 border border-transparent'
+                    }`}
+                  >
+                    {meld.cards.map((card: CardType, cardIdx: number) => (
+                      <div key={cardIdx} className="w-8 h-11 sm:w-10 sm:h-14">
+                        <Card card={card} small />
+                      </div>
+                    ))}
+                  </motion.div>
                 ))}
-              </motion.div>
-            ))}
-          </div>
+              </div>
+            );
+          })()}
+          {layOffMode && (
+            <div className="absolute top-1 right-2 text-emerald-300/80 text-[9px] font-ancient uppercase tracking-widest">
+              Click meld to lay off
+            </div>
+          )}
         </div>
 
         {/* Discard pile */}

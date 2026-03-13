@@ -9,6 +9,9 @@ import { RUMMY_INITIAL_HAND_SIZE, getDeckCountForPlayers, SUITS, RUMMY_RANKS, JO
 interface GamePlayer extends RummyPlayer {
   hand: Card[];
   melds: Meld[];
+  team: number;
+  wins?: number;
+  losses?: number;
 }
 
 /**
@@ -81,29 +84,33 @@ export function isValidSet(cards: Card[]): boolean {
  */
 export function isValidSequence(cards: Card[]): boolean {
   if (cards.length < 3) return false;
-  
+
   const nonJokerCards = cards.filter(c => !c.isJoker);
+  const jokerCount = cards.length - nonJokerCards.length;
   if (nonJokerCards.length === 0) return false;
-  
+
   // All non-joker cards must be same suit
   const firstSuit = nonJokerCards[0].suit;
   if (!nonJokerCards.every(c => c.suit === firstSuit)) return false;
-  
-  // Check for consecutive ranks
+
   const rankOrder = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
-  const nonJokerRanks = nonJokerCards.map(c => c.rank).sort((a, b) => rankOrder.indexOf(a) - rankOrder.indexOf(b));
-  
-  // Check if ranks can form a sequence with jokers filling gaps
-  for (let i = 1; i < nonJokerRanks.length; i++) {
-    const prevIndex = rankOrder.indexOf(nonJokerRanks[i - 1]);
-    const currIndex = rankOrder.indexOf(nonJokerRanks[i]);
-    const gap = currIndex - prevIndex;
-    
-    // Gap too large to fill with remaining jokers
-    if (gap > cards.length - nonJokerCards.length + 1) return false;
+  const nonJokerRankIndices = nonJokerCards
+    .map(c => rankOrder.indexOf(c.rank))
+    .sort((a, b) => a - b);
+
+  // Duplicate ranks are not valid in a sequence
+  for (let i = 1; i < nonJokerRankIndices.length; i++) {
+    if (nonJokerRankIndices[i] === nonJokerRankIndices[i - 1]) return false;
   }
-  
-  return true;
+
+  // Count how many jokers are needed to fill gaps between non-joker cards
+  let jokersNeeded = 0;
+  for (let i = 1; i < nonJokerRankIndices.length; i++) {
+    const gap = nonJokerRankIndices[i] - nonJokerRankIndices[i - 1];
+    jokersNeeded += gap - 1; // gap of 1 = consecutive, gap of 2 = 1 joker needed
+  }
+
+  return jokersNeeded <= jokerCount;
 }
 
 /**
@@ -366,59 +373,42 @@ export class RummyGame {
   }
 
   /**
-   * Lay off a card on an existing meld
+   * Lay off a card on an existing meld (any player's meld)
    */
   layOffCard(playerId: string, meldId: string, cardIndex: number): { success: boolean; error?: string } {
     const player = this.getPlayer(playerId);
-    if (!player) {
-      return { success: false, error: 'Player not found' };
-    }
+    if (!player) return { success: false, error: 'Player not found' };
+    if (this.currentTurn !== playerId) return { success: false, error: 'Not your turn' };
+    if (!this.hasDrawn) return { success: false, error: 'You must draw a card first' };
+    if (cardIndex < 0 || cardIndex >= player.hand.length) return { success: false, error: 'Invalid card index' };
 
-    if (this.currentTurn !== playerId) {
-      return { success: false, error: 'Not your turn' };
+    // Search across all players' melds
+    let meld: Meld | undefined;
+    for (const p of this.players) {
+      meld = p.melds.find(m => m.id === meldId);
+      if (meld) break;
     }
-
-    if (!this.hasDrawn) {
-      return { success: false, error: 'You must draw a card first' };
-    }
-
-    if (cardIndex < 0 || cardIndex >= player.hand.length) {
-      return { success: false, error: 'Invalid card index' };
-    }
-
-    const meld = this.tableMelds.find(m => m.id === meldId);
-    if (!meld) {
-      return { success: false, error: 'Meld not found' };
-    }
+    if (!meld) return { success: false, error: 'Meld not found' };
 
     const card = player.hand[cardIndex];
 
-    // Check if card can be added to meld
     if (meld.type === 'set') {
-      // Can add if same rank and not already 4 cards
-      if (meld.cards.length >= 4) {
-        return { success: false, error: 'Set already has maximum cards' };
-      }
+      if (meld.cards.length >= 4) return { success: false, error: 'Set already has maximum cards' };
       const nonJokerCards = meld.cards.filter(c => !c.isJoker);
-      if (nonJokerCards.length > 0 && card.rank !== nonJokerCards[0].rank && !card.isJoker) {
+      if (!card.isJoker && nonJokerCards.length > 0 && card.rank !== nonJokerCards[0].rank) {
         return { success: false, error: 'Card does not match set rank' };
       }
     } else if (meld.type === 'sequence') {
-      // Check if card can extend sequence
-      const suit = meld.cards.find(c => !c.isJoker)?.suit;
-      if (card.suit !== suit && !card.isJoker) {
-        return { success: false, error: 'Card does not match sequence suit' };
+      if (!isValidSequence([...meld.cards, card])) {
+        return { success: false, error: 'Card cannot extend this sequence' };
       }
-      // More complex logic would be needed to check if card extends sequence
-      // For simplicity, we allow laying off if suit matches
     }
 
-    // Add card to meld
     player.hand.splice(cardIndex, 1);
     meld.cards.push(card);
+    meld.isPure = isPureMeld(meld.cards);
 
     console.log(`[RummyGame ${this.roomId}] ${player.nickname} laid off card on meld`);
-
     return { success: true };
   }
 
@@ -435,7 +425,7 @@ export class RummyGame {
     }
 
     this.winner = {
-      team: 0, // Individual win
+      team: winner.team,
       players: [winner.nickname],
       reason: 'went_out'
     };
@@ -444,13 +434,24 @@ export class RummyGame {
   }
 
   /**
-   * Get game state (public - without other players' hands)
+   * Create a dummy face-down card (used to hide hand contents from opponents)
    */
-  getState(): RummyGameState {
+  private makeFaceDown(): Card {
+    return { rank: 'A', suit: 'hearts', value: 1, isJoker: false };
+  }
+
+  /**
+   * Get full state for a specific player (their hand visible, others hidden)
+   */
+  getFullState(playerId: string): RummyGameState {
+    const player = this.getPlayer(playerId);
+    // Draw pile: send dummy cards so client knows the count but not the cards
+    const hiddenDrawPile = this.drawPile.map(() => this.makeFaceDown());
+
     return {
       roomId: this.roomId,
       currentTurn: this.currentTurn,
-      drawPile: this.drawPile,
+      drawPile: hiddenDrawPile,
       discardPile: this.discardPile,
       players: this.players.map(p => ({
         id: p.id,
@@ -458,7 +459,9 @@ export class RummyGame {
         isHost: p.isHost,
         isReady: p.isReady,
         isConnected: p.isConnected,
-        hand: p.hand, // Will be filtered in getPublicState
+        hand: p.id === playerId
+          ? (player?.hand ?? [])
+          : p.hand.map(() => this.makeFaceDown()),
         melds: p.melds,
         points: p.points,
         penaltyPoints: p.penaltyPoints
@@ -472,28 +475,10 @@ export class RummyGame {
   }
 
   /**
-   * Get full state for a specific player (with their hand)
+   * @deprecated Use getFullState(playerId) directly
    */
-  getFullState(playerId: string): RummyGameState {
-    const state = this.getState();
-    const player = this.getPlayer(playerId);
-    
-    // Filter other players' hands
-    state.players = state.players.map(p => {
-      if (p.id === playerId) {
-        return p;
-      }
-      return {
-        ...p,
-        hand: p.hand.map(() => ({ rank: 'A' as const, suit: 'hearts' as const, value: 1 })) // Face-down cards
-      };
-    });
-
-    if (player) {
-      state.players.find(p => p.id === playerId)!.hand = player.hand;
-    }
-
-    return state;
+  getState(): RummyGameState {
+    return this.getFullState('');
   }
 }
 
