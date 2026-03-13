@@ -412,8 +412,22 @@ function SeatCard({ player, isMe }: { player: any; isMe: boolean }) {
 
   const handleTeamSwitch = () => {
     if (!isHost || !room || room.gameType !== 'chkobba') return;
-    const newTeam = player.team === 0 ? 1 : 0;
-    socket.emit('update_player_team', { playerId: player.id, team: newTeam });
+    // For 2-player: switch between team 0 and 1
+    // For 4-player: can only switch if teams are unbalanced or player is moving to balance teams
+    if (room.maxPlayers === 2) {
+      const newTeam = player.team === 0 ? 1 : 0;
+      socket.emit('update_player_team', { playerId: player.id, team: newTeam });
+    } else if (room.maxPlayers === 4) {
+      // In 4-player, allow host to reassign teams freely (0 or 1)
+      const newTeam = player.team === 0 ? 1 : 0;
+      // Check if the target team has room (max 2 players per team)
+      const currentTeamCount = room.players.filter(p => p.team === newTeam).length;
+      if (currentTeamCount < 2) {
+        socket.emit('update_player_team', { playerId: player.id, team: newTeam });
+      } else {
+        addToast('Team is full (max 2 players)', 'error');
+      }
+    }
   };
 
   return (
@@ -458,8 +472,8 @@ function SeatCard({ player, isMe }: { player: any; isMe: boolean }) {
           </motion.div>
         )}
         
-        {/* Team switch button (host only, 2-player Chkobba) */}
-        {isHost && room?.maxPlayers === 2 && room?.gameType === 'chkobba' && (
+        {/* Team switch button (host only, Chkobba games) */}
+        {isHost && room?.gameType === 'chkobba' && (
           <motion.button
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}

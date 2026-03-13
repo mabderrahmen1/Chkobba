@@ -26,9 +26,21 @@ export function GameTable() {
   if (is4Player) {
     const teammate = opponents.find((p) => p.team === currentPlayer.team);
     const opps = opponents.filter((p) => p.team !== currentPlayer.team);
+    
+    // Position teammate at top (across from you)
     topPlayer = teammate;
-    leftPlayer = opps[0];
-    rightPlayer = opps[1];
+    
+    // Position opponents based on turn order
+    // Find which opponent plays right after you (should be on your right)
+    // and which plays after your teammate (should be on your left)
+    const turnOrder = gameState.players.map(p => p.id);
+    const myIndex = turnOrder.indexOf(currentPlayer.id);
+    const nextPlayerIndex = (myIndex + 1) % turnOrder.length;
+    const nextPlayerId = turnOrder[nextPlayerIndex];
+    
+    // The opponent who plays right after you goes on the right
+    rightPlayer = opps.find(p => p.id === nextPlayerId) || opps[0];
+    leftPlayer = opps.find(p => p.id !== rightPlayer?.id) || opps[1];
   } else {
     topPlayer = opponents[0];
   }

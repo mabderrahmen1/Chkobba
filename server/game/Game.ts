@@ -140,15 +140,34 @@ export class Game {
     // Deal initial hands
     this.dealHands();
 
-    // Set turn order — dealer rotates each round, first player is after dealer
-    this.turnOrder = this.players.map(p => p.id);
-    const dealerIndex = (this.roundNumber - 1) % this.players.length;
-    const firstPlayerIndex = (dealerIndex + 1) % this.players.length;
+    // Set turn order with alternating teams
+    // For 4-player (2v2): Team1 -> Team2 -> Team1 -> Team2
+    // For 2-player: Team0 -> Team1
+    this.turnOrder = [];
+    const team0Players = this.getTeam(0);
+    const team1Players = this.getTeam(1);
+    
+    if (team0Players.length === 2 && team1Players.length === 2) {
+      // 4-player 2v2: alternate teams
+      // Rotate starting player each round for fairness
+      const startWithTeam1 = this.roundNumber % 2 === 0;
+      if (startWithTeam1) {
+        this.turnOrder.push(team0Players[0].id, team1Players[0].id, team0Players[1].id, team1Players[1].id);
+      } else {
+        this.turnOrder.push(team1Players[0].id, team0Players[0].id, team1Players[1].id, team0Players[1].id);
+      }
+    } else {
+      // 2-player: simple alternation
+      this.turnOrder = this.players.map(p => p.id);
+    }
+    
+    // First player is determined by rotation (dealer concept)
+    const firstPlayerIndex = (this.roundNumber - 1) % this.turnOrder.length;
     this.currentTurn = this.turnOrder[firstPlayerIndex];
 
     this.pendingCapture = null;
 
-    console.log(`[Game ${this.roomId}] Round ${this.roundNumber} started`);
+    console.log(`[Game ${this.roomId}] Round ${this.roundNumber} started, turn order: ${this.turnOrder.join(' -> ')}`);
   }
 
   /**

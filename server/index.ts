@@ -537,11 +537,17 @@ io.on('connection', (socket: Socket) => {
         socket.emit('error', { message: 'Invalid team for 2-player game' });
         return;
       }
-    } else {
-      // 4-player: max 2 players per team
+    } else if (currentRoom.maxPlayers === 4) {
+      // 4-player: max 2 players per team, team must be 0 or 1
+      if (team !== 0 && team !== 1) {
+        socket.emit('error', { message: 'Invalid team' });
+        return;
+      }
       const currentTeamCount = currentRoom.players.filter(p => p.team === team).length;
-      if (currentTeamCount >= 2) {
-        socket.emit('error', { message: 'Team is full' });
+      // Don't count the target player if they're already on this team
+      const adjustingPlayerCount = targetPlayer.team === team ? currentTeamCount - 1 : currentTeamCount;
+      if (adjustingPlayerCount >= 2) {
+        socket.emit('error', { message: 'Team is full (max 2 players)' });
         return;
       }
     }
