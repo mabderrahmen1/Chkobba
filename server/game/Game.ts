@@ -234,13 +234,6 @@ export class Game {
         return { success: false, error: `Invalid capture: Selection sums to ${sum}, but card is ${playedCard.value}` };
       }
 
-      // Priority Rule check: If a single card matches value, you can't take a sum of other cards
-      // if those cards don't include the matching card (depends on variant, but let's implement standard)
-      const hasSingleMatchOnTable = this.tableCards.some(c => c.value === playedCard.value);
-      if (hasSingleMatchOnTable && !isSingleMatch) {
-        return { success: false, error: 'Must capture the single card with same value' };
-      }
-
       // Execute Capture
       player.hand.splice(cardIndex, 1);
       

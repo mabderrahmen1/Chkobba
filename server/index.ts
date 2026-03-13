@@ -14,6 +14,8 @@ import store from './store.js';
 import Game from './game/Game.js';
 import { Room } from './game/Room.js';
 import { RummyGame } from './game/RummyGame.js';
+import { getBotMove, getRandomBotName } from './game/Bot.js';
+import { generatePlayerId } from './game/Room.js';
 import { Player } from '../shared/types.js';
 import { GameType } from '../shared/rules.js';
 
@@ -48,6 +50,14 @@ const rummyGames = new Map<string, RummyGame>();
 
 // Player to socket mapping
 const playerSockets = new Map<string, string>();
+
+// Turn timers (AFK + bot delay) by room ID
+const turnTimers = new Map<string, NodeJS.Timeout>();
+
+function clearTurnTimer(roomId: string): void {
+  const t = turnTimers.get(roomId);
+  if (t) { clearTimeout(t); turnTimers.delete(roomId); }
+}
 
 /**
  * Get or create Chkobba game for a room
@@ -167,6 +177,135 @@ function broadcastGameState(roomId: string): void {
 }
 
 /**
+ * Execute a bot move for the current turn in a room
+ */
+function executeBotMove(roomId: string, botPlayerId: string): void {
+  const room = store.getRoom(roomId);
+  const game = chkobbaGames.get(roomId);
+  if (!room || !game || game.winner) return;
+
+  try {
+    const move = getBotMove(game, botPlayerId);
+    const result = game.playCard(botPlayerId, move.cardIndex, move.tableIndices);
+
+    if (!result.success) {
+      // Fallback: play first card as discard
+      game.playCard(botPlayerId, 0, []);
+    }
+
+    room.lastActivity = Date.now();
+    broadcastGameState(roomId);
+
+    const botPlayer = room.players.find(p => p.id === botPlayerId);
+
+    if (result.capture?.isChkobba) {
+      io.to(roomId).emit('chkobba', {
+        playerId: botPlayerId,
+        playerNickname: botPlayer?.nickname || 'Bot'
+      });
+    }
+
+    if (result.capture?.isHayya) {
+      io.to(roomId).emit('hayya_captured', {
+        playerId: botPlayerId,
+        playerNickname: botPlayer?.nickname || 'Bot'
+      });
+    }
+
+    if (game.roundJustEnded && game.lastRoundResult) {
+      io.to(roomId).emit('round_end', game.lastRoundResult);
+
+      if (game.winner) {
+        io.to(roomId).emit('game_over', { winner: game.winner, scores: game.scores });
+        return;
+      }
+
+      // Auto-add all bots to continuePlayers so only humans need to click Continue
+      for (const p of room.players) {
+        if (p.isBot) game.continuePlayers.add(p.id);
+      }
+      // Don't start next timer — wait for humans to click Continue
+      return;
+    }
+
+    startTurnTimer(roomId);
+  } catch (err) {
+    console.error(`[Bot] Error executing move in room ${roomId}:`, err);
+  }
+}
+
+/**
+ * Start (or restart) the turn timer for a room.
+ * - If the current player is a bot: schedule auto-play.
+ * - If the current player is a human and turnTimeout > 0: start AFK timer and
+ *   broadcast turn_started so clients can show a countdown.
+ */
+function startTurnTimer(roomId: string): void {
+  clearTurnTimer(roomId);
+
+  const room = store.getRoom(roomId);
+  if (!room || (room.status as string) !== config.GAME_STATUS.PLAYING) return;
+
+  const game = chkobbaGames.get(roomId);
+  if (!game || game.winner || game.roundJustEnded) return;
+
+  const currentPlayerId = game.currentTurn;
+  const currentPlayer = room.players.find(p => p.id === currentPlayerId);
+  if (!currentPlayer) return;
+
+  if (currentPlayer.isBot) {
+    // Natural-feeling bot delay: 0.8 – 2 s
+    const delay = 800 + Math.random() * 1200;
+    const t = setTimeout(() => {
+      turnTimers.delete(roomId);
+      executeBotMove(roomId, currentPlayerId);
+    }, delay);
+    turnTimers.set(roomId, t);
+  } else if (room.turnTimeout > 0) {
+    // Broadcast turn start so clients can render a countdown
+    io.to(roomId).emit('turn_started', {
+      playerId: currentPlayerId,
+      timeout: room.turnTimeout,
+      startedAt: Date.now()
+    });
+
+    const t = setTimeout(() => {
+      turnTimers.delete(roomId);
+      const updRoom = store.getRoom(roomId);
+      const updGame = chkobbaGames.get(roomId);
+      if (!updRoom || !updGame || updGame.winner) return;
+
+      const afkPlayer = updRoom.players.find(p => p.id === currentPlayerId);
+      if (!afkPlayer || afkPlayer.isBot) return;
+
+      console.log(`[Server] AFK timeout for ${afkPlayer.nickname} in room ${roomId}. Converting to bot.`);
+
+      // Disconnect their socket
+      const afkSocket = getSocketByPlayerId(afkPlayer.id);
+      if (afkSocket) afkSocket.disconnect(true);
+      playerSockets.delete(afkPlayer.id);
+
+      // Notify room
+      io.to(roomId).emit('player_afk_kicked', {
+        playerId: afkPlayer.id,
+        playerNickname: afkPlayer.nickname
+      });
+
+      // Convert player to bot in-place (keeps same team / turn order slot)
+      afkPlayer.isBot = true;
+      afkPlayer.isConnected = false;
+
+      broadcastRoomUpdate(roomId);
+
+      // Bot now takes their turn
+      startTurnTimer(roomId);
+    }, room.turnTimeout * 1000);
+
+    turnTimers.set(roomId, t);
+  }
+}
+
+/**
  * Get socket by player ID
  * @param {string} playerId - Player ID
  * @returns {Socket|null}
@@ -186,6 +325,10 @@ function getSocketByPlayerId(playerId: string): Socket | null {
  * @param {Player} player - Player
  */
 function handleDisconnect(socket: Socket, room: Room, player: Player): void {
+  // If it was their turn, cancel the AFK timer (they're already gone)
+  // It will be restarted if/when they rejoin or after auto-win logic
+  clearTurnTimer(room.id);
+
   const wasHost = player.isHost;
   room.removePlayer(player.id);
   
@@ -267,10 +410,10 @@ io.on('connection', (socket: Socket) => {
   /**
    * Create a new room
    */
-  socket.on('create_room', ({ nickname, targetScore, maxPlayers, gameType, hostTeam }: { nickname: string, targetScore: number, maxPlayers: number, gameType?: GameType, hostTeam?: number }) => {
-    console.log('[Server] create_room event:', { nickname, targetScore, maxPlayers, gameType, hostTeam });
+  socket.on('create_room', ({ nickname, targetScore, maxPlayers, gameType, hostTeam, turnTimeout }: { nickname: string, targetScore: number, maxPlayers: number, gameType?: GameType, hostTeam?: number, turnTimeout?: number }) => {
+    console.log('[Server] create_room event:', { nickname, targetScore, maxPlayers, gameType, hostTeam, turnTimeout });
     try {
-      const room = store.createRoom(socket.id, targetScore, maxPlayers, gameType || 'chkobba');
+      const room = store.createRoom(socket.id, targetScore, maxPlayers, gameType || 'chkobba', turnTimeout ?? config.DEFAULT_TURN_TIMEOUT);
       const { player, error } = room.addPlayer(nickname);
 
       if (error || !player) {
@@ -498,19 +641,70 @@ io.on('connection', (socket: Socket) => {
   /**
    * Update room settings (Host only)
    */
-  socket.on('update_room_settings', ({ maxPlayers, gameType, targetScore }: { maxPlayers: number, gameType: GameType, targetScore: number }) => {
+  socket.on('update_room_settings', ({ maxPlayers, gameType, targetScore, turnTimeout }: { maxPlayers: number, gameType: GameType, targetScore: number, turnTimeout: number }) => {
     if (!currentRoom || !currentPlayer) return;
     if (!currentPlayer.isHost) {
       socket.emit('error', { message: 'Only host can change settings' });
       return;
     }
 
-    console.log(`[Server] Updating settings for room ${currentRoom.id}: ${gameType}, ${maxPlayers} players`);
-    currentRoom.updateSettings(maxPlayers, gameType, targetScore);
+    console.log(`[Server] Updating settings for room ${currentRoom.id}: ${gameType}, ${maxPlayers} players, ${turnTimeout}s timeout`);
+    currentRoom.updateSettings(maxPlayers, gameType, targetScore, turnTimeout ?? currentRoom.turnTimeout);
 
     // If team size changed, we might need to re-balance teams or clear games
     deleteGames(currentRoom.id);
 
+    broadcastRoomUpdate(currentRoom.id);
+  });
+
+  /**
+   * Add a bot to the room (Host only, lobby only)
+   */
+  socket.on('add_bot', () => {
+    if (!currentRoom || !currentPlayer?.isHost) return;
+    if ((currentRoom.status as string) !== config.GAME_STATUS.LOBBY) return;
+    if (currentRoom.players.length >= currentRoom.maxPlayers) {
+      socket.emit('error', { message: 'Room is full' });
+      return;
+    }
+
+    const existingNames = currentRoom.players.map(p => p.nickname);
+    const botName = getRandomBotName(existingNames);
+    const bot: Player = {
+      id: generatePlayerId(),
+      nickname: botName,
+      team: currentRoom.calculateTeam(),
+      isHost: false,
+      isConnected: false,
+      isReady: true,
+      isBot: true,
+      handCount: 0,
+      capturedCount: 0,
+      chkobbaCount: 0,
+      dinariCount: 0,
+      sevensCount: 0,
+      hasHaya: false,
+      wins: 0,
+      losses: 0
+    };
+
+    currentRoom.players.push(bot);
+    currentRoom.lastActivity = Date.now();
+    console.log(`[Server] Bot "${botName}" added to room ${currentRoom.id}`);
+    broadcastRoomUpdate(currentRoom.id);
+  });
+
+  /**
+   * Remove a bot from the room (Host only, lobby only)
+   */
+  socket.on('remove_bot', ({ botId }: { botId: string }) => {
+    if (!currentRoom || !currentPlayer?.isHost) return;
+    if ((currentRoom.status as string) !== config.GAME_STATUS.LOBBY) return;
+    const botIdx = currentRoom.players.findIndex(p => p.id === botId && p.isBot);
+    if (botIdx === -1) return;
+    currentRoom.players.splice(botIdx, 1);
+    currentRoom.lastActivity = Date.now();
+    console.log(`[Server] Bot removed from room ${currentRoom.id}`);
     broadcastRoomUpdate(currentRoom.id);
   });
 
@@ -566,11 +760,21 @@ io.on('connection', (socket: Socket) => {
     currentRoom.setReady(currentPlayer.id, true);
     broadcastRoomUpdate(currentRoom.id);
 
-    // Auto-start if all players ready
+    // Auto-start when all connected human players are ready (bots are always ready)
     if (currentRoom.allPlayersReady() && currentRoom.players.length >= 2) {
-      // In a real app, you might want the host to explicitly start
-      // But for now we follow the existing logic
-      socket.emit('start_game');
+      currentRoom.status = config.GAME_STATUS.PLAYING;
+      if (currentRoom.gameType === 'rummy') {
+        const game = getOrCreateRummyGame(currentRoom.id, currentRoom);
+        game.start();
+      } else {
+        const game = getOrCreateChkobbaGame(currentRoom.id, currentRoom);
+        game.start();
+        startTurnTimer(currentRoom.id);
+      }
+      io.to(currentRoom.id).emit('game_started');
+      broadcastGameState(currentRoom.id);
+      broadcastRoomUpdate(currentRoom.id);
+      console.log(`[Server] Auto-started ${currentRoom.gameType} game in room ${currentRoom.id} (all players ready)`);
     }
   });
 
@@ -604,6 +808,10 @@ io.on('connection', (socket: Socket) => {
     broadcastGameState(currentRoom.id);
     broadcastRoomUpdate(currentRoom.id);
 
+    if (currentRoom.gameType === 'chkobba') {
+      startTurnTimer(currentRoom.id);
+    }
+
     console.log(`[Server] ${currentRoom.gameType} game started in room ${currentRoom.id}`);
   });
 
@@ -627,6 +835,7 @@ io.on('connection', (socket: Socket) => {
       return;
     }
 
+    clearTurnTimer(currentRoom.id); // Cancel AFK timer — player acted
     currentRoom.lastActivity = Date.now();
     const result = game.playCard(currentPlayer.id, cardIndex, tableIndices || []);
 
@@ -655,14 +864,22 @@ io.on('connection', (socket: Socket) => {
     if (game.roundJustEnded && game.lastRoundResult) {
       io.to(currentRoom.id).emit('round_end', game.lastRoundResult);
 
-      // Check if game is over
       if (game.winner) {
         io.to(currentRoom.id).emit('game_over', {
           winner: game.winner,
           scores: game.scores
         });
+        return;
       }
+
+      // Auto-add all bots to continuePlayers
+      for (const p of currentRoom.players) {
+        if (p.isBot) game.continuePlayers.add(p.id);
+      }
+      return; // Wait for humans to click Continue
     }
+
+    startTurnTimer(currentRoom.id);
   });
 
   /**
@@ -822,13 +1039,22 @@ io.on('connection', (socket: Socket) => {
     // Don't start a new round if game is over
     if (game.winner) return;
 
-    // Mark this player as ready to continue; only start when all connected players confirm
-    const connectedIds = currentRoom.getConnectedPlayers().map(p => p.id);
-    const allReady = game.playerContinue(currentPlayer.id, connectedIds);
+    // Auto-add all bots to continuePlayers
+    for (const p of currentRoom.players) {
+      if (p.isBot) game.continuePlayers.add(p.id);
+    }
+
+    // Only wait for connected human players
+    const connectedHumanIds = currentRoom.getConnectedPlayers()
+      .filter(p => !p.isBot)
+      .map(p => p.id);
+
+    const allReady = game.playerContinue(currentPlayer.id, connectedHumanIds);
     if (allReady) {
       game.startNewRound();
       io.to(currentRoom.id).emit('new_round');
       broadcastGameState(currentRoom.id);
+      startTurnTimer(currentRoom.id);
     }
   });
 
@@ -878,6 +1104,7 @@ io.on('connection', (socket: Socket) => {
   socket.on('play_again', () => {
     if (!currentRoom || !currentPlayer) return;
 
+    clearTurnTimer(currentRoom.id);
     // Clear the current game data
     chkobbaGames.delete(currentRoom.id);
     rummyGames.delete(currentRoom.id);
@@ -889,6 +1116,7 @@ io.on('connection', (socket: Socket) => {
     } else {
       const newGame = getOrCreateChkobbaGame(currentRoom.id, currentRoom);
       newGame.start();
+      startTurnTimer(currentRoom.id);
     }
 
     io.to(currentRoom.id).emit('game_started');
@@ -906,7 +1134,9 @@ io.on('connection', (socket: Socket) => {
     }
 
     console.log(`[Server] Resetting game for room ${currentRoom.id} (triggered by ${currentPlayer.nickname})`);
-    
+
+    clearTurnTimer(currentRoom.id);
+
     // Reset room status but KEEP players and their wins/losses
     currentRoom.status = config.GAME_STATUS.LOBBY;
     for (const player of currentRoom.players) {

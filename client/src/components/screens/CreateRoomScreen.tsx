@@ -11,11 +11,12 @@ export function CreateRoomScreen() {
   const [targetScore, setTargetScore] = useState(21);
   const [maxPlayers, setMaxPlayers] = useState(2);
   const [hostTeam, setHostTeam] = useState(0);
+  const [turnTimeout, setTurnTimeout] = useState(60);
   const nickname = useGameStore((s) => s.nickname);
   const setScreen = useUIStore((s) => s.setScreen);
 
   const handleCreate = () => {
-    socket.emit('create_room', { nickname, targetScore, maxPlayers, gameType, hostTeam: maxPlayers === 2 && gameType === 'chkobba' ? hostTeam : undefined });
+    socket.emit('create_room', { nickname, targetScore, maxPlayers, gameType, turnTimeout, hostTeam: maxPlayers === 2 && gameType === 'chkobba' ? hostTeam : undefined });
   };
 
   const handleGameTypeChange = (type: GameType) => {
@@ -206,6 +207,38 @@ export function CreateRoomScreen() {
                 </motion.button>
               </div>
             </motion.div>
+          )}
+
+          {/* Turn Timeout (Chkobba only) */}
+          {gameType === 'chkobba' && (
+            <div className="mb-7 sm:mb-9">
+              <div className="text-cream/30 font-ancient text-[9px] sm:text-[10px] uppercase tracking-[0.25em] text-center mb-3">
+                Turn Timeout
+              </div>
+              <div className="flex justify-center gap-2 sm:gap-3 flex-wrap">
+                {[{ v: 0, label: 'Off' }, { v: 30, label: '30s' }, { v: 60, label: '60s' }, { v: 90, label: '90s' }, { v: 120, label: '2m' }].map(({ v, label }) => (
+                  <motion.button
+                    key={v}
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => setTurnTimeout(v)}
+                    className={`w-12 h-10 sm:w-14 sm:h-11 rounded-lg font-ancient font-bold text-xs sm:text-sm
+                      transition-all duration-200 border-2 ${
+                      turnTimeout === v
+                        ? 'bg-brass/90 text-black border-brass shadow-[0_0_12px_rgba(212,175,55,0.4)] scale-105'
+                        : 'bg-black/30 text-cream/40 border-brass/20 hover:border-brass/40'
+                    }`}
+                  >
+                    {label}
+                  </motion.button>
+                ))}
+              </div>
+              {turnTimeout > 0 && (
+                <p className="text-cream/20 font-ancient text-[8px] text-center mt-2">
+                  AFK players are replaced by a bot after {turnTimeout}s
+                </p>
+              )}
+            </div>
           )}
 
           {/* Action buttons */}

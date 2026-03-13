@@ -6,12 +6,30 @@ import { Button } from '../ui/Button';
 import { useState, useEffect } from 'react';
 import type { GameType } from '@shared/rules.js';
 
-/* ─── person silhouette SVG (inline, no external deps) ─── */
+/* ─── person silhouette SVG ─── */
 function PersonIcon({ size = 32, className = '' }: { size?: number; className?: string }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" className={className}>
       <circle cx="12" cy="7" r="4" />
       <path d="M12 13c-5 0-8 2.5-8 5v2h16v-2c0-2.5-3-5-8-5z" />
+    </svg>
+  );
+}
+
+/* ─── robot icon for bots ─── */
+function BotIcon({ size = 32, className = '' }: { size?: number; className?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" className={className}>
+      <rect x="7" y="8" width="10" height="9" rx="2" />
+      <rect x="9" y="10" width="2" height="2" rx="0.5" className="fill-current opacity-60" style={{ fill: 'currentColor', opacity: 0.4 }} />
+      <rect x="13" y="10" width="2" height="2" rx="0.5" style={{ fill: 'currentColor', opacity: 0.4 }} />
+      <rect x="10" y="13" width="4" height="1.5" rx="0.75" style={{ fill: 'currentColor', opacity: 0.4 }} />
+      <rect x="11" y="5" width="2" height="3" rx="1" />
+      <circle cx="12" cy="4.5" r="1.2" />
+      <rect x="5" y="10" width="2" height="4" rx="1" />
+      <rect x="17" y="10" width="2" height="4" rx="1" />
+      <rect x="9" y="17" width="2" height="2" rx="1" />
+      <rect x="13" y="17" width="2" height="2" rx="1" />
     </svg>
   );
 }
@@ -28,6 +46,7 @@ export function LobbyScreen() {
     maxPlayers: room?.maxPlayers || 2,
     gameType: (room?.gameType || 'chkobba') as GameType,
     targetScore: room?.targetScore || 21,
+    turnTimeout: room?.turnTimeout ?? 60,
   });
 
   const [settingsDirty, setSettingsDirty] = useState(false);
@@ -38,10 +57,11 @@ export function LobbyScreen() {
         maxPlayers: room.maxPlayers,
         gameType: room.gameType,
         targetScore: room.targetScore,
+        turnTimeout: room.turnTimeout ?? 60,
       });
       setSettingsDirty(false);
     }
-  }, [room?.id, room?.maxPlayers, room?.gameType, room?.targetScore]);
+  }, [room?.id, room?.maxPlayers, room?.gameType, room?.targetScore, room?.turnTimeout]);
 
   if (!room || !playerId) {
     return (
@@ -291,6 +311,29 @@ export function LobbyScreen() {
                     )}
                   </div>
 
+                  {/* Turn Timeout (Chkobba only) */}
+                  {settings.gameType === 'chkobba' && (
+                    <div className="w-full max-w-[240px]">
+                      <div className="text-cream/25 font-ancient text-[8px] sm:text-[9px] uppercase tracking-[0.3em] text-center mb-2">
+                        Turn Timeout
+                      </div>
+                      <div className="flex justify-center gap-1.5 flex-wrap">
+                        {[{ v: 0, label: 'Off' }, { v: 30, label: '30s' }, { v: 60, label: '60s' }, { v: 90, label: '90s' }, { v: 120, label: '2m' }].map(({ v, label }) => (
+                          <motion.button
+                            key={v}
+                            whileTap={{ scale: 0.9 }}
+                            onClick={() => updateSetting({ turnTimeout: v })}
+                            className={`px-2 py-1 rounded font-ancient font-bold text-[9px] sm:text-[10px] border transition-all duration-200 ${
+                              settings.turnTimeout === v
+                                ? 'bg-brass/85 text-black border-brass'
+                                : 'bg-black/25 text-cream/30 border-brass/15 hover:border-brass/30'
+                            }`}
+                          >{label}</motion.button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                   {/* Apply settings button */}
                   <AnimatePresence>
                     {settingsDirty && (
@@ -375,12 +418,14 @@ export function LobbyScreen() {
   );
 }
 
-/* ─── Seat card: person silhouette + name + status ─── */
+/* ─── Seat card: person / bot + name + status ─── */
 function SeatCard({ player, isMe }: { player: any; isMe: boolean }) {
   const room = useGameStore((s) => s.room);
   const playerId = useGameStore((s) => s.playerId);
   const isHost = room?.hostId === playerId;
-  
+  const addToast = useUIStore((s) => s.addToast);
+
+  // ── Empty seat ──
   if (!player) {
     return (
       <motion.div
@@ -391,13 +436,62 @@ function SeatCard({ player, isMe }: { player: any; isMe: boolean }) {
         <div className="w-12 h-14 sm:w-14 sm:h-16 rounded-xl border-2 border-dashed border-brass/15 flex items-center justify-center bg-black/20 backdrop-blur-sm">
           <PersonIcon size={22} className="text-cream-dark/15" />
         </div>
-        <span className="text-[8px] sm:text-[9px] text-cream-dark/20 font-ancient uppercase tracking-wider">
-          Empty
+        {isHost ? (
+          <motion.button
+            whileHover={{ scale: 1.08 }}
+            whileTap={{ scale: 0.92 }}
+            onClick={() => socket.emit('add_bot')}
+            className="text-[7px] sm:text-[8px] text-brass/60 hover:text-brass font-ancient uppercase tracking-wider border border-brass/20 hover:border-brass/50 px-1.5 py-0.5 rounded transition-colors"
+          >
+            + Bot
+          </motion.button>
+        ) : (
+          <span className="text-[8px] sm:text-[9px] text-cream-dark/20 font-ancient uppercase tracking-wider">
+            Empty
+          </span>
+        )}
+      </motion.div>
+    );
+  }
+
+  // ── Bot seat ──
+  if (player.isBot) {
+    return (
+      <motion.div layout className="flex flex-col items-center gap-1 relative">
+        <div className="relative w-12 h-14 sm:w-14 sm:h-16 rounded-xl border-2 border-brass/40 bg-brass/5 backdrop-blur-sm flex flex-col items-center justify-center">
+          <BotIcon size={20} className="text-brass/70 mb-0.5" />
+          {/* Bot badge */}
+          <span className="text-[6px] font-ancient uppercase tracking-widest text-brass/50 px-1 py-0.5 rounded bg-brass/10 border border-brass/20 leading-none">
+            BOT
+          </span>
+          {/* Remove button (host only) */}
+          {isHost && (
+            <motion.button
+              whileHover={{ scale: 1.15 }}
+              whileTap={{ scale: 0.9 }}
+              onClick={() => socket.emit('remove_bot', { botId: player.id })}
+              className="absolute -top-1.5 -right-1.5 w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-red-800/80 hover:bg-red-600 text-white flex items-center justify-center border border-red-500/60 shadow z-20 transition-colors"
+              title="Remove bot"
+            >
+              <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </motion.button>
+          )}
+        </div>
+        <span className="text-[9px] sm:text-[10px] font-ancient font-bold tracking-wide max-w-[60px] truncate text-brass/60">
+          {player.nickname}
+        </span>
+        <span className={`text-[7px] sm:text-[8px] font-ancient uppercase tracking-widest px-1.5 py-0.5 rounded ${
+          player.team === 0 ? 'bg-amber-600/70 text-black font-bold' : 'bg-teal-600/70 text-black font-bold'
+        }`}>
+          Team {player.team + 1}
         </span>
       </motion.div>
     );
   }
 
+  // ── Human seat ──
   const borderColor = isMe
     ? 'border-brass shadow-[0_0_16px_rgba(212,175,55,0.3)]'
     : player.isReady
@@ -412,16 +506,12 @@ function SeatCard({ player, isMe }: { player: any; isMe: boolean }) {
 
   const handleTeamSwitch = () => {
     if (!isHost || !room || room.gameType !== 'chkobba') return;
-    // For 2-player: switch between team 0 and 1
-    // For 4-player: can only switch if teams are unbalanced or player is moving to balance teams
     if (room.maxPlayers === 2) {
       const newTeam = player.team === 0 ? 1 : 0;
       socket.emit('update_player_team', { playerId: player.id, team: newTeam });
     } else if (room.maxPlayers === 4) {
-      // In 4-player, allow host to reassign teams freely (0 or 1)
       const newTeam = player.team === 0 ? 1 : 0;
-      // Check if the target team has room (max 2 players per team)
-      const currentTeamCount = room.players.filter(p => p.team === newTeam).length;
+      const currentTeamCount = room.players.filter((p: any) => p.team === newTeam).length;
       if (currentTeamCount < 2) {
         socket.emit('update_player_team', { playerId: player.id, team: newTeam });
       } else {
@@ -431,10 +521,7 @@ function SeatCard({ player, isMe }: { player: any; isMe: boolean }) {
   };
 
   return (
-    <motion.div
-      layout
-      className="flex flex-col items-center gap-1 relative"
-    >
+    <motion.div layout className="flex flex-col items-center gap-1 relative">
       {/* Crown for host */}
       {player.isHost && (
         <motion.div
@@ -471,7 +558,7 @@ function SeatCard({ player, isMe }: { player: any; isMe: boolean }) {
             </svg>
           </motion.div>
         )}
-        
+
         {/* Team switch button (host only, Chkobba games) */}
         {isHost && room?.gameType === 'chkobba' && (
           <motion.button

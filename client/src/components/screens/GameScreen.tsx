@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGameStore } from '../../stores/useGameStore';
 import { GameTable } from '../game/GameTable';
@@ -22,6 +22,10 @@ export function GameScreen() {
   const playerId = useGameStore((s) => s.playerId);
   const autoWinWarning = useGameStore((s) => s.autoWinWarning);
 
+  const turnStartedAt = useGameStore((s) => s.turnStartedAt);
+  const turnTimeoutSec = useGameStore((s) => s.turnTimeoutSec);
+  const [countdown, setCountdown] = useState<number | null>(null);
+
   const { playClink, playLighter } = useAmbianceSound();
   const lighterPlayed = useRef(false);
   const prevRound = useRef(gameState?.roundNumber ?? 0);
@@ -35,6 +39,22 @@ export function GameScreen() {
       return () => clearTimeout(t);
     }
   }, [playLighter]);
+
+  // Countdown timer when it's our turn
+  useEffect(() => {
+    if (!turnStartedAt || !turnTimeoutSec) {
+      setCountdown(null);
+      return;
+    }
+    const tick = () => {
+      const elapsed = (Date.now() - turnStartedAt) / 1000;
+      const remaining = Math.max(0, turnTimeoutSec - elapsed);
+      setCountdown(Math.ceil(remaining));
+    };
+    tick();
+    const interval = setInterval(tick, 250);
+    return () => clearInterval(interval);
+  }, [turnStartedAt, turnTimeoutSec]);
 
   // Play clink on round start (Chkobba only)
   useEffect(() => {
@@ -126,6 +146,28 @@ export function GameScreen() {
                 }`}>
                   {turnName}
                 </span>
+
+                {/* Countdown ring — only visible when it's your turn */}
+                {isMyTurn && countdown !== null && turnTimeoutSec !== null && (
+                  <div className="relative w-8 h-8 flex-shrink-0" title={`${countdown}s remaining`}>
+                    <svg className="w-8 h-8 -rotate-90" viewBox="0 0 32 32">
+                      <circle cx="16" cy="16" r="13" fill="none" stroke="rgba(212,175,55,0.15)" strokeWidth="3" />
+                      <circle
+                        cx="16" cy="16" r="13"
+                        fill="none"
+                        stroke={countdown <= 10 ? '#ef4444' : 'rgba(212,175,55,0.8)'}
+                        strokeWidth="3"
+                        strokeLinecap="round"
+                        strokeDasharray={`${2 * Math.PI * 13}`}
+                        strokeDashoffset={`${2 * Math.PI * 13 * (1 - countdown / turnTimeoutSec)}`}
+                        style={{ transition: 'stroke-dashoffset 0.25s linear, stroke 0.5s' }}
+                      />
+                    </svg>
+                    <span className={`absolute inset-0 flex items-center justify-center font-mono font-bold text-[10px] ${countdown <= 10 ? 'text-red-400' : 'text-brass'}`}>
+                      {countdown}
+                    </span>
+                  </div>
+                )}
              </div>
           </div>
         </motion.div>

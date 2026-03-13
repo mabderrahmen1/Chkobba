@@ -97,6 +97,8 @@ export function useSocket() {
       } else {
         g.setGameState(data);
         g.setGameType('chkobba');
+        // Reset countdown — turn_started will re-arm it if it's still our turn
+        g.setTurnTimer(null, null);
       }
 
       if (ui.screen === 'lobby') {
@@ -145,5 +147,30 @@ export function useSocket() {
     });
 
     socket.on('chat_message', (data: any) => useChatStore.getState().addMessage(data));
+
+    socket.on('turn_started', (data: { playerId: string; timeout: number; startedAt: number }) => {
+      const g = useGameStore.getState();
+      // Only track the timer if it's our turn
+      if (data.playerId === g.playerId) {
+        g.setTurnTimer(data.startedAt, data.timeout);
+      } else {
+        g.setTurnTimer(null, null);
+      }
+    });
+
+    socket.on('player_afk_kicked', (data: { playerId: string; playerNickname: string }) => {
+      const g = useGameStore.getState();
+      if (data.playerId === g.playerId) {
+        // We were kicked — clear state and go to landing
+        g.reset();
+        useUIStore.getState().setScreen('landing');
+        useUIStore.getState().addToast('You were removed for inactivity.', 'error');
+      } else {
+        useUIStore.getState().addToast(`${data.playerNickname} was replaced by a bot (AFK).`, 'info');
+        // Reset our own countdown since the turn will change
+        g.setTurnTimer(null, null);
+      }
+    });
+
   }, []);
 }

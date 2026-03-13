@@ -15,7 +15,11 @@
       "Bash(cd \"/c/Users/mrabt/OneDrive/Desktop/chkobba 2/chkobba\" && npm run build:server 2>&1 | tail -5)",
       "Bash(cd \"/c/Users/mrabt/OneDrive/Desktop/chkobba 2/chkobba\" && npm run build:server 2>&1)",
       "Bash(cd \"/c/Users/mrabt/OneDrive/Desktop/chkobba 2/chkobba/client/public/pics\" && rm -f 1.png 2.jpg 3.jpg 4.jpg song.mp3 waitress.avif)",
-      "Bash(cd /c/Users/mrabt/OneDrive/Desktop/chkobba/Chkobba && npm run build 2>&1 | tail -20)"
+      "Bash(cd /c/Users/mrabt/OneDrive/Desktop/chkobba/Chkobba && npm run build 2>&1 | tail -20)",
+      "Bash(sort -k2)",
+      "Bash(cd \"C:\\\\Users\\\\mrabt\\\\OneDrive\\\\Desktop\\\\chkobba\\\\Chkobba\" && npm run build 2>&1)",
+      "Bash(cd \"C:/Users/mrabt/OneDrive/Desktop/chkobba/Chkobba\" && npm run build:client 2>&1)",
+      "Bash(cd \"C:/Users/mrabt/OneDrive/Desktop/chkobba/Chkobba\" && npm run build 2>&1 | tail -5)"
     ]
   }
 }

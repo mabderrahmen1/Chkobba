@@ -19,6 +19,7 @@ export class Room {
     hostId;
     targetScore;
     maxPlayers;
+    turnTimeout;
     status;
     players;
     createdAt;
@@ -34,11 +35,12 @@ export class Room {
      * @param {number} maxPlayers - Maximum players (2 or 4)
      * @param {GameType} gameType - Type of game to play
      */
-    constructor(id, hostId, targetScore, maxPlayers, gameType) {
+    constructor(id, hostId, targetScore, maxPlayers, gameType, turnTimeout) {
         this.id = id;
         this.hostId = hostId;
         this.targetScore = targetScore || config.DEFAULT_TARGET_SCORE;
         this.maxPlayers = maxPlayers || 2;
+        this.turnTimeout = turnTimeout ?? config.DEFAULT_TURN_TIMEOUT;
         this.status = config.GAME_STATUS.LOBBY;
         this.players = [];
         this.createdAt = Date.now();
@@ -154,16 +156,23 @@ export class Room {
     /**
      * Update room settings (Host only)
      */
-    updateSettings(maxPlayers, gameType, targetScore) {
+    updateSettings(maxPlayers, gameType, targetScore, turnTimeout) {
         // If switching from 4-player to 2-player, reset teams
         if (this.maxPlayers === 4 && maxPlayers === 2) {
             this.players.forEach((p, i) => {
                 p.team = i % 2;
             });
         }
+        // Remove excess bots if player count reduced
+        while (this.players.filter(p => p.isBot).length > 0 && this.players.length > maxPlayers) {
+            const lastBotIdx = this.players.map(p => p.isBot).lastIndexOf(true);
+            if (lastBotIdx !== -1)
+                this.players.splice(lastBotIdx, 1);
+        }
         this.maxPlayers = maxPlayers;
         this.gameType = gameType;
         this.targetScore = targetScore;
+        this.turnTimeout = turnTimeout;
         this.lastActivity = Date.now();
     }
     /**
@@ -187,7 +196,8 @@ export class Room {
     allPlayersReady() {
         if (this.players.length < 2)
             return false;
-        return this.players.every(p => p.isConnected && p.isReady);
+        // Bots are always considered ready; only check human players
+        return this.players.every(p => p.isBot || (p.isConnected && p.isReady));
     }
     /**
      * Get connected players
@@ -240,6 +250,7 @@ export class Room {
             hostId: this.hostId,
             targetScore: this.targetScore,
             maxPlayers: this.maxPlayers,
+            turnTimeout: this.turnTimeout,
             status: this.status,
             players: this.players.map(p => ({
                 ...p,

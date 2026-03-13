@@ -30,6 +30,8 @@ interface GameStore {
   chkobbaPlayer: string | null;
   hayyaPlayer: string | null;
   lastCaptureType: 'capture' | 'chkobba' | 'hayya' | null;
+  turnStartedAt: number | null;
+  turnTimeoutSec: number | null;
 
   setNickname: (nickname: string) => void;
   setPlayer: (playerId: string, isHost: boolean) => void;
@@ -47,6 +49,7 @@ interface GameStore {
   setChkobbaPlayer: (name: string | null) => void;
   setHayyaPlayer: (name: string | null) => void;
   setLastCaptureType: (type: 'capture' | 'chkobba' | 'hayya' | null) => void;
+  setTurnTimer: (startedAt: number | null, timeoutSec: number | null) => void;
   reset: () => void;
 }
 
@@ -69,6 +72,8 @@ export const useGameStore = create<GameStore>()(
       chkobbaPlayer: null,
       hayyaPlayer: null,
       lastCaptureType: null,
+      turnStartedAt: null,
+      turnTimeoutSec: null,
 
       setNickname: (nickname) => set({ nickname }),
       setPlayer: (playerId, isHost) => set({ playerId, isHost }),
@@ -99,6 +104,7 @@ export const useGameStore = create<GameStore>()(
       setChkobbaPlayer: (chkobbaPlayer) => set({ chkobbaPlayer }),
       setHayyaPlayer: (hayyaPlayer) => set({ hayyaPlayer }),
       setLastCaptureType: (lastCaptureType) => set({ lastCaptureType }),
+      setTurnTimer: (turnStartedAt, turnTimeoutSec) => set({ turnStartedAt, turnTimeoutSec }),
       reset: () =>
         set({
           nickname: '',
@@ -117,6 +123,8 @@ export const useGameStore = create<GameStore>()(
           chkobbaPlayer: null,
           hayyaPlayer: null,
           lastCaptureType: null,
+          turnStartedAt: null,
+          turnTimeoutSec: null,
         }),
     }),
     {

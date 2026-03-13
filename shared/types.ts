@@ -14,6 +14,7 @@ export interface Player {
   isHost: boolean;
   isReady: boolean;
   isConnected: boolean;
+  isBot?: boolean;
   handCount: number;
   capturedCount: number;
   chkobbaCount: number;
@@ -30,6 +31,7 @@ export interface RoomState {
   hostId: string;
   targetScore: number;
   maxPlayers: number;
+  turnTimeout: number;
   status: GameStatus;
   players: Player[];
   createdAt: number;
