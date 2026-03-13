@@ -235,8 +235,8 @@ io.on('connection', (socket) => {
     /**
      * Create a new room
      */
-    socket.on('create_room', ({ nickname, targetScore, maxPlayers, gameType }) => {
-        console.log('[Server] create_room event:', { nickname, targetScore, maxPlayers, gameType });
+    socket.on('create_room', ({ nickname, targetScore, maxPlayers, gameType, hostTeam }) => {
+        console.log('[Server] create_room event:', { nickname, targetScore, maxPlayers, gameType, hostTeam });
         try {
             const room = store.createRoom(socket.id, targetScore, maxPlayers, gameType || 'chkobba');
             const { player, error } = room.addPlayer(nickname);
@@ -247,6 +247,13 @@ io.on('connection', (socket) => {
             }
             currentRoom = room;
             currentPlayer = player;
+            // Apply host team preference for 2-player Chkobba
+            if (gameType === 'chkobba' && maxPlayers === 2 && hostTeam !== undefined) {
+                if (hostTeam === 0 || hostTeam === 1) {
+                    player.team = hostTeam;
+                    console.log(`[Server] Applied host team preference: ${hostTeam}`);
+                }
+            }
             // Map player to socket
             playerSockets.set(player.id, socket.id);
             socket.join(room.id);
@@ -430,6 +437,41 @@ io.on('connection', (socket) => {
         // If team size changed, we might need to re-balance teams or clear games
         deleteGames(currentRoom.id);
         broadcastRoomUpdate(currentRoom.id);
+    });
+    /**
+     * Update player team assignment (Host only, in lobby)
+     */
+    socket.on('update_player_team', ({ playerId, team }) => {
+        if (!currentRoom || !currentPlayer)
+            return;
+        if (!currentPlayer.isHost) {
+            socket.emit('error', { message: 'Only host can change teams' });
+            return;
+        }
+        const targetPlayer = currentRoom.players.find(p => p.id === playerId);
+        if (!targetPlayer) {
+            socket.emit('error', { message: 'Player not found' });
+            return;
+        }
+        // Validate team assignment
+        if (currentRoom.maxPlayers === 2) {
+            // 2-player: teams must be 0 and 1
+            if (team !== 0 && team !== 1) {
+                socket.emit('error', { message: 'Invalid team for 2-player game' });
+                return;
+            }
+        }
+        else {
+            // 4-player: max 2 players per team
+            const currentTeamCount = currentRoom.players.filter(p => p.team === team).length;
+            if (currentTeamCount >= 2) {
+                socket.emit('error', { message: 'Team is full' });
+                return;
+            }
+        }
+        targetPlayer.team = team;
+        broadcastRoomUpdate(currentRoom.id);
+        console.log(`[Server] Player ${targetPlayer.nickname} assigned to team ${team} by host`);
     });
     /**
      * Mark player as ready

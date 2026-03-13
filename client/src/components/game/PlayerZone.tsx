@@ -6,10 +6,17 @@ interface PlayerZoneProps {
   player: Player;
   position: 'top' | 'left' | 'right';
   isCurrentTurn?: boolean;
+  isTeammate?: boolean;
 }
 
-export function PlayerZone({ player, position, isCurrentTurn = false }: PlayerZoneProps) {
+export function PlayerZone({ player, position, isCurrentTurn = false, isTeammate = false }: PlayerZoneProps) {
   const isVertical = position === 'left' || position === 'right';
+
+  // Team colors
+  const teamColors = {
+    0: 'border-amber-500/60 bg-amber-900/20',
+    1: 'border-teal-500/60 bg-teal-900/20'
+  };
 
   // Card fan spread based on position
   const getCardTransform = (index: number, total: number) => {
@@ -33,13 +40,15 @@ export function PlayerZone({ player, position, isCurrentTurn = false }: PlayerZo
 
   return (
     <div className={`flex ${isVertical ? 'flex-row' : 'flex-col'} items-center gap-2`}>
-      {/* Nameplate */}
+      {/* Nameplate with team indicator */}
       <motion.div
         animate={isCurrentTurn ? {
           boxShadow: ['0 0 0px #d4af37', '0 0 14px #d4af37', '0 0 0px #d4af37'],
         } : { boxShadow: '0 0 0px transparent' }}
         transition={{ duration: 2, repeat: isCurrentTurn ? Infinity : 0 }}
-        className={`wood-nameplate px-2 sm:px-3 py-0.5 sm:py-1 rounded-lg flex items-center gap-1 sm:gap-2 ${!player.isConnected ? 'opacity-40 grayscale' : ''}`}
+        className={`wood-nameplate px-2 sm:px-3 py-0.5 sm:py-1 rounded-lg flex items-center gap-1 sm:gap-2 border-t-2 ${
+          teamColors[player.team as keyof typeof teamColors] || 'border-cream-dark/25'
+        } ${!player.isConnected ? 'opacity-40 grayscale' : ''}`}
       >
         {/* Turn dot: gold when active, green when connected, red when disconnected */}
         <motion.div
@@ -55,6 +64,14 @@ export function PlayerZone({ player, position, isCurrentTurn = false }: PlayerZo
         />
         <span className="font-ancient text-[8px] sm:text-[10px] md:text-xs text-brass font-bold truncate max-w-[50px] sm:max-w-[80px]">
           {player.nickname}
+        </span>
+        {/* Team indicator badge */}
+        <span className={`text-[6px] sm:text-[7px] font-ancient font-bold uppercase tracking-wider px-1 py-0.5 rounded ${
+          player.team === 0
+            ? 'bg-amber-600/80 text-black'
+            : 'bg-teal-600/80 text-black'
+        }`}>
+          T{player.team + 1}
         </span>
         {isCurrentTurn && (
           <motion.span

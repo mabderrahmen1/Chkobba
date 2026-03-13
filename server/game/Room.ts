@@ -179,6 +179,13 @@ export class Room {
    * Update room settings (Host only)
    */
   updateSettings(maxPlayers: number, gameType: GameType, targetScore: number): void {
+    // If switching from 4-player to 2-player, reset teams
+    if (this.maxPlayers === 4 && maxPlayers === 2) {
+      this.players.forEach((p, i) => {
+        p.team = i % 2;
+      });
+    }
+    
     this.maxPlayers = maxPlayers;
     this.gameType = gameType;
     this.targetScore = targetScore;

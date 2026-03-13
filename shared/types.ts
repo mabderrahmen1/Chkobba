@@ -22,6 +22,7 @@ export interface Player {
   hasHaya: boolean;
   wins: number;
   losses: number;
+  teamAssignment?: number; // For lobby team configuration (0-3 for 4-player)
 }
 
 export interface RoomState {

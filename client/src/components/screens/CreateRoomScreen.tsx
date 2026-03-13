@@ -10,11 +10,12 @@ export function CreateRoomScreen() {
   const [gameType, setGameType] = useState<GameType>('chkobba');
   const [targetScore, setTargetScore] = useState(21);
   const [maxPlayers, setMaxPlayers] = useState(2);
+  const [hostTeam, setHostTeam] = useState(0);
   const nickname = useGameStore((s) => s.nickname);
   const setScreen = useUIStore((s) => s.setScreen);
 
   const handleCreate = () => {
-    socket.emit('create_room', { nickname, targetScore, maxPlayers, gameType });
+    socket.emit('create_room', { nickname, targetScore, maxPlayers, gameType, hostTeam: maxPlayers === 2 && gameType === 'chkobba' ? hostTeam : undefined });
   };
 
   const handleGameTypeChange = (type: GameType) => {
@@ -166,6 +167,46 @@ export function CreateRoomScreen() {
               </div>
             )}
           </div>
+
+          {/* Team Selection (Chkobba 2-player only) */}
+          {gameType === 'chkobba' && maxPlayers === 2 && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="mb-7 sm:mb-9"
+            >
+              <div className="text-cream/30 font-ancient text-[9px] sm:text-[10px] uppercase tracking-[0.25em] text-center mb-3">
+                Your Team
+              </div>
+              <div className="flex justify-center gap-3 sm:gap-4">
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setHostTeam(0)}
+                  className={`px-4 py-2.5 sm:py-3 rounded-lg font-ancient font-bold text-sm sm:text-base uppercase tracking-wider transition-all duration-200 border-2 ${
+                    hostTeam === 0
+                      ? 'bg-amber-600/80 text-black border-amber-500 shadow-[0_0_16px_rgba(245,158,11,0.4)]'
+                      : 'bg-black/30 text-cream/40 border-brass/20 hover:border-brass/40'
+                  }`}
+                >
+                  Team 1
+                </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setHostTeam(1)}
+                  className={`px-4 py-2.5 sm:py-3 rounded-lg font-ancient font-bold text-sm sm:text-base uppercase tracking-wider transition-all duration-200 border-2 ${
+                    hostTeam === 1
+                      ? 'bg-teal-600/80 text-black border-teal-500 shadow-[0_0_16px_rgba(20,184,166,0.4)]'
+                      : 'bg-black/30 text-cream/40 border-brass/20 hover:border-brass/40'
+                  }`}
+                >
+                  Team 2
+                </motion.button>
+              </div>
+            </motion.div>
+          )}
 
           {/* Action buttons */}
           <div className="flex gap-3 sm:gap-4 max-w-sm mx-auto">

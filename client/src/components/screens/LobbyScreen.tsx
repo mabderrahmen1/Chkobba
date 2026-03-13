@@ -377,6 +377,10 @@ export function LobbyScreen() {
 
 /* ─── Seat card: person silhouette + name + status ─── */
 function SeatCard({ player, isMe }: { player: any; isMe: boolean }) {
+  const room = useGameStore((s) => s.room);
+  const playerId = useGameStore((s) => s.playerId);
+  const isHost = room?.hostId === playerId;
+  
   if (!player) {
     return (
       <motion.div
@@ -405,6 +409,12 @@ function SeatCard({ player, isMe }: { player: any; isMe: boolean }) {
     : player.isReady
       ? 'bg-green-900/15'
       : 'bg-black/30';
+
+  const handleTeamSwitch = () => {
+    if (!isHost || !room || room.gameType !== 'chkobba') return;
+    const newTeam = player.team === 0 ? 1 : 0;
+    socket.emit('update_player_team', { playerId: player.id, team: newTeam });
+  };
 
   return (
     <motion.div
@@ -447,6 +457,21 @@ function SeatCard({ player, isMe }: { player: any; isMe: boolean }) {
             </svg>
           </motion.div>
         )}
+        
+        {/* Team switch button (host only, 2-player Chkobba) */}
+        {isHost && room?.maxPlayers === 2 && room?.gameType === 'chkobba' && (
+          <motion.button
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+            onClick={handleTeamSwitch}
+            className="absolute -bottom-1 -right-1 w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-brass/90 text-black flex items-center justify-center border border-brass shadow-lg z-20"
+            title="Switch team"
+          >
+            <svg className="w-3 h-3 sm:w-3.5 sm:h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+            </svg>
+          </motion.button>
+        )}
       </div>
 
       {/* Name */}
@@ -459,8 +484,8 @@ function SeatCard({ player, isMe }: { player: any; isMe: boolean }) {
       {/* Team badge */}
       <span className={`text-[7px] sm:text-[8px] font-ancient uppercase tracking-widest px-1.5 py-0.5 rounded ${
         player.team === 0
-          ? 'bg-accent/60 text-cream/80'
-          : 'bg-turquoise-dark/60 text-cream/80'
+          ? 'bg-amber-600/70 text-black font-bold'
+          : 'bg-teal-600/70 text-black font-bold'
       }`}>
         Team {player.team + 1}
       </span>

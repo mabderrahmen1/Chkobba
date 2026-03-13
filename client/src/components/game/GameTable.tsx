@@ -126,6 +126,7 @@ export function GameTable() {
               player={topPlayer}
               position="top"
               isCurrentTurn={gameState.currentTurn === topPlayer.id}
+              isTeammate={topPlayer.team === currentPlayer.team}
             />
           )}
         </div>
@@ -136,6 +137,7 @@ export function GameTable() {
               player={leftPlayer}
               position="left"
               isCurrentTurn={gameState.currentTurn === leftPlayer.id}
+              isTeammate={leftPlayer.team === currentPlayer.team}
             />
           </div>
         )}
@@ -146,6 +148,7 @@ export function GameTable() {
               player={rightPlayer}
               position="right"
               isCurrentTurn={gameState.currentTurn === rightPlayer.id}
+              isTeammate={rightPlayer.team === currentPlayer.team}
             />
           </div>
         )}

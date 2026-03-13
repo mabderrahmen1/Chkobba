@@ -68,6 +68,15 @@ function chkobbaCard(rank: string, suit: string): string {
   let inner: string;
 
   if (isFace) {
+    // Corner rank indicators (top-left and bottom-right)
+    const cornerRank = `
+      <text x="14" y="22" font-family="'Playfair Display','Cinzel','Georgia',serif" 
+            font-size="18" font-weight="700" fill="${color}" text-anchor="start">${rank}</text>
+      <g transform="rotate(180 50 70)">
+        <text x="14" y="22" font-family="'Playfair Display','Cinzel','Georgia',serif" 
+              font-size="18" font-weight="700" fill="${color}" text-anchor="start">${rank}</text>
+      </g>`;
+    
     // Decorative frames: J=1 ring, Q=2 rings, K=3 rings
     const rings = rank === 'J' ? 1 : rank === 'Q' ? 2 : 3;
     let frames = '';
@@ -76,10 +85,11 @@ function chkobbaCard(rank: string, suit: string): string {
       frames += `<rect x="${ins}" y="${28 + i * 5}" width="${100 - ins * 2}" height="${84 - i * 10}" rx="${4 - i}"
         fill="none" stroke="#d4af37" stroke-width="${0.8 - i * 0.15}" opacity="${0.4 - i * 0.1}"/>`;
     }
+    
+    // Central suit pip with decorative elements
     inner = `${frames}
-      <text x="50" y="62" font-size="36" fill="${color}" text-anchor="middle" dominant-baseline="central">${sym}</text>
-      <text x="50" y="100" font-family="'Playfair Display','Cinzel','Georgia',serif"
-            font-size="14" fill="${color}" text-anchor="middle" opacity="0.35" font-weight="700">${rank}</text>`;
+      ${cornerRank}
+      <text x="50" y="70" font-size="42" fill="${color}" text-anchor="middle" dominant-baseline="central">${sym}</text>`;
   } else {
     const count = RANK_COUNT[rank] || 1;
     const pos = PIPS[count] || PIPS[1];
