@@ -17,6 +17,18 @@ export function CreateRoomScreen() {
     socket.emit('create_room', { nickname, targetScore, maxPlayers, gameType });
   };
 
+  const handleGameTypeChange = (type: GameType) => {
+    setGameType(type);
+    // Reset settings to defaults for the chosen game
+    if (type === 'rummy') {
+      setMaxPlayers(2);
+      setTargetScore(0); // Rummy doesn't use target score
+    } else {
+      setMaxPlayers(2);
+      setTargetScore(21);
+    }
+  };
+
   return (
     <motion.section
       initial={{ opacity: 0, x: 20 }}
@@ -28,7 +40,7 @@ export function CreateRoomScreen() {
         background: 'radial-gradient(ellipse at 50% 40%, rgba(90,53,32,0.3) 0%, rgba(26,18,14,1) 70%)'
       }} />
 
-      {/* The Table — bigger */}
+      {/* The Table */}
       <div className="relative z-10 w-full max-w-xl mx-4">
         <div
           className="relative rounded-[32px] sm:rounded-[40px] border-[5px] sm:border-[7px] border-amber-900/80 px-6 py-7 sm:px-10 sm:py-9"
@@ -51,7 +63,7 @@ export function CreateRoomScreen() {
             </div>
             <div className="flex justify-center gap-0 rounded-lg overflow-hidden border border-brass/30 max-w-xs mx-auto">
               <button
-                onClick={() => setGameType('chkobba')}
+                onClick={() => handleGameTypeChange('chkobba')}
                 className={`flex-1 py-2.5 sm:py-3 font-ancient text-sm sm:text-base font-bold uppercase tracking-wider transition-all duration-200 ${
                   gameType === 'chkobba'
                     ? 'bg-brass/90 text-black'
@@ -61,7 +73,7 @@ export function CreateRoomScreen() {
                 Chkobba
               </button>
               <button
-                onClick={() => setGameType('rummy')}
+                onClick={() => handleGameTypeChange('rummy')}
                 className={`flex-1 py-2.5 sm:py-3 font-ancient text-sm sm:text-base font-bold uppercase tracking-wider transition-all duration-200 ${
                   gameType === 'rummy'
                     ? 'bg-brass/90 text-black'
@@ -73,58 +85,86 @@ export function CreateRoomScreen() {
             </div>
           </div>
 
-          {/* Target Score — chips */}
-          <div className="mb-6 sm:mb-8">
-            <div className="text-cream/30 font-ancient text-[9px] sm:text-[10px] uppercase tracking-[0.25em] text-center mb-3">
-              Target Score
-            </div>
-            <div className="flex justify-center gap-3 sm:gap-4">
-              {[11, 21, 31].map((score) => (
-                <motion.button
-                  key={score}
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => setTargetScore(score)}
-                  className={`w-12 h-12 sm:w-14 sm:h-14 rounded-full font-ancient font-bold text-sm sm:text-base
-                    transition-all duration-200 border-2 ${
-                    targetScore === score
-                      ? 'bg-brass/90 text-black border-brass shadow-[0_0_16px_rgba(212,175,55,0.5)] scale-110'
-                      : 'bg-black/30 text-cream/40 border-brass/20 hover:border-brass/40'
-                  }`}
-                >
-                  {score}
-                </motion.button>
-              ))}
-            </div>
-          </div>
+          {/* Chkobba-specific settings */}
+          {gameType === 'chkobba' && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="mb-6 sm:mb-8"
+            >
+              <div className="text-cream/30 font-ancient text-[9px] sm:text-[10px] uppercase tracking-[0.25em] text-center mb-3">
+                Target Score
+              </div>
+              <div className="flex justify-center gap-3 sm:gap-4">
+                {[11, 21, 31].map((score) => (
+                  <motion.button
+                    key={score}
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => setTargetScore(score)}
+                    className={`w-12 h-12 sm:w-14 sm:h-14 rounded-full font-ancient font-bold text-sm sm:text-base
+                      transition-all duration-200 border-2 ${
+                      targetScore === score
+                        ? 'bg-brass/90 text-black border-brass shadow-[0_0_16px_rgba(212,175,55,0.5)] scale-110'
+                        : 'bg-black/30 text-cream/40 border-brass/20 hover:border-brass/40'
+                    }`}
+                  >
+                    {score}
+                  </motion.button>
+                ))}
+              </div>
+            </motion.div>
+          )}
 
           {/* Players */}
           <div className="mb-7 sm:mb-9">
             <div className="text-cream/30 font-ancient text-[9px] sm:text-[10px] uppercase tracking-[0.25em] text-center mb-3">
               Players
             </div>
-            <div className="flex justify-center gap-0 rounded-lg overflow-hidden border border-brass/30 max-w-[200px] mx-auto">
-              <button
-                onClick={() => setMaxPlayers(2)}
-                className={`flex-1 py-2 sm:py-2.5 font-ancient text-xs sm:text-sm font-bold tracking-wider transition-all duration-200 ${
-                  maxPlayers === 2
-                    ? 'bg-brass/90 text-black'
-                    : 'bg-black/40 text-cream/25 hover:text-cream/40'
-                }`}
-              >
-                1 vs 1
-              </button>
-              <button
-                onClick={() => setMaxPlayers(4)}
-                className={`flex-1 py-2 sm:py-2.5 font-ancient text-xs sm:text-sm font-bold tracking-wider transition-all duration-200 ${
-                  maxPlayers === 4
-                    ? 'bg-brass/90 text-black'
-                    : 'bg-black/40 text-cream/25 hover:text-cream/40'
-                }`}
-              >
-                2 vs 2
-              </button>
-            </div>
+            {gameType === 'chkobba' ? (
+              <div className="flex justify-center gap-0 rounded-lg overflow-hidden border border-brass/30 max-w-[200px] mx-auto">
+                <button
+                  onClick={() => setMaxPlayers(2)}
+                  className={`flex-1 py-2 sm:py-2.5 font-ancient text-xs sm:text-sm font-bold tracking-wider transition-all duration-200 ${
+                    maxPlayers === 2
+                      ? 'bg-brass/90 text-black'
+                      : 'bg-black/40 text-cream/25 hover:text-cream/40'
+                  }`}
+                >
+                  1 vs 1
+                </button>
+                <button
+                  onClick={() => setMaxPlayers(4)}
+                  className={`flex-1 py-2 sm:py-2.5 font-ancient text-xs sm:text-sm font-bold tracking-wider transition-all duration-200 ${
+                    maxPlayers === 4
+                      ? 'bg-brass/90 text-black'
+                      : 'bg-black/40 text-cream/25 hover:text-cream/40'
+                  }`}
+                >
+                  2 vs 2
+                </button>
+              </div>
+            ) : (
+              <div className="flex justify-center gap-2 sm:gap-3">
+                {[2, 3, 4].map((n) => (
+                  <motion.button
+                    key={n}
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => setMaxPlayers(n)}
+                    className={`w-11 h-11 sm:w-12 sm:h-12 rounded-full font-ancient font-bold text-sm
+                      transition-all duration-200 border-2 ${
+                      maxPlayers === n
+                        ? 'bg-brass/90 text-black border-brass shadow-[0_0_16px_rgba(212,175,55,0.5)] scale-110'
+                        : 'bg-black/30 text-cream/40 border-brass/20 hover:border-brass/40'
+                    }`}
+                  >
+                    {n}
+                  </motion.button>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Action buttons */}

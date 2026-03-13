@@ -44,7 +44,7 @@ export function GameScreen() {
     }
   }, [gameState?.roundNumber, playClink, gameState]);
 
-  if (gameType === 'rummy') {
+  if (gameType === 'rummy' || rummyGameState) {
     return <RummyGameScreen />;
   }
 

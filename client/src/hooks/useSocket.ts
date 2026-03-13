@@ -78,7 +78,10 @@ export function useSocket() {
 
     socket.on('game_started', () => {
       if (useUIStore.getState().screen === 'landing') return;
-      useGameStore.getState().setGameOverData(null);
+      const g = useGameStore.getState();
+      g.setGameOverData(null);
+      // Sync gameType from the room so the right game screen renders
+      if (g.room?.gameType) g.setGameType(g.room.gameType);
       useUIStore.getState().setScreen('game');
     });
 
@@ -93,7 +96,7 @@ export function useSocket() {
         g.setGameType('rummy');
       } else {
         g.setGameState(data);
-        if (!g.gameType || g.gameType !== 'rummy') g.setGameType('chkobba');
+        g.setGameType('chkobba');
       }
 
       if (ui.screen === 'lobby') {
@@ -136,6 +139,7 @@ export function useSocket() {
       setTimeout(() => {
         g.setGameOverData(null);
         g.setGameState(null as any);
+        g.setRummyGameState(null as any);
         g.setRoundResult(null);
       }, 50);
     });

@@ -701,16 +701,21 @@ io.on('connection', (socket) => {
     socket.on('play_again', () => {
         if (!currentRoom || !currentPlayer)
             return;
-        const game = chkobbaGames.get(currentRoom.id);
         // Clear the current game data
         chkobbaGames.delete(currentRoom.id);
         rummyGames.delete(currentRoom.id);
-        // Start a fresh game in same room
-        const newGame = getOrCreateChkobbaGame(currentRoom.id, currentRoom);
-        newGame.start();
+        // Start a fresh game in same room, respecting current game type
+        if (currentRoom.gameType === 'rummy') {
+            const newGame = getOrCreateRummyGame(currentRoom.id, currentRoom);
+            newGame.start();
+        }
+        else {
+            const newGame = getOrCreateChkobbaGame(currentRoom.id, currentRoom);
+            newGame.start();
+        }
         io.to(currentRoom.id).emit('game_started');
         broadcastGameState(currentRoom.id);
-        console.log(`[Server] Room ${currentRoom.id} started a new match (Play Again)`);
+        console.log(`[Server] Room ${currentRoom.id} started a new ${currentRoom.gameType} match (Play Again)`);
     });
     /**
      * Reset game (play again in same room)
