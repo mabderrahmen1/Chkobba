@@ -75,6 +75,7 @@ export function LobbyScreen() {
 
   const currentPlayer = room.players.find((p) => p.id === playerId);
   const isReady = currentPlayer?.isReady ?? false;
+  const allReady = room.players.length === room.maxPlayers && room.players.every(p => p.isBot || p.isReady);
 
   const handleCopy = () => {
     navigator.clipboard?.writeText(room.id)
@@ -375,8 +376,8 @@ export function LobbyScreen() {
               </Button>
             )}
             {isHost && room.players.length === room.maxPlayers && (
-              <Button variant="success" onClick={handleStart} className="flex-1 min-w-[120px] max-w-[200px]" size="lg">
-                Start Game
+              <Button variant="success" onClick={handleStart} disabled={!allReady} className="flex-1 min-w-[120px] max-w-[200px]" size="lg">
+                {allReady ? 'Start Game' : 'Waiting for Ready...'}
               </Button>
             )}
             <Button variant="danger" onClick={handleLeave} className="flex-1 min-w-[120px] max-w-[200px]" size="lg">
@@ -416,75 +417,107 @@ function SeatCard({ player, isMe, isHost }: { player: any | null; isMe: boolean;
   }
 
   const isBot = player.isBot;
+  const isReady = player.isReady;
 
-  if (isBot) {
-    return (
-      <motion.div initial={{ scale: 0.8 }} animate={{ scale: 1 }} className="flex flex-col items-center gap-2 relative">
-        <div className="relative group">
-          <div className="absolute inset-0 bg-blue-500/20 blur-xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
-          <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br from-blue-900/40 to-black/60 border-2 border-blue-500/30 flex items-center justify-center shadow-xl relative z-10">
-            <BotIcon size={28} className="text-blue-400" />
-          </div>
-          <motion.div animate={{ scale: [1, 1.2, 1], opacity: [0.5, 1, 0.5] }} transition={{ duration: 2, repeat: Infinity }}
-            className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.8)] z-20" />
-          
-          {/* Remove button (host only) */}
-          {isHost && (
-            <motion.button
-              whileHover={{ scale: 1.15 }}
-              whileTap={{ scale: 0.9 }}
-              onClick={() => socket.emit('remove_bot', { botId: player.id })}
-              className="absolute -top-2 -right-2 w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-gradient-to-br from-red-500 to-red-800 text-white flex items-center justify-center border border-red-300 shadow-lg z-30 transition-colors"
-              title="Remove bot"
-            >
-              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </motion.button>
-          )}
-        </div>
-        <div className="bg-black/60 backdrop-blur-sm border border-white/5 rounded-lg px-3 py-1 shadow-md">
-          <span className="text-[10px] sm:text-xs font-ancient font-extrabold tracking-widest max-w-[80px] truncate block text-cream/60">
-            {player.nickname}
-          </span>
-        </div>
-        <span className={`text-[8px] sm:text-[9px] font-ancient uppercase tracking-[0.2em] px-3 py-1.5 rounded-lg shadow-md ${
-          player.team === 0 
-            ? 'bg-gradient-to-r from-amber-800 to-amber-950 text-amber-500 font-extrabold border border-amber-800/50' 
-            : 'bg-gradient-to-r from-teal-800 to-teal-950 text-teal-500 font-extrabold border border-teal-800/50'
-        }`}>
-          Team {player.team + 1}
-        </span>
-      </motion.div>
-    );
-  }
+  const handleTeamClick = () => {
+    if (!isHost) return;
+    const newTeam = player.team === 0 ? 1 : 0;
+    socket.emit('update_player_team', { playerId: player.id, team: newTeam });
+  };
 
-  const borderColor = isMe ? 'border-brass-light shadow-[0_0_20px_rgba(212,175,55,0.4)]' : player.isReady ? 'border-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.3)]' : 'border-white/10 shadow-inner-dark';
-  const bgColor = isMe ? 'bg-gradient-to-br from-brass/20 to-black/60' : player.isReady ? 'bg-gradient-to-br from-emerald-900/30 to-black/60' : 'bg-black/50';
+  const borderColor = isMe ? 'border-brass-light shadow-[0_0_20px_rgba(212,175,55,0.4)]' : isReady ? 'border-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.3)]' : 'border-white/10 shadow-inner-dark';
+  const bgColor = isMe ? 'bg-gradient-to-br from-brass/20 to-black/60' : isReady ? 'bg-gradient-to-br from-emerald-900/30 to-black/60' : 'bg-black/50';
 
   return (
-    <motion.div className="flex flex-col items-center gap-2 relative">
+    <motion.div initial={{ scale: 0.8 }} animate={{ scale: 1 }} className="flex flex-col items-center gap-2 relative">
       <div className={`w-14 h-14 sm:w-16 sm:h-16 rounded-2xl border-2 ${borderColor} ${bgColor} flex flex-col items-center justify-center transition-all duration-500 relative overflow-hidden group shadow-2xl`}>
         <div className="absolute inset-0 bg-glass-gradient pointer-events-none rounded-xl" />
-        <PersonIcon size={24} className={`relative z-10 ${isMe ? 'text-brass-light drop-shadow-md' : player.isReady ? 'text-emerald-400 drop-shadow-md' : 'text-cream/30'} transition-colors duration-300 mb-1`} />
-        {player.isReady && (
-          <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center border border-emerald-200 shadow-lg z-20">
-            <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+        
+        {isBot ? (
+          <BotIcon size={28} className="text-blue-400 relative z-10" />
+        ) : (
+          <PersonIcon size={24} className={`relative z-10 ${isMe ? 'text-brass-light drop-shadow-md' : isReady ? 'text-emerald-400 drop-shadow-md' : 'text-cream/30'} transition-colors duration-300 mb-1`} />
+        )}
+
+        {/* Improved Ready Indicator */}
+        <AnimatePresence>
+          {(isReady || isBot) && (
+            <motion.div 
+              initial={{ scale: 0, rotate: -45 }}
+              animate={{ scale: 1, rotate: 0 }}
+              exit={{ scale: 0 }}
+              className={`absolute -top-2 -right-2 w-7 h-7 rounded-full flex items-center justify-center border-2 shadow-lg z-20 ${
+                isBot 
+                  ? 'bg-gradient-to-br from-blue-400 to-blue-600 border-blue-200 shadow-[0_0_10px_rgba(59,130,246,0.5)]' 
+                  : 'bg-gradient-to-br from-emerald-400 to-emerald-600 border-emerald-200 shadow-[0_0_10px_rgba(16,185,129,0.5)]'
+              }`}
+            >
+              {isBot ? (
+                <div className="w-2 h-2 rounded-full bg-white animate-pulse" />
+              ) : (
+                <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={4}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
+        
+        {/* Pulse effect for non-ready players to catch eye */}
+        {!isReady && !isMe && !isBot && (
+          <motion.div 
+            animate={{ opacity: [0.1, 0.3, 0.1] }}
+            transition={{ duration: 2, repeat: Infinity }}
+            className="absolute inset-0 bg-white pointer-events-none"
+          />
+        )}
+
+        {/* Bot glow */}
+        {isBot && (
+          <motion.div 
+            animate={{ opacity: [0.1, 0.4, 0.1] }}
+            transition={{ duration: 3, repeat: Infinity }}
+            className="absolute inset-0 bg-blue-500 pointer-events-none"
+          />
+        )}
+
+        {/* Remove button for bots (host only) */}
+        {isHost && isBot && (
+          <motion.button
+            whileHover={{ scale: 1.15 }}
+            whileTap={{ scale: 0.9 }}
+            onClick={(e) => { e.stopPropagation(); socket.emit('remove_bot', { botId: player.id }); }}
+            className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-gradient-to-br from-red-500 to-red-800 text-white flex items-center justify-center border border-red-300 shadow-lg z-30 transition-colors"
+            title="Remove bot"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
-          </motion.div>
+          </motion.button>
         )}
       </div>
+
       <div className="bg-black/60 backdrop-blur-sm border border-white/5 rounded-lg px-3 py-1 shadow-md">
-        <span className={`text-[10px] sm:text-xs font-ancient font-extrabold tracking-widest max-w-[80px] truncate block ${isMe ? 'text-transparent bg-clip-text bg-gradient-to-r from-brass-light to-brass-dark' : 'text-cream/80'}`}>
+        <span className={`text-[10px] sm:text-xs font-ancient font-extrabold tracking-widest max-w-[80px] truncate block ${
+          isBot ? 'text-blue-300' : isMe ? 'text-transparent bg-clip-text bg-gradient-to-r from-brass-light to-brass-dark' : 'text-cream/80'
+        }`}>
           {player.nickname}
         </span>
       </div>
-      <span className={`text-[8px] sm:text-[9px] font-ancient uppercase tracking-[0.2em] px-3 py-1.5 rounded-lg shadow-md ${
-        player.team === 0 ? 'bg-gradient-to-r from-amber-600 to-amber-800 text-black font-extrabold border border-amber-500/50' : 'bg-gradient-to-r from-teal-600 to-teal-800 text-black font-extrabold border border-teal-500/50'
-      }`}>
+
+      <button 
+        onClick={handleTeamClick}
+        disabled={!isHost}
+        className={`text-[8px] sm:text-[9px] font-ancient uppercase tracking-[0.2em] px-3 py-1.5 rounded-lg shadow-md transition-all ${
+          isHost ? 'hover:scale-105 active:scale-95 cursor-pointer' : 'cursor-default'
+        } ${
+          player.team === 0 
+            ? 'bg-gradient-to-r from-amber-600 to-amber-800 text-black font-extrabold border border-amber-500/50' 
+            : 'bg-gradient-to-r from-teal-600 to-teal-800 text-black font-extrabold border border-teal-500/50'
+        }`}
+      >
         Team {player.team + 1}
-      </span>
+      </button>
     </motion.div>
   );
 }

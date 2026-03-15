@@ -92,6 +92,13 @@ export function useSocket() {
       g.setGameOverData(null);
       // Sync gameType from the room so the right game screen renders
       if (g.room?.gameType) g.setGameType(g.room.gameType);
+      
+      // Trigger dealing animation for the very first round
+      g.setIsDistributing(true);
+      setTimeout(() => {
+        g.setIsDistributing(false);
+      }, 2800);
+      
       useUIStore.getState().setScreen('game');
     });
 
@@ -118,16 +125,24 @@ export function useSocket() {
 
     socket.on('chkobba', (data: { playerNickname: string }) => {
       useGameStore.getState().setChkobbaPlayer(data.playerNickname);
-      setTimeout(() => useGameStore.getState().setChkobbaPlayer(null), 3500);
+      setTimeout(() => useGameStore.getState().setChkobbaPlayer(null), 5000);
     });
 
     socket.on('new_round', () => {
-      useGameStore.getState().setRoundResult(null);
+      const g = useGameStore.getState();
+      
+      g.setRoundResult(null);
+      g.setIsDistributing(true);
+      
+      // Auto-end distribution after animation time (extended to match shuffle + deal)
+      setTimeout(() => {
+        g.setIsDistributing(false);
+      }, 2800);
     });
 
     socket.on('hayya_captured', (data: { playerNickname: string }) => {
       useGameStore.getState().setHayyaPlayer(data.playerNickname);
-      setTimeout(() => useGameStore.getState().setHayyaPlayer(null), 3000);
+      setTimeout(() => useGameStore.getState().setHayyaPlayer(null), 5000);
     });
 
     socket.on('round_end', (data: any) => useGameStore.getState().setRoundResult(data));
@@ -156,7 +171,17 @@ export function useSocket() {
       }, 50);
     });
 
-    socket.on('chat_message', (data: any) => useChatStore.getState().addMessage(data));
+    socket.on('chat_message', (data: any) => {
+      const chat = useChatStore.getState();
+      const myPlayerId = useGameStore.getState().playerId;
+      
+      chat.addMessage(data);
+      
+      // Auto-open chat if message is from someone else and not system
+      if (data.playerId !== myPlayerId && data.playerId !== 'system') {
+        chat.setOpen(true);
+      }
+    });
 
     socket.on('turn_started', (data: { playerId: string; timeout: number; startedAt: number }) => {
       const g = useGameStore.getState();

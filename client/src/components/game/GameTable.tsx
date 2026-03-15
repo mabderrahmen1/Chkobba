@@ -5,6 +5,7 @@ import { PlayerHand } from './PlayerHand';
 import { CapturedStack } from './CapturedStack';
 import { CafeAmbiance } from './ambiance/CafeAmbiance';
 import { CaptureAnimationOverlay } from './CaptureAnimationOverlay';
+import { DealingAnimation } from './DealingAnimation';
 import { motion } from 'framer-motion';
 import { socket } from '../../lib/socket';
 
@@ -59,9 +60,9 @@ export function GameTable() {
   return (
     <div className="flex-1 w-full h-full cafe-scene flex flex-col items-center justify-center p-1 sm:p-2 md:p-4 relative">
       <CaptureAnimationOverlay />
-      
-      {/* Background Silhouettes & Lighting */}
-      <div className="vignette" />
+      <DealingAnimation />
+
+      {/* Background Silhouettes & Lighting */}      <div className="vignette" />
       <div className="ambient-light top-[-100px] left-[-100px] animate-ambient-glow" />
       <div className="ambient-light bottom-[-100px] right-[-100px] animate-ambient-glow" style={{ animationDelay: '3s' }} />
 

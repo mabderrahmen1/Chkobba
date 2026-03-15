@@ -5,16 +5,16 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAmbianceSound } from '../../hooks/useAmbianceSound';
 
 export function PlayerHand() {
-  const { gameState, playerId, selectedCardIndex, setSelectedCard, selectedTableIndices, clearSelections } = useGameStore();
+  const { gameState, playerId, selectedCardIndex, setSelectedCard, selectedTableIndices, clearSelections, isDistributing } = useGameStore();
   const { playCardPlace } = useAmbianceSound();
 
   if (!gameState?.hand || !playerId) return null;
 
   const isMyTurn = gameState.currentTurn === playerId;
-  const canConfirm = isMyTurn && selectedCardIndex !== null;
+  const canConfirm = isMyTurn && selectedCardIndex !== null && !isDistributing;
 
   const handleCardClick = (index: number) => {
-    if (!isMyTurn) return;
+    if (!isMyTurn || isDistributing) return;
     if (selectedCardIndex === index) {
       setSelectedCard(null);
     } else {
@@ -83,7 +83,7 @@ export function PlayerHand() {
         isMyTurn ? 'opacity-100' : 'opacity-60'
       }`}>
         <AnimatePresence mode="popLayout">
-          {gameState.hand.map((card, index) => {
+          {!isDistributing && gameState.hand.map((card, index) => {
             const isSelected = selectedCardIndex === index;
             const arc = getArcStyles(index, handSize);
 

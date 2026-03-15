@@ -213,14 +213,16 @@
 /* Screen shake for effects */
 @keyframes screen-shake-intense {
   0%, 100% { transform: translate(0, 0) rotate(0deg); }
-  10% { transform: translate(-8px, -4px) rotate(-1deg); }
-  20% { transform: translate(7px, 5px) rotate(1deg); }
-  30% { transform: translate(-10px, 3px) rotate(-0.5deg); }
-  40% { transform: translate(6px, -6px) rotate(0.8deg); }
-  50% { transform: translate(-4px, 7px) rotate(-0.4deg); }
-  100% { transform: translate(0, 0) rotate(0deg); }
+  5% { transform: translate(-15px, -10px) rotate(-2deg); }
+  10% { transform: translate(15px, 12px) rotate(2deg); }
+  15% { transform: translate(-20px, 5px) rotate(-1deg); }
+  20% { transform: translate(18px, -15px) rotate(1.5deg); }
+  25% { transform: translate(-12px, 18px) rotate(-0.5deg); }
+  30% { transform: translate(10px, -10px) rotate(1deg); }
+  35% { transform: translate(-5px, 5px) rotate(-0.2deg); }
+  40% { transform: translate(2px, -2px) rotate(0.1deg); }
 }
 
 .chkobba-shake-intense {
-  animation: screen-shake-intense 0.7s cubic-bezier(.36,.07,.19,.97) both;
+  animation: screen-shake-intense 1.2s cubic-bezier(.36,.07,.19,.97) both;
 }

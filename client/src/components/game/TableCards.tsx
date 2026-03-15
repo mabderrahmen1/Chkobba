@@ -9,7 +9,7 @@ interface TableCardsProps {
 }
 
 export function TableCards({ cards }: TableCardsProps) {
-  const { toggleTableCard, selectedTableIndices, gameState, playerId } = useGameStore();
+  const { toggleTableCard, selectedTableIndices, gameState, playerId, isDistributing } = useGameStore();
   const isMyTurn = gameState?.currentTurn === playerId;
   const prevCount = useRef(cards.length);
 
@@ -27,10 +27,10 @@ export function TableCards({ cards }: TableCardsProps) {
   const lastAction = gameState?.lastAction;
   const wasMe = lastAction?.playerId === playerId && lastAction.type === 'capture';
 
-  if (cards.length === 0) {
+  if (cards.length === 0 || isDistributing) {
     return (
       <div className="flex items-center justify-center min-h-[var(--card-height)] p-4">
-        <span className="text-cream-dark/30 italic text-sm font-ancient">Table is empty</span>
+        {!isDistributing && <span className="text-cream-dark/30 italic text-sm font-ancient">Table is empty</span>}
       </div>
     );
   }

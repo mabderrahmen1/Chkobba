@@ -334,11 +334,34 @@ function handleDisconnect(socket: Socket, room: Room, player: Player): void {
   
   // If host left, and we are not playing, we should promote new host immediately
   if (wasHost && (room.status as string) === config.GAME_STATUS.LOBBY) {
-    const newHost = room.players.find(p => p.isHost && p.isConnected);
+    const newHost = room.players.find(p => p.isConnected);
     if (newHost) {
+      newHost.isHost = true;
+      room.hostId = newHost.id;
       const hostSocket = getSocketByPlayerId(newHost.id);
       if (hostSocket) {
         hostSocket.emit('error', { message: 'The host left. You are now the host!' });
+      }
+    }
+  }
+
+  // Handle round continuation if someone disconnects while waiting for next round
+  if ((room.status as string) === config.GAME_STATUS.PLAYING) {
+    const game = chkobbaGames.get(room.id);
+    if (game && game.roundJustEnded && !game.winner) {
+      const connectedHumanIds = room.getConnectedPlayers()
+        .filter(p => !p.isBot)
+        .map(p => p.id);
+      
+      // If we have no humans left, or all connected humans already said continue
+      const allReady = connectedHumanIds.length === 0 || 
+                       connectedHumanIds.every(id => game.continuePlayers.has(id));
+      
+      if (allReady) {
+        game.startNewRound();
+        io.to(room.id).emit('new_round');
+        broadcastGameState(room.id);
+        startTurnTimer(room.id);
       }
     }
   }
@@ -714,7 +737,7 @@ io.on('connection', (socket: Socket) => {
       nickname: botName,
       team: currentRoom.calculateTeam(),
       isHost: false,
-      isConnected: false,
+      isConnected: true,
       isReady: true,
       isBot: true,
       handCount: 0,

@@ -26,6 +26,8 @@ export function GameScreen() {
   const turnTimeoutSec = useGameStore((s) => s.turnTimeoutSec);
   const [countdown, setCountdown] = useState<number | null>(null);
 
+  const isDistributing = useGameStore((s) => s.isDistributing);
+
   const { playClink, playLighter, playCardShuffle } = useAmbianceSound();
   const lighterPlayed = useRef(false);
   const prevRound = useRef(gameState?.roundNumber ?? 0);
@@ -39,6 +41,13 @@ export function GameScreen() {
       return () => clearTimeout(t);
     }
   }, [playLighter]);
+
+  // Ensure shuffle plays when distributing state turns on (failsafe for first round)
+  useEffect(() => {
+    if (isDistributing) {
+      playCardShuffle();
+    }
+  }, [isDistributing, playCardShuffle]);
 
   // Countdown timer when it's our turn
   useEffect(() => {
@@ -56,17 +65,13 @@ export function GameScreen() {
     return () => clearInterval(interval);
   }, [turnStartedAt, turnTimeoutSec]);
 
-  // Play clink and shuffle on round start (Chkobba only)
+  // Play clink on round start (Chkobba only)
   useEffect(() => {
     if (gameState && gameState.roundNumber !== prevRound.current) {
       prevRound.current = gameState.roundNumber;
       playClink();
-      // Only play shuffle on round start, not initial load if round is 1
-      if (gameState.roundNumber > 0) {
-        playCardShuffle();
-      }
     }
-  }, [gameState?.roundNumber, playClink, playCardShuffle, gameState]);
+  }, [gameState?.roundNumber, playClink, gameState]);
 
   if (gameType === 'rummy' || rummyGameState) {
     return <RummyGameScreen />;
