@@ -21,7 +21,7 @@ export function Button({
 }: ButtonProps) {
   const variants = {
     primary: 'bg-accent text-white shadow-glow-red hover:bg-accent/90 border border-white/10',
-    secondary: 'bg-wood-warm text-cream border border-wood-light/30 hover:bg-wood hover:border-wood-light/50',
+    secondary: 'bg-gradient-to-b from-amber-800 to-amber-950 text-amber-100 border border-amber-700/50 hover:brightness-110 shadow-lg',
     success: 'bg-emerald-600 text-white shadow-glow-green hover:bg-emerald-500 border border-white/10',
     danger: 'bg-red-700 text-white shadow-glow-red hover:bg-red-600 border border-white/10',
     ghost: 'bg-transparent text-cream/60 hover:text-cream hover:bg-white/5 border border-white/5',
@@ -32,7 +32,7 @@ export function Button({
     sm: 'px-3 py-1.5 text-xs',
     md: 'px-6 py-3 text-sm',
     lg: 'px-8 py-4 text-base tracking-widest',
-    xl: 'px-10 py-5 text-lg tracking-[0.2em] font-black',
+    xl: 'px-10 py-5 text-lg tracking-[0.2em]',
   };
 
   return (
@@ -43,7 +43,7 @@ export function Button({
       disabled={disabled}
       onClick={onClick}
       className={`
-        rounded-xl font-ancient uppercase transition-all duration-300 
+        rounded-xl font-ancient font-bold uppercase transition-all duration-300 
         disabled:opacity-40 disabled:cursor-not-allowed disabled:grayscale
         flex items-center justify-center relative overflow-hidden group
         ${variants[variant]} ${sizes[size]} ${className}

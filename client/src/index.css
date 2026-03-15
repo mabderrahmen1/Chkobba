@@ -58,6 +58,7 @@
 
   h1, h2, h3, h4, .font-ancient {
     font-family: 'Cinzel', serif;
+    font-weight: 700;
   }
 
   .font-arabic {
