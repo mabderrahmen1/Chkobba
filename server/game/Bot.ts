@@ -168,21 +168,124 @@ export function getBotMove(game: Game, botPlayerId: string): BotMove {
 /**
  * Basic AI for Rummy
  */
+
+// Helper to get numeric value for ranking logic (A is 1, K is 13)
+function getRankValue(rank: string): number {
+  if (rank === 'A') return 1;
+  if (rank === 'J') return 11;
+  if (rank === 'Q') return 12;
+  if (rank === 'K') return 13;
+  return parseInt(rank) || 0;
+}
+
+// Detect if a set of cards contains a valid sequence of length >= minLength
+function findSequences(hand: Card[], minLength: number = 3): number[][] {
+  const sequences: number[][] = [];
+  const suits = ['hearts', 'diamonds', 'clubs', 'spades'];
+  
+  for (const suit of suits) {
+    // Get cards of this suit with their original indices
+    const suitCards = hand
+      .map((c, i) => ({ card: c, index: i }))
+      .filter(item => item.card.suit === suit)
+      .sort((a, b) => getRankValue(a.card.rank) - getRankValue(b.card.rank));
+
+    if (suitCards.length < minLength) continue;
+
+    let currentSeq = [suitCards[0].index];
+    for (let i = 1; i < suitCards.length; i++) {
+      const prevVal = getRankValue(suitCards[i - 1].card.rank);
+      const currVal = getRankValue(suitCards[i].card.rank);
+
+      if (currVal === prevVal + 1) {
+        currentSeq.push(suitCards[i].index);
+      } else if (currVal !== prevVal) {
+        if (currentSeq.length >= minLength) {
+          sequences.push([...currentSeq]);
+        }
+        currentSeq = [suitCards[i].index];
+      }
+    }
+    if (currentSeq.length >= minLength) {
+      sequences.push([...currentSeq]);
+    }
+  }
+
+  return sequences;
+}
+
+// Detect if a set of cards contains a valid set (3 or 4 cards of same rank, different suits)
+function findSets(hand: Card[]): number[][] {
+  const sets: number[][] = [];
+  const rankGroups: Record<string, number[]> = {};
+
+  hand.forEach((c, i) => {
+    if (!rankGroups[c.rank]) rankGroups[c.rank] = [];
+    // Only add if suit isn't already in this rank group (no duplicate suits)
+    const hasSuit = rankGroups[c.rank].some(idx => hand[idx].suit === c.suit);
+    if (!hasSuit) {
+      rankGroups[c.rank].push(i);
+    }
+  });
+
+  for (const rank in rankGroups) {
+    if (rankGroups[rank].length >= 3) {
+      sets.push([...rankGroups[rank]]);
+    }
+  }
+
+  return sets;
+}
+
+// Check if adding the top discard card would immediately create a new meld
+function doesDiscardHelp(hand: Card[], topDiscard: Card): boolean {
+  const hypotheticalHand = [...hand, topDiscard];
+  
+  // Check sequences
+  const seqsBefore = findSequences(hand).length;
+  const seqsAfter = findSequences(hypotheticalHand).length;
+  if (seqsAfter > seqsBefore) return true;
+
+  // Check sets
+  const setsBefore = findSets(hand).length;
+  const setsAfter = findSets(hypotheticalHand).length;
+  if (setsAfter > setsBefore) return true;
+
+  return false;
+}
+
+// Calculate how "isolated" a card is (higher score = more isolated = better to discard)
+function calculateIsolationScore(card: Card, hand: Card[]): number {
+  let score = 0;
+  const val = getRankValue(card.rank);
+  
+  // High cards are penalized if not part of anything
+  score += val; 
+
+  // Check for same rank neighbors (potential sets)
+  const sameRankCount = hand.filter(c => c.rank === card.rank && c !== card).length;
+  if (sameRankCount === 0) score += 20; // Highly isolated rank-wise
+  else if (sameRankCount === 1) score -= 10; // Might form a set soon
+
+  // Check for sequence neighbors (same suit, adjacent value)
+  const seqNeighbors = hand.filter(c => c.suit === card.suit && Math.abs(getRankValue(c.rank) - val) <= 2 && c !== card).length;
+  if (seqNeighbors === 0) score += 20; // Highly isolated suit-wise
+  else if (seqNeighbors > 0) score -= (seqNeighbors * 10); // Close to forming a sequence
+
+  return score;
+}
+
 export function executeRummyBotTurn(game: any, botPlayerId: string): void {
   const player = game.getPlayer(botPlayerId);
   if (!player || game.currentTurn !== botPlayerId || game.winner) return;
 
   // 1. Draw phase
   if (!game.hasDrawn) {
-    // Basic logic: if discard pile top card helps us, take it. Otherwise draw from deck.
     const topDiscard = game.discardPile[game.discardPile.length - 1];
     let takeDiscard = false;
     
-    if (topDiscard) {
-      // Extremely simple: if it's a joker or high card, take it
-      if (topDiscard.isJoker || ['K', 'Q', 'J', 'A'].includes(topDiscard.rank)) {
-        takeDiscard = true;
-      }
+    if (topDiscard && doesDiscardHelp(player.hand, topDiscard)) {
+      takeDiscard = true;
     }
 
     if (takeDiscard && game.discardPile.length > 0) {
@@ -192,50 +295,45 @@ export function executeRummyBotTurn(game: any, botPlayerId: string): void {
     }
   }
 
-  // 2. Meld phase (very basic: try to make 3-card sets)
-  // Real rummy bots need complex combinatorics. We'll just try to find sets.
+  // 2. Meld phase
   let madeMeld = true;
   while (madeMeld && !game.winner) {
     madeMeld = false;
-    const hand = player.hand;
     
-    // Group by rank
-    const byRank: Record<string, number[]> = {};
-    hand.forEach((c: any, i: number) => {
-      if (!c.isJoker) {
-        byRank[c.rank] = byRank[c.rank] || [];
-        byRank[c.rank].push(i);
+    // Priority 1: Sequences
+    const seqs = findSequences(player.hand);
+    if (seqs.length > 0) {
+      const indices = seqs[0]; // Take first available sequence
+      const result = game.createMeld(botPlayerId, indices, 'sequence');
+      if (result.success) {
+        madeMeld = true;
+        continue;
       }
-    });
+    }
 
-    for (const rank in byRank) {
-      if (byRank[rank].length >= 3) {
-        // We have a set!
-        const indices = byRank[rank].slice(0, 3); // Take first 3
-        const result = game.createMeld(botPlayerId, indices, 'set');
-        if (result.success) {
-          madeMeld = true;
-          break; // restart loop because hand changed
-        }
+    // Priority 2: Sets
+    const sets = findSets(player.hand);
+    if (sets.length > 0) {
+      const indices = sets[0]; // Take first available set
+      const result = game.createMeld(botPlayerId, indices, 'set');
+      if (result.success) {
+        madeMeld = true;
+        continue;
       }
     }
   }
 
   // 3. Discard phase
-  if (!game.winner) {
-    // Discard the highest value card that isn't part of a pair
+  if (!game.winner && player.hand.length > 0) {
     let discardIdx = 0;
-    let highestVal = -1;
+    let highestIsolationScore = -Infinity;
     
-    // Simple logic: find a card with no matching rank in hand
-    const hand = player.hand;
-    for (let i = 0; i < hand.length; i++) {
-      const c = hand[i];
-      if (c.isJoker) continue;
+    for (let i = 0; i < player.hand.length; i++) {
+      const card = player.hand[i];
+      const score = calculateIsolationScore(card, player.hand);
       
-      const isPair = hand.some((other: any, j: number) => i !== j && other.rank === c.rank);
-      if (!isPair && c.value > highestVal) {
-        highestVal = c.value;
+      if (score > highestIsolationScore) {
+        highestIsolationScore = score;
         discardIdx = i;
       }
     }

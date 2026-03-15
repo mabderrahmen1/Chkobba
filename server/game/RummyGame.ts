@@ -15,8 +15,8 @@ interface GamePlayer extends RummyPlayer {
 }
 
 /**
- * Create a Rummy deck with specified number of decks (including jokers)
- * Uses standard 52-card deck + 2 jokers per deck
+ * Create a Rummy deck with specified number of decks
+ * Uses standard 52-card deck (NO JOKERS for Tunisian Rummy)
  * @param deckCount - Number of decks to use
  * @returns Array of cards
  */
@@ -35,9 +35,6 @@ export function createRummyDeck(deckCount: number): Card[] {
         });
       }
     }
-    // Add 2 jokers per deck
-    deck.push({ suit: 'hearts', rank: JOKER_RANK, value: 0, isJoker: true });
-    deck.push({ suit: 'diamonds', rank: JOKER_RANK, value: 0, isJoker: true });
   }
 
   return deck;
@@ -49,7 +46,6 @@ export function createRummyDeck(deckCount: number): Card[] {
 function getRummyCardValue(rank: string): number {
   if (rank === 'A') return 1;
   if (rank === 'J' || rank === 'Q' || rank === 'K') return 10;
-  if (rank === 'Joker') return 0;
   const num = parseInt(rank);
   return isNaN(num) ? 0 : num;
 }
@@ -67,57 +63,50 @@ export function shuffleDeck(deck: Card[]): Card[] {
 }
 
 /**
- * Check if cards form a valid set (3-4 cards of same rank)
+ * Check if cards form a valid set (3-4 cards of same rank, NO duplicate suits)
  */
 export function isValidSet(cards: Card[]): boolean {
   if (cards.length < 3 || cards.length > 4) return false;
   
-  const nonJokerCards = cards.filter(c => !c.isJoker);
-  if (nonJokerCards.length === 0) return false; // Can't have all jokers
-  
-  const firstRank = nonJokerCards[0].rank;
-  return nonJokerCards.every(c => c.rank === firstRank);
+  const firstRank = cards[0].rank;
+  if (!cards.every(c => c.rank === firstRank)) return false;
+
+  // Check for duplicate suits
+  const suits = new Set(cards.map(c => c.suit));
+  if (suits.size !== cards.length) return false;
+
+  return true;
 }
 
 /**
- * Check if cards form a valid sequence (3+ consecutive cards of same suit)
+ * Check if cards form a valid sequence (3+ consecutive cards of same suit, A is low)
  */
 export function isValidSequence(cards: Card[]): boolean {
   if (cards.length < 3) return false;
 
-  const nonJokerCards = cards.filter(c => !c.isJoker);
-  const jokerCount = cards.length - nonJokerCards.length;
-  if (nonJokerCards.length === 0) return false;
-
-  // All non-joker cards must be same suit
-  const firstSuit = nonJokerCards[0].suit;
-  if (!nonJokerCards.every(c => c.suit === firstSuit)) return false;
+  // All cards must be same suit
+  const firstSuit = cards[0].suit;
+  if (!cards.every(c => c.suit === firstSuit)) return false;
 
   const rankOrder = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
-  const nonJokerRankIndices = nonJokerCards
+  
+  const indices = cards
     .map(c => rankOrder.indexOf(c.rank))
     .sort((a, b) => a - b);
 
-  // Duplicate ranks are not valid in a sequence
-  for (let i = 1; i < nonJokerRankIndices.length; i++) {
-    if (nonJokerRankIndices[i] === nonJokerRankIndices[i - 1]) return false;
+  // Must be consecutive
+  for (let i = 1; i < indices.length; i++) {
+    if (indices[i] !== indices[i - 1] + 1) return false;
   }
 
-  // Count how many jokers are needed to fill gaps between non-joker cards
-  let jokersNeeded = 0;
-  for (let i = 1; i < nonJokerRankIndices.length; i++) {
-    const gap = nonJokerRankIndices[i] - nonJokerRankIndices[i - 1];
-    jokersNeeded += gap - 1; // gap of 1 = consecutive, gap of 2 = 1 joker needed
-  }
-
-  return jokersNeeded <= jokerCount;
+  return true;
 }
 
 /**
- * Check if a meld is pure (no jokers)
+ * Check if a meld is pure (no jokers) - Always true now since we have no jokers
  */
 export function isPureMeld(cards: Card[]): boolean {
-  return !cards.some(c => c.isJoker);
+  return true;
 }
 
 /**
