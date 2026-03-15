@@ -28,7 +28,7 @@ export function RummyGameScreen() {
   const gameOverData = useGameStore((s) => s.gameOverData);
   const isConnected = useSocketStore((s) => s.isConnected);
   const isDistributing = useGameStore((s) => s.isDistributing);
-  const { playCardSlide, playCardPlace, playCardShuffle } = useAmbianceSound();
+  const { playCardSlide, playCardPlace, playCardShuffle, playCardCapture } = useAmbianceSound();
 
   const [isOverMeldZone, setIsOverMeldZone] = useState(false);
 
@@ -90,7 +90,7 @@ export function RummyGameScreen() {
 
   const handleDrawDiscard = () => {
     if (!isCurrentTurn || !isConnected) return;
-    playCardSlide();
+    playCardCapture();
     socket.emit('rummy_draw_discard');
   };
 

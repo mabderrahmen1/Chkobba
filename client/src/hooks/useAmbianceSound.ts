@@ -3,6 +3,7 @@ import { useRef, useCallback } from 'react';
 // Cache to avoid multiple network requests for frequent sounds
 let shuffleBufferCache: AudioBuffer | null = null;
 let dealBufferCache: AudioBuffer | null = null;
+let captureBufferCache: AudioBuffer | null = null;
 
 /**
  * Sound system for interaction sounds (Hookah, Coffee, Lighter, Waitress).
@@ -313,5 +314,34 @@ export function useAmbianceSound() {
       .catch(() => playCardSlide()); // Fallback
   }, [getCtx, playCardSlide]);
 
-  return { playClink, playLighter, playBubble, playWaitressVoice, playCardSlide, playCardPlace, playCardShuffle, playChkobbaSound, playHayyaSound, playCardDealShort };
+  // Sound when a player "eats" (captures) a card
+  const playCardCapture = useCallback(() => {
+    const ctx = getCtx();
+    const now = ctx.currentTime;
+
+    const playBuf = (buf: AudioBuffer) => {
+      const source = ctx.createBufferSource();
+      source.buffer = buf;
+      const g = ctx.createGain();
+      g.gain.value = 0.6;
+      source.connect(g).connect(ctx.destination);
+      source.start(now);
+    };
+
+    if (captureBufferCache) {
+      playBuf(captureBufferCache);
+      return;
+    }
+
+    fetch('/card-capture.mp3')
+      .then(res => res.arrayBuffer())
+      .then(buffer => ctx.decodeAudioData(buffer))
+      .then(audioBuffer => {
+        captureBufferCache = audioBuffer;
+        playBuf(audioBuffer);
+      })
+      .catch(() => playCardPlace()); // Fallback
+  }, [getCtx, playCardPlace]);
+
+  return { playClink, playLighter, playBubble, playWaitressVoice, playCardSlide, playCardPlace, playCardShuffle, playChkobbaSound, playHayyaSound, playCardDealShort, playCardCapture };
 }

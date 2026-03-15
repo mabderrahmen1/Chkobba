@@ -2,6 +2,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import type { Card as CardType } from '@shared/types.js';
 import { Card } from './Card';
 import { useGameStore } from '../../stores/useGameStore';
+import { useAmbianceSound } from '../../hooks/useAmbianceSound';
 import { useRef, useEffect } from 'react';
 
 interface TableCardsProps {
@@ -10,6 +11,7 @@ interface TableCardsProps {
 
 export function TableCards({ cards }: TableCardsProps) {
   const { toggleTableCard, selectedTableIndices, gameState, playerId, isDistributing } = useGameStore();
+  const { playCardCapture } = useAmbianceSound();
   const isMyTurn = gameState?.currentTurn === playerId;
   const prevCount = useRef(cards.length);
 
@@ -18,11 +20,12 @@ export function TableCards({ cards }: TableCardsProps) {
   useEffect(() => {
     if (cards.length < prevCount.current) {
       wasCapture.current = true;
+      playCardCapture(); // Play sound when someone "eats" cards
     } else {
       wasCapture.current = false;
     }
     prevCount.current = cards.length;
-  }, [cards.length]);
+  }, [cards.length, playCardCapture]);
 
   const lastAction = gameState?.lastAction;
   const wasMe = lastAction?.playerId === playerId && lastAction.type === 'capture';
