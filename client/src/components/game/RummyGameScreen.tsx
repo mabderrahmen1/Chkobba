@@ -31,6 +31,15 @@ export function RummyGameScreen() {
   const { playCardSlide, playCardPlace, playCardShuffle, playCardCapture } = useAmbianceSound();
 
   const [isOverMeldZone, setIsOverMeldZone] = useState(false);
+  const prevDiscardCount = useRef(gameState.discardPile.length);
+
+  // Sound when any player (you or opponent) "eats" from discard pile
+  useEffect(() => {
+    if (gameState.discardPile.length < prevDiscardCount.current) {
+      playCardCapture();
+    }
+    prevDiscardCount.current = gameState.discardPile.length;
+  }, [gameState.discardPile.length, playCardCapture]);
 
   // Ensure shuffle plays when distributing state turns on
   useEffect(() => {
