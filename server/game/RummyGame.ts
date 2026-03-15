@@ -117,13 +117,6 @@ export function calculatePenaltyPoints(cards: Card[]): number {
 }
 
 /**
- * Check if player has a pure sequence in their melds
- */
-export function hasPureSequence(melds: Meld[]): boolean {
-  return melds.some(m => m.type === 'sequence' && m.isPure);
-}
-
-/**
  * Rummy Game class
  */
 export class RummyGame {
@@ -139,6 +132,10 @@ export class RummyGame {
   lastDrawSource: 'draw' | 'discard' | null = null;
   hasDrawn: boolean = false;
   canLayOff: boolean = true;
+  roundNumber: number = 0;
+  roundJustEnded: boolean = false;
+  lastRoundResult: any = null;
+  continuePlayers: Set<string> = new Set();
 
   constructor(roomId: string, players: Player[], deckCount: number) {
     this.roomId = roomId;
@@ -166,30 +163,49 @@ export class RummyGame {
    * Start a new Rummy game
    */
   start(): RummyGameState {
-    // Setup deck based on player count
+    this.roundNumber = 0;
+    this.startNewRound();
+    console.log(`[RummyGame ${this.roomId}] Game started with ${this.players.length} players, ${this.deckCount} deck(s)`);
+    return this.getState();
+  }
+
+  /**
+   * Start a new round
+   */
+  startNewRound(): void {
+    this.roundNumber++;
+    this.roundJustEnded = false;
+    this.lastRoundResult = null;
+    this.continuePlayers.clear();
+    this.tableMelds = [];
+    this.hasDrawn = false;
+    this.lastDrawSource = null;
+
+    // Setup deck
     const deck = shuffleDeck(createRummyDeck(this.deckCount));
     
     // Deal 13 cards to each player
     for (const player of this.players) {
       player.hand = deck.splice(0, RUMMY_INITIAL_HAND_SIZE);
       player.melds = [];
-      player.points = 0;
       player.penaltyPoints = 0;
     }
 
-    // Set up draw and discard piles
     this.drawPile = deck;
     this.discardPile = [deck.pop()!];
 
-    // Set turn order (rotate dealer each round)
+    // Rotate turn order
     this.turnOrder = this.players.map(p => p.id);
-    this.currentTurn = this.turnOrder[0];
-    this.hasDrawn = false;
-    this.lastDrawSource = null;
+    const firstPlayerIdx = (this.roundNumber - 1) % this.turnOrder.length;
+    this.currentTurn = this.turnOrder[firstPlayerIdx];
+  }
 
-    console.log(`[RummyGame ${this.roomId}] Game started with ${this.players.length} players, ${this.deckCount} deck(s)`);
-    
-    return this.getState();
+  /**
+   * Mark a player as ready to continue
+   */
+  playerContinue(playerId: string, connectedPlayerIds: string[]): boolean {
+    this.continuePlayers.add(playerId);
+    return connectedPlayerIds.every(id => this.continuePlayers.has(id));
   }
 
   /**
@@ -290,7 +306,7 @@ export class RummyGame {
 
     // Check if player went out (all cards melded)
     if (player.hand.length === 0 && player.melds.length > 0) {
-      this.endGame(playerId);
+      this.endRound(playerId);
     } else {
       // Move to next player
       this.currentTurn = this.getNextPlayerId();
@@ -351,7 +367,7 @@ export class RummyGame {
       type,
       cards,
       playerId,
-      isPure: isPureMeld(cards)
+      isPure: true
     };
 
     player.melds.push(meld);
@@ -383,58 +399,86 @@ export class RummyGame {
 
     if (meld.type === 'set') {
       if (meld.cards.length >= 4) return { success: false, error: 'Set already has maximum cards' };
-      const nonJokerCards = meld.cards.filter(c => !c.isJoker);
-      if (!card.isJoker && nonJokerCards.length > 0 && card.rank !== nonJokerCards[0].rank) {
+      if (card.rank !== meld.cards[0].rank) {
         return { success: false, error: 'Card does not match set rank' };
+      }
+      // Tunisia Rummy: No duplicate suits in set
+      if (meld.cards.some(c => c.suit === card.suit)) {
+        return { success: false, error: 'Duplicate suit in set' };
       }
     } else if (meld.type === 'sequence') {
       if (!isValidSequence([...meld.cards, card])) {
-        return { success: false, error: 'Card cannot extend this sequence' };
+        // Try sorted
+        const sortedCards = [...meld.cards, card].sort((a, b) => {
+          const rankOrder = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
+          return rankOrder.indexOf(a.rank) - rankOrder.indexOf(b.rank);
+        });
+        if (!isValidSequence(sortedCards)) {
+          return { success: false, error: 'Card cannot extend this sequence' };
+        }
+        // If sorted is valid, replace cards with sorted ones
+        meld.cards = sortedCards;
+        player.hand.splice(cardIndex, 1);
+        return { success: true };
       }
     }
 
     player.hand.splice(cardIndex, 1);
     meld.cards.push(card);
-    meld.isPure = isPureMeld(meld.cards);
 
     console.log(`[RummyGame ${this.roomId}] ${player.nickname} laid off card on meld`);
     return { success: true };
   }
 
   /**
-   * End the game when a player goes out
+   * End the round when a player goes out
    */
-  endGame(winnerId: string): void {
+  endRound(winnerId: string): void {
     const winner = this.getPlayer(winnerId);
     if (!winner) return;
 
     // Calculate penalty points for all players
+    const playersPenalties: Record<string, number> = {};
     for (const player of this.players) {
       player.penaltyPoints = calculatePenaltyPoints(player.hand);
+      playersPenalties[player.id] = player.penaltyPoints;
+      player.points += player.penaltyPoints; // Accumulate total points
     }
 
-    this.winner = {
-      team: winner.team,
-      players: [winner.nickname],
-      reason: 'went_out'
+    this.roundJustEnded = true;
+    this.lastRoundResult = {
+      winnerId,
+      winnerNickname: winner.nickname,
+      penalties: playersPenalties
     };
 
-    console.log(`[RummyGame ${this.roomId}] ${winner.nickname} went out and won!`);
+    console.log(`[RummyGame ${this.roomId}] ${winner.nickname} went out and won the round!`);
   }
 
   /**
-   * Create a dummy face-down card (used to hide hand contents from opponents)
+   * Force a team to win
+   */
+  forceWin(team: number): void {
+    const teamPlayers = this.players.filter(p => (p as any).team === team);
+    this.winner = {
+      team,
+      players: teamPlayers.map(p => p.nickname),
+      reason: 'forfeit'
+    };
+  }
+
+  /**
+   * Create a dummy face-down card
    */
   private makeFaceDown(): Card {
     return { rank: 'A', suit: 'hearts', value: 1, isJoker: false };
   }
 
   /**
-   * Get full state for a specific player (their hand visible, others hidden)
+   * Get full state for a specific player
    */
   getFullState(playerId: string): RummyGameState {
     const player = this.getPlayer(playerId);
-    // Draw pile: send dummy cards so client knows the count but not the cards
     const hiddenDrawPile = this.drawPile.map(() => this.makeFaceDown());
 
     return {
@@ -448,6 +492,8 @@ export class RummyGame {
         isHost: p.isHost,
         isReady: p.isReady,
         isConnected: p.isConnected,
+        isBot: p.isBot,
+        team: p.team,
         hand: p.id === playerId
           ? (player?.hand ?? [])
           : p.hand.map(() => this.makeFaceDown()),
@@ -459,7 +505,10 @@ export class RummyGame {
       winner: this.winner,
       deckCount: this.deckCount,
       canLayOff: this.canLayOff,
-      hasDrawn: this.hasDrawn
+      hasDrawn: this.hasDrawn,
+      roundNumber: this.roundNumber,
+      roundJustEnded: this.roundJustEnded,
+      lastRoundResult: this.lastRoundResult
     };
   }
 

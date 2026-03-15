@@ -186,19 +186,29 @@ function executeBotMove(roomId: string, botPlayerId: string): void {
   try {
     if (room.gameType === 'rummy') {
       const game = rummyGames.get(roomId);
-      if (!game || game.winner) return;
+      if (!game || game.winner || game.roundJustEnded) return;
 
       executeRummyBotTurn(game, botPlayerId);
       room.lastActivity = Date.now();
       broadcastGameState(roomId);
 
-      if (game.winner) {
-        const scores = { team0: 0, team1: 0 };
-        for (const p of game.players) {
-          if ((p as any).team === 0) scores.team0 += p.penaltyPoints || 0;
-          else scores.team1 += p.penaltyPoints || 0;
+      if (game.roundJustEnded && game.lastRoundResult) {
+        io.to(roomId).emit('round_end', game.lastRoundResult);
+        
+        if (game.winner) {
+          const scores = { team0: 0, team1: 0 };
+          for (const p of game.players) {
+            if ((p as any).team === 0) scores.team0 += p.penaltyPoints || 0;
+            else scores.team1 += p.penaltyPoints || 0;
+          }
+          io.to(roomId).emit('game_over', { winner: game.winner, scores });
+          return;
         }
-        io.to(roomId).emit('game_over', { winner: game.winner, scores });
+
+        // Auto-add bots to continue
+        for (const p of room.players) {
+          if (p.isBot) (game as any).continuePlayers.add(p.id);
+        }
         return;
       }
 
@@ -392,19 +402,24 @@ function handleDisconnect(socket: Socket, room: Room, player: Player): void {
 
   // Handle round continuation if someone disconnects while waiting for next round
   if ((room.status as string) === config.GAME_STATUS.PLAYING) {
-    const game = chkobbaGames.get(room.id);
-    if (game && game.roundJustEnded && !game.winner) {
+    const game = chkobbaGames.get(room.id) || rummyGames.get(room.id);
+    if (game && (game as any).roundJustEnded && !game.winner) {
       const connectedHumanIds = room.getConnectedPlayers()
         .filter(p => !p.isBot)
         .map(p => p.id);
       
       // If we have no humans left, or all connected humans already said continue
       const allReady = connectedHumanIds.length === 0 || 
-                       connectedHumanIds.every(id => game.continuePlayers.has(id));
+                       connectedHumanIds.every(id => (game as any).continuePlayers.has(id));
       
       if (allReady) {
-        game.startNewRound();
-        io.to(room.id).emit('new_round');
+        if (room.gameType === 'rummy') {
+          (game as any).startNewRound();
+          io.to(room.id).emit('new_round');
+        } else {
+          (game as any).startNewRound();
+          io.to(room.id).emit('new_round');
+        }
         broadcastGameState(room.id);
         startTurnTimer(room.id);
       }
@@ -415,56 +430,62 @@ function handleDisconnect(socket: Socket, room: Room, player: Player): void {
   socket.to(room.id).emit('player_disconnected', { playerId: player.id });
   broadcastRoomUpdate(room.id);
 
-  // If game is playing, start disconnect timer
+  // If game is playing, handle replacement or auto-win
   if ((room.status as string) === config.GAME_STATUS.PLAYING) {
-    // Clear existing timer
-    if (room.disconnectTimer) {
-      clearTimeout(room.disconnectTimer);
-    }
-
-    // Check if all opposing team players are disconnected
     const opposingTeam = room.getTeam(player.team === 0 ? 1 : 0);
-    // Important: Only trigger auto-win if there actually are opponents present
     const allOpponentsDisconnected = opposingTeam.length > 0 && opposingTeam.every(p => !p.isConnected);
 
     if (allOpponentsDisconnected) {
-      console.log(`[Server] All opponents disconnected in room ${room.id}. Match paused.`);
-      // We no longer delete the room immediately. 
-      // The store's cleanupTimer will handle it if nobody returns for 10 minutes.
+      // 1v1 or Team Exit: Start timer for auto-win
+      if (room.disconnectTimer) clearTimeout(room.disconnectTimer);
+      
+      room.disconnectTimer = setTimeout(() => {
+        const updatedRoom = store.getRoom(room.id);
+        if (!updatedRoom) return;
+        const updatedPlayer = updatedRoom.players.find(p => p.id === player.id);
+        if (updatedPlayer && !updatedPlayer.isConnected) {
+          updatedRoom.status = config.GAME_STATUS.FINISHED;
+          const winningTeam = player.team === 0 ? 1 : 0;
+          io.to(room.id).emit('auto_win', {
+            winner: { team: winningTeam, reason: 'timeout' }
+          });
+          const game = chkobbaGames.get(room.id) || rummyGames.get(room.id);
+          if (game) {
+            game.forceWin(winningTeam);
+            broadcastGameState(room.id);
+          }
+        }
+      }, config.DISCONNECT_TIMEOUT_MS || 60000);
+
+      // Warning after 30s
+      setTimeout(() => {
+        const stillRoom = store.getRoom(room.id);
+        const stillPlayer = stillRoom?.players.find(p => p.id === player.id);
+        if (stillPlayer && !stillPlayer.isConnected) {
+          io.to(room.id).emit('auto_win_warning', { 
+            timeRemaining: 30,
+            playerNickname: player.nickname
+          });
+        }
+      }, (config.DISCONNECT_TIMEOUT_MS || 60000) / 2);
+      
       return;
     }
 
-    // Start timer for auto-win (Match remains alive)
-    room.disconnectTimer = setTimeout(() => {
-      const updatedRoom = store.getRoom(room.id);
-      if (!updatedRoom) return;
+    // > 2 players or teammate still connected: Replace with bot immediately
+    console.log(`[Server] Replacing disconnected player ${player.nickname} with bot.`);
+    player.isBot = true;
+    player.isConnected = false;
+    
+    // Auto-continue if round ended
+    const game = chkobbaGames.get(room.id) || rummyGames.get(room.id);
+    if (game && (game as any).continuePlayers) {
+      (game as any).continuePlayers.add(player.id);
+    }
 
-      // Check if player reconnected
-      const updatedPlayer = updatedRoom.players.find(p => p.id === player.id);
-      if (updatedPlayer && !updatedPlayer.isConnected) {
-        // Still disconnected - auto win for other team
-        updatedRoom.status = config.GAME_STATUS.FINISHED;
-        const winningTeam = player.team === 0 ? 1 : 0;
-        io.to(room.id).emit('auto_win', {
-          winner: { team: winningTeam, reason: 'timeout' }
-        });
-        // We STILL don't delete the room here, let them see the result or lobby reset
-      }
-    }, config.DISCONNECT_TIMEOUT_MS);
-
-    // Send warning before auto-win
-    setTimeout(() => {
-      const stillRoom = store.getRoom(room.id);
-      const stillPlayer = stillRoom?.players.find(p => p.id === player.id);
-      if (stillPlayer && !stillPlayer.isConnected) {
-        io.to(room.id).emit('auto_win_warning', { 
-          timeRemaining: 60,
-          playerNickname: player.nickname
-        });
-      }
-    }, config.DISCONNECT_TIMEOUT_MS - 60000);
-
-    console.log(`[Server] Disconnect timer started for ${player.nickname} in room ${room.id}`);
+    broadcastRoomUpdate(room.id);
+    broadcastGameState(room.id);
+    startTurnTimer(room.id);
   }
 }
 
@@ -1095,16 +1116,29 @@ io.on('connection', (socket: Socket) => {
 
     broadcastGameState(currentRoom.id);
 
-    // Check if game is over
-    if (game.winner) {
-      // Build penalty scores by team
-      const scores = { team0: 0, team1: 0 };
-      for (const p of game.players) {
-        if ((p as any).team === 0) scores.team0 += p.penaltyPoints;
-        else scores.team1 += p.penaltyPoints;
+    // Check if round ended
+    if (game.roundJustEnded && game.lastRoundResult) {
+      io.to(currentRoom.id).emit('round_end', game.lastRoundResult);
+
+      if (game.winner) {
+        // Build penalty scores by team
+        const scores = { team0: 0, team1: 0 };
+        for (const p of game.players) {
+          if ((p as any).team === 0) scores.team0 += p.penaltyPoints || 0;
+          else scores.team1 += p.penaltyPoints || 0;
+        }
+        io.to(currentRoom.id).emit('game_over', { winner: game.winner, scores });
+        return;
       }
-      io.to(currentRoom.id).emit('game_over', { winner: game.winner, scores });
+
+      // Auto-add bots to continue
+      for (const p of currentRoom.players) {
+        if (p.isBot) game.continuePlayers.add(p.id);
+      }
+      return;
     }
+
+    startTurnTimer(currentRoom.id);
   });
 
   /**
@@ -1170,7 +1204,7 @@ io.on('connection', (socket: Socket) => {
   });
 
   /**
-   * Continue to next round (after round end modal) - Chkobba only
+   * Continue to next round (after round end modal)
    */
   socket.on('continue_round', () => {
     if (!currentRoom || !currentPlayer) {
@@ -1178,12 +1212,7 @@ io.on('connection', (socket: Socket) => {
       return;
     }
 
-    if (currentRoom.gameType !== 'chkobba') {
-      socket.emit('error', { message: 'Not a Chkobba game' });
-      return;
-    }
-
-    const game = chkobbaGames.get(currentRoom.id);
+    const game = chkobbaGames.get(currentRoom.id) || rummyGames.get(currentRoom.id);
     if (!game) {
       socket.emit('error', { message: 'Game not found. Please refresh.' });
       return;
@@ -1196,7 +1225,7 @@ io.on('connection', (socket: Socket) => {
 
     // Auto-add all bots to continuePlayers
     for (const p of currentRoom.players) {
-      if (p.isBot) game.continuePlayers.add(p.id);
+      if (p.isBot) (game as any).continuePlayers.add(p.id);
     }
 
     // Only wait for connected human players
@@ -1204,9 +1233,9 @@ io.on('connection', (socket: Socket) => {
       .filter(p => !p.isBot)
       .map(p => p.id);
 
-    const allReady = game.playerContinue(currentPlayer.id, connectedHumanIds);
+    const allReady = (game as any).playerContinue(currentPlayer.id, connectedHumanIds);
     if (allReady) {
-      game.startNewRound();
+      (game as any).startNewRound();
       io.to(currentRoom.id).emit('new_round');
       broadcastGameState(currentRoom.id);
       startTurnTimer(currentRoom.id);
