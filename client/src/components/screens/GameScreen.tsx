@@ -113,17 +113,22 @@ export function GameScreen() {
       <div className="absolute top-0 right-10 w-40 h-40 bg-amber-900/8 rounded-full blur-[80px] pointer-events-none" />
       <div className="absolute bottom-10 left-10 w-32 h-32 bg-turquoise/3 rounded-full blur-[100px] pointer-events-none" />
 
-      {/* Turn Indicator — fixed at top of screen */}
+      {/* Vintage Radio - Hidden on mobile or moved to absolute corner */}
+      <div className="hidden md:block">
+        <VintageRadio />
+      </div>
+
+      {/* Turn Indicator — floating above hand */}
       <AnimatePresence mode="wait">
         <motion.div
           key={gameState.currentTurn}
-          initial={{ opacity: 0, y: -20 }}
+          initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -20 }}
+          exit={{ opacity: 0, y: 20 }}
           transition={{ duration: 0.4, type: 'spring', stiffness: 200 }}
-          className="fixed top-0 left-0 right-0 z-[60] flex items-center justify-center pointer-events-none"
+          className="fixed bottom-[180px] sm:bottom-[220px] md:bottom-[240px] left-0 right-0 z-[60] flex items-center justify-center pointer-events-none"
         >
-          <div className="relative w-full max-w-sm flex items-center justify-center pt-4 sm:pt-2 px-4">
+          <div className="relative w-full max-w-sm flex items-center justify-center px-4">
              <motion.div 
                animate={isMyTurn ? { opacity: [0.3, 0.7, 0.3] } : { opacity: 0.2 }}
                transition={{ duration: 2, repeat: Infinity }}
@@ -209,9 +214,6 @@ export function GameScreen() {
           </svg>
         </motion.div>
       </div>
-
-      {/* Vintage Radio */}
-      <VintageRadio />
 
       <div className="relative z-10 h-full flex flex-col">
         <GameTable />

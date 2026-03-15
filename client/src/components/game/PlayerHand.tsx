@@ -33,14 +33,31 @@ export function PlayerHand() {
   };
 
   const handSize = gameState.hand.length;
-  const getArcStyles = (index: number) => {
-    if (handSize === 1) return { rotate: 0, y: 0 };
-    if (handSize === 2) {
-      return index === 0 ? { rotate: -5, y: 0 } : { rotate: 5, y: 0 };
-    }
-    if (index === 0) return { rotate: -8, y: 5 };
-    if (index === 1) return { rotate: 0, y: -10 };
-    return { rotate: 8, y: 5 };
+  
+  // Mathematical radial fan calculation
+  const getArcStyles = (index: number, total: number) => {
+    if (total === 1) return { rotate: 0, y: 0 };
+    
+    // Parameters for the fan
+    const maxAngle = Math.min(total * 8, 40); // Total angle spread of the fan, scaled by card count
+    const radius = 300; // Radius of the imaginary circle the cards sit on
+    
+    // Center point is 0. If 3 cards, indices are 0,1,2. Center is 1.
+    // If 4 cards, indices are 0,1,2,3. Center is 1.5.
+    const centerIndex = (total - 1) / 2;
+    
+    // Distance from center (-1 to 1)
+    const normalizedPos = centerIndex === 0 ? 0 : (index - centerIndex) / centerIndex;
+    
+    // Calculate rotation (-maxAngle/2 to +maxAngle/2)
+    const angleDeg = normalizedPos * (maxAngle / 2);
+    const angleRad = (angleDeg * Math.PI) / 180;
+    
+    // Calculate Y offset based on circle equation: y = r - r*cos(theta)
+    // We add a slight multiplier to make the arc a bit flatter
+    const yOffset = (radius - radius * Math.cos(angleRad)) * 1.5;
+    
+    return { rotate: angleDeg, y: yOffset };
   };
 
   return (
@@ -68,26 +85,39 @@ export function PlayerHand() {
         <AnimatePresence mode="popLayout">
           {gameState.hand.map((card, index) => {
             const isSelected = selectedCardIndex === index;
-            const arc = getArcStyles(index);
+            const arc = getArcStyles(index, handSize);
 
             return (
               <motion.div
                 key={`${card.rank}-${card.suit}`}
                 layout
-                initial={{ opacity: 0, y: 50, scale: 0.8 }}
+                // Start from center table (y: -300) for a "dealing" effect, staggered by index
+                initial={{ opacity: 0, y: -300, x: 0, scale: 0.5, rotate: 0 }}
                 animate={{
                   opacity: 1,
                   rotate: isSelected ? 0 : arc.rotate,
                   y: isSelected ? -24 : arc.y,
+                  x: 0,
                   scale: isSelected ? 1.08 : 1,
                   zIndex: isSelected ? 10 : index
                 }}
                 exit={{
                   opacity: 0,
-                  transition: { duration: 0 },
+                  y: -50,
+                  scale: 0.8,
+                  transition: { duration: 0.2 },
                 }}
                 whileHover={isMyTurn && !isSelected ? { y: arc.y - 15, scale: 1.03 } : undefined}
-                transition={{ type: 'spring', stiffness: 300, damping: 22 }}
+                // Stagger dealing animation on first mount
+                transition={{ 
+                  type: 'spring', 
+                  stiffness: 300, 
+                  damping: 25,
+                  opacity: { duration: 0.2, delay: index * 0.1 },
+                  y: { type: 'spring', stiffness: 300, damping: 25, delay: index * 0.1 },
+                  rotate: { type: 'spring', stiffness: 300, damping: 25, delay: index * 0.1 },
+                  scale: { type: 'spring', stiffness: 300, damping: 25, delay: index * 0.1 }
+                }}
                 className={`relative ${isMyTurn ? 'cursor-pointer' : 'cursor-default'}`}
                 onClick={() => handleCardClick(index)}
                 style={{ transformOrigin: 'bottom center' }}

@@ -94,8 +94,10 @@ export function LobbyScreen() {
   const handleStart = () => socket.emit('start_game');
   const handleLeave = () => {
     socket.emit('leave_room');
-    reset();
-    setScreen('landing');
+    
+    // Completely wipe state immediately
+    useGameStore.getState().reset();
+    useUIStore.getState().setScreen('landing');
     sessionStorage.removeItem('chkobba-storage');
   };
 
@@ -385,37 +387,42 @@ export function LobbyScreen() {
           )}
         </motion.div>
 
-        {/* Action buttons */}
-        <motion.div
-          initial={{ y: 20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.45 }}
-          className="flex gap-4 sm:gap-6 flex-wrap w-full max-w-lg justify-center mt-6 relative z-50"
-        >
-          <Button 
-            onClick={handleReady} 
-            disabled={isReady} 
-            className="flex-1 min-w-[120px] max-w-[160px] py-2.5 text-sm font-semibold rounded-lg shadow-sm"
+        {/* Action buttons - Fixed Bottom Bar */}
+        <div className="fixed bottom-0 left-0 right-0 z-50 p-4 sm:p-6 bg-gradient-to-t from-black/90 via-black/60 to-transparent pointer-events-none flex justify-center">
+          <motion.div
+            initial={{ y: 50, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.45 }}
+            className="flex gap-4 sm:gap-6 flex-wrap w-full max-w-2xl justify-center pointer-events-auto bg-black/40 backdrop-blur-xl border border-white/10 p-4 rounded-2xl shadow-glass-panel"
           >
-            {isReady ? 'Ready ✓' : 'Ready Up'}
-          </Button>
-          {isHost && room.players.length >= 2 && (
             <Button 
-              variant="success" 
-              onClick={handleStart} 
-              className="flex-1 min-w-[120px] max-w-[160px] py-2.5 text-sm font-semibold rounded-lg shadow-sm"
+              onClick={handleReady} 
+              disabled={isReady} 
+              className="flex-1 min-w-[120px] max-w-[200px]"
+              size="lg"
             >
-              Start Game
+              {isReady ? 'Ready ✓' : 'Ready Up'}
             </Button>
-          )}
-          <Button 
-            variant="danger" 
-            onClick={handleLeave} 
-            className="flex-1 min-w-[120px] max-w-[160px] py-2.5 text-sm font-semibold rounded-lg shadow-sm"
-          >
-            Leave
-          </Button>
-        </motion.div>
+            {isHost && room.players.length >= 2 && (
+              <Button 
+                variant="success" 
+                onClick={handleStart} 
+                className="flex-1 min-w-[120px] max-w-[200px]"
+                size="lg"
+              >
+                Start Game
+              </Button>
+            )}
+            <Button 
+              variant="danger" 
+              onClick={handleLeave} 
+              className="flex-1 min-w-[120px] max-w-[200px]"
+              size="lg"
+            >
+              Leave
+            </Button>
+          </motion.div>
+        </div>
       </div>
     </motion.section>
   );

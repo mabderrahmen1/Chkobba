@@ -16,12 +16,14 @@ interface UIStore {
   toasts: ToastMessage[];
   waitressStatus: WaitressStatus;
   isWaitressVisible: boolean;
+  isSubmitting: boolean;
   setScreen: (screen: Screen) => void;
   toggleAmbiance: () => void;
   addToast: (message: string, type?: ToastType) => void;
   removeToast: (id: string) => void;
   setWaitressStatus: (status: WaitressStatus) => void;
   setWaitressVisible: (visible: boolean) => void;
+  setIsSubmitting: (isSubmitting: boolean) => void;
 }
 
 // Check if we have a persisted session immediately on load
@@ -46,6 +48,7 @@ export const useUIStore = create<UIStore>((set) => ({
   toasts: [],
   waitressStatus: 'idle',
   isWaitressVisible: false,
+  isSubmitting: false,
 
   setScreen: (screen) => set({ screen }),
   toggleAmbiance: () => set((state) => ({ showAmbiance: !state.showAmbiance })),
@@ -70,4 +73,5 @@ export const useUIStore = create<UIStore>((set) => ({
 
   setWaitressStatus: (waitressStatus) => set({ waitressStatus }),
   setWaitressVisible: (isWaitressVisible) => set({ isWaitressVisible }),
+  setIsSubmitting: (isSubmitting) => set({ isSubmitting }),
 }));

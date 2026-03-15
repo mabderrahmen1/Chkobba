@@ -67,7 +67,17 @@ export function JoinRoomScreen() {
 
             <div className="flex gap-4 mt-6">
               <Button onClick={handleJoin} className="flex-1" size="lg">Join</Button>
-              <Button variant="secondary" onClick={() => setScreen('landing')} className="flex-1" size="md">Back</Button>
+              <Button 
+                variant="secondary" 
+                onClick={() => {
+                  useUIStore.getState().setIsSubmitting(false);
+                  setScreen('landing');
+                }} 
+                className="flex-1" 
+                size="md"
+              >
+                Back
+              </Button>
             </div>
           </div>
         </div>

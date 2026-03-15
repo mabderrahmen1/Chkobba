@@ -18,30 +18,37 @@ function CardIcon({ rank, suit, className }: { rank: string; suit: string; class
 }
 
 function AnimatedNumber({ value, className }: { value: number; className?: string }) {
-  const [display, setDisplay] = useState(value);
-  const [flash, setFlash] = useState(false);
-  const prev = useRef(value);
+  const [displayValue, setDisplayValue] = useState(value);
+  const previousValue = useRef(value);
 
   useEffect(() => {
-    if (value !== prev.current) {
-      setFlash(true);
-      setDisplay(value);
-      prev.current = value;
-      const t = setTimeout(() => setFlash(false), 600);
-      return () => clearTimeout(t);
+    if (value !== displayValue) {
+      previousValue.current = displayValue;
+      setDisplayValue(value);
     }
-  }, [value]);
+  }, [value, displayValue]);
+
+  const isIncrementing = value > previousValue.current;
 
   return (
-    <motion.span
-      key={display}
-      initial={{ scale: 1 }}
-      animate={flash ? { scale: [1, 1.35, 1], filter: ['brightness(1)', 'brightness(1.5)', 'brightness(1)'] } : { scale: 1 }}
-      transition={{ duration: 0.4, ease: 'easeOut' }}
-      className={className}
-    >
-      {display}
-    </motion.span>
+    <div className={`relative inline-flex overflow-hidden ${className}`} style={{ height: '1.2em' }}>
+      <AnimatePresence mode="popLayout" initial={false}>
+        <motion.span
+          key={displayValue}
+          initial={{ y: isIncrementing ? 40 : -40, opacity: 0, filter: 'brightness(2)' }}
+          animate={{ y: 0, opacity: 1, filter: 'brightness(1)' }}
+          exit={{ y: isIncrementing ? -40 : 40, opacity: 0, filter: 'brightness(0.5)' }}
+          transition={{ type: "spring", stiffness: 400, damping: 30 }}
+          className="absolute inset-0 flex items-center justify-center leading-none"
+        >
+          {displayValue}
+        </motion.span>
+      </AnimatePresence>
+      {/* Invisible spacer to maintain layout width based on current digit length */}
+      <span className="invisible pointer-events-none flex items-center justify-center leading-none">
+        {displayValue}
+      </span>
+    </div>
   );
 }
 
@@ -210,20 +217,19 @@ export function Scoreboard() {
         </div>
 
         <motion.button
-          whileHover={{ scale: 1.02, backgroundColor: 'rgba(239, 68, 68, 0.15)' }}
+          whileHover={{ scale: 1.02, backgroundColor: 'rgba(255, 255, 255, 0.05)' }}
           whileTap={{ scale: 0.98 }}
           onClick={() => {
-            if (window.confirm('Are you sure you want to forfeit this match?')) {
-              socket.emit('forfeit');
-              setExpanded(false);
-            }
+            socket.emit('leave_room');
+            useGameStore.getState().reset();
+            useUIStore.getState().setScreen('landing');
+            sessionStorage.removeItem('chkobba-storage');
           }}
-          className="mt-4 w-full flex flex-col items-center justify-center py-4 rounded-2xl border border-red-500/30 bg-red-500/5 group transition-all"
+          className="mt-4 w-full flex flex-col items-center justify-center py-4 rounded-xl border border-white/10 bg-black/40 group transition-all"
         >
-          <span className="text-[11px] text-red-500 font-ancient uppercase tracking-[0.3em] font-black group-hover:drop-shadow-glow-red">
-            Concede Match
+          <span className="text-[11px] text-cream/80 group-hover:text-white font-ancient uppercase tracking-[0.3em] font-black">
+            Leave Game
           </span>
-          <span className="text-[8px] text-red-500/40 uppercase tracking-widest font-bold mt-1">GIVE UP ROUND</span>
         </motion.button>
       </div>
     </div>

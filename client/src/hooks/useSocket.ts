@@ -61,12 +61,16 @@ export function useSocket() {
 
     socket.on('room_update', (data: any) => {
       const ui = useUIStore.getState();
-      if (ui.screen === 'landing') return; // Do not update if we are leaving
-
       const g = useGameStore.getState();
+      
+      // If we are on landing, or if our local state doesn't match the room being updated, ignore it.
+      if (ui.screen === 'landing' || g.roomId !== data.id) return;
+
       g.setRoom(data);
       // Keep gameType in sync with the room's gameType
       if (data.gameType) g.setGameType(data.gameType);
+      
+      // Only transition to lobby if we are in game and the server says the game ended
       if (data.status === 'lobby' && ui.screen === 'game') {
         ui.setScreen('lobby');
       }

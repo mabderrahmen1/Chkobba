@@ -12,8 +12,12 @@ export function LandingScreen() {
   const setNickname = useGameStore((s) => s.setNickname);
   const setScreen = useUIStore((s) => s.setScreen);
   const addToast = useUIStore((s) => s.addToast);
+  const isSubmitting = useUIStore((s) => s.isSubmitting);
+  const setIsSubmitting = useUIStore((s) => s.setIsSubmitting);
 
   const validateAndProceed = (target: Screen) => {
+    if (isSubmitting) return;
+    
     const trimmed = nickname.trim();
     if (!trimmed) {
       addToast('Please enter a nickname', 'error');
@@ -27,6 +31,7 @@ export function LandingScreen() {
     
     // Create room instantly
     if (target === 'createRoom') {
+      setIsSubmitting(true);
       socket.emit('create_room', { 
         nickname: trimmed,
         targetScore: 21,
@@ -39,21 +44,29 @@ export function LandingScreen() {
   };
 
   const handleRejoin = () => {
-    if (roomId && playerId) {
+    if (roomId && playerId && !isSubmitting) {
+      setIsSubmitting(true);
       socket.emit('rejoin_game', { roomId, playerId });
     }
   };
 
   useEffect(() => {
     const handleError = (data: { message: string }) => {
+      setIsSubmitting(false);
       if (data.message.toLowerCase().includes('not found')) {
         useGameStore.getState().reset();
         sessionStorage.removeItem('chkobba-storage');
       }
     };
+    const handleSuccess = () => setIsSubmitting(false);
+
     socket.on('error', handleError);
-    return () => { socket.off('error', handleError); };
-  }, []);
+    socket.on('room_joined', handleSuccess);
+    return () => { 
+      socket.off('error', handleError); 
+      socket.off('room_joined', handleSuccess);
+    };
+  }, [setIsSubmitting]);
 
   return (
     <motion.section
@@ -75,7 +88,7 @@ export function LandingScreen() {
       <div className="fixed inset-4 sm:inset-8 border border-brass/10 rounded-2xl pointer-events-none z-10" />
 
       <div className="relative z-10 w-full max-w-md mx-auto my-auto py-8 px-4 flex-shrink-0 text-center">
-        <div className="bg-surface-glass backdrop-blur-xl border border-brass/20 rounded-[32px] p-8 sm:p-12 shadow-glass-panel relative overflow-hidden">
+        <div className="bg-black/70 backdrop-blur-md border border-white/10 rounded-2xl p-8 sm:p-12 shadow-2xl relative overflow-hidden">
           {/* Glass glare effect */}
           <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent pointer-events-none" />
 
@@ -108,8 +121,9 @@ export function LandingScreen() {
             >
               <span className="inline-block" style={{ filter: 'drop-shadow(0 4px 12px rgba(212,175,55,0.4))' }}>&#127183;</span>
             </motion.div>
-            <h1 className="font-ancient text-5xl sm:text-6xl font-extrabold text-transparent bg-clip-text bg-gradient-to-b from-brass-light to-brass-dark tracking-widest drop-shadow-lg mb-2">CHKOBBA</h1>
-            <p className="text-cream/50 font-ancient text-xs sm:text-sm tracking-[0.4em] uppercase">Tunisian Traditional Card Game</p>
+            {/* Added solid text with drop shadow instead of complex gradient for a cleaner pro look */}
+            <h1 className="font-ancient text-5xl sm:text-6xl font-black text-white tracking-[0.2em] drop-shadow-[0_4px_10px_rgba(0,0,0,0.8)] mb-2">CHKOBBA</h1>
+            <p className="text-brass-light font-ancient text-[10px] sm:text-xs tracking-[0.5em] uppercase font-bold drop-shadow-md">Tunisian Traditional Card Game</p>
           </div>
 
           <div className="flex flex-col gap-6 relative z-10">
@@ -120,6 +134,7 @@ export function LandingScreen() {
               placeholder="ENTER NICKNAME"
               maxLength={15}
               autoComplete="off"
+              disabled={isSubmitting}
             />
 
             <div className="flex flex-col gap-4 mt-2">
@@ -131,23 +146,26 @@ export function LandingScreen() {
                 >
                   <div className="absolute inset-0 bg-brass/5 animate-pulse pointer-events-none" />
                   <p className="text-[10px] text-brass-light font-ancient uppercase tracking-[0.3em] mb-4 opacity-80">Active Session Found</p>
-                  <Button onClick={handleRejoin} className="w-full" size="md">Rejoin Game</Button>
+                  <Button onClick={handleRejoin} disabled={isSubmitting} className="w-full" size="md">
+                    {isSubmitting ? 'Connecting...' : 'Rejoin Game'}
+                  </Button>
                   <button 
                     onClick={() => {
                       useGameStore.getState().reset();
                       sessionStorage.removeItem('chkobba-storage');
                     }}
-                    className="mt-4 text-[10px] text-cream/30 hover:text-red-400 transition-colors uppercase tracking-widest underline decoration-dashed underline-offset-4"
+                    disabled={isSubmitting}
+                    className="mt-4 text-[10px] text-cream/30 hover:text-red-400 transition-colors uppercase tracking-widest underline decoration-dashed underline-offset-4 disabled:opacity-50"
                   >
                     Clear Session
                   </button>
                 </motion.div>
               )}
 
-              <Button onClick={() => validateAndProceed('createRoom')} variant="primary" size="lg" className="w-full">
-                Create Room
+              <Button onClick={() => validateAndProceed('createRoom')} disabled={isSubmitting} variant="primary" size="lg" className="w-full">
+                {isSubmitting ? 'Creating...' : 'Create Room'}
               </Button>
-              <Button variant="secondary" onClick={() => validateAndProceed('joinRoom')} size="md" className="w-full">
+              <Button variant="secondary" onClick={() => validateAndProceed('joinRoom')} disabled={isSubmitting} size="md" className="w-full">
                 Join Room
               </Button>
             </div>
