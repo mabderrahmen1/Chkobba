@@ -199,6 +199,18 @@ export function RummyGameScreen() {
     return 'left';
   };
 
+  const handleLeave = () => {
+    if (window.confirm("Are you sure you want to leave the game?")) {
+      socket.emit('leave_room');
+      useUIStore.getState().setIsSubmitting(false);
+      useUIStore.getState().setScreen('landing');
+      sessionStorage.removeItem('chkobba-storage');
+      setTimeout(() => {
+        useGameStore.getState().reset();
+      }, 500);
+    }
+  };
+
   return (
     <motion.section
       id="game-screen"
@@ -215,8 +227,9 @@ export function RummyGameScreen() {
         background: 'radial-gradient(ellipse at 50% 30%, rgba(212,175,55,0.06) 0%, transparent 50%), radial-gradient(ellipse at 50% 100%, rgba(90,53,32,0.15) 0%, transparent 40%)'
       }} />
       
-      {/* Top bar - Turn indicator */}
-      <div className="flex-none h-12 flex items-center justify-center relative z-20">
+      {/* Top bar - Turn indicator and Leave Button */}
+      <div className="flex-none h-12 flex items-center justify-between px-4 sm:px-6 relative z-20 w-full mt-2">
+        <div className="w-[100px]"></div> {/* Spacer */}
         <AnimatePresence mode="wait">
           <motion.div
             key={gameState.currentTurn}
@@ -239,6 +252,15 @@ export function RummyGameScreen() {
             </motion.span>
           </motion.div>
         </AnimatePresence>
+        
+        <div className="w-[100px] flex justify-end">
+          <button
+            onClick={handleLeave}
+            className="px-3 py-1.5 rounded-lg bg-red-900/40 border border-red-500/30 text-red-300 font-ancient text-xs uppercase tracking-widest hover:bg-red-800/60 hover:border-red-400/50 transition-all shadow-md"
+          >
+            Leave
+          </button>
+        </div>
       </div>
 
       {/* Mobile opponent indicators */}

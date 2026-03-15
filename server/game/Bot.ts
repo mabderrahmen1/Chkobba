@@ -185,10 +185,10 @@ export function executeRummyBotTurn(game: any, botPlayerId: string): void {
       }
     }
 
-    if (takeDiscard) {
+    if (takeDiscard && game.discardPile.length > 0) {
       game.drawFromDiscard(botPlayerId);
     } else {
-      game.drawFromDeck(botPlayerId);
+      game.drawCard(botPlayerId);
     }
   }
 
