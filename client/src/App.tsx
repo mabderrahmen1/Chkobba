@@ -7,14 +7,26 @@ import { CreateRoomScreen } from './components/screens/CreateRoomScreen';
 import { JoinRoomScreen } from './components/screens/JoinRoomScreen';
 import { LobbyScreen } from './components/screens/LobbyScreen';
 import { GameScreen } from './components/screens/GameScreen';
-import { AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export default function App() {
   useSocket();
   const screen = useUIStore((s) => s.screen);
 
   return (
-    <div className="h-full w-full relative">
+    <div className="h-full w-full relative overflow-hidden bg-black">
+      {/* Persistent Background Video */}
+      <video
+        autoPlay
+        loop
+        muted
+        playsInline
+        className="fixed inset-0 w-full h-full object-cover z-0 opacity-40 scale-105"
+      >
+        <source src="/cafe.mp4" type="video/mp4" />
+      </video>
+      <div className="fixed inset-0 z-0 bg-dark-gradient opacity-60" />
+
       <AnimatePresence mode="wait">
         {screen === 'landing' && <LandingScreen key="landing" />}
         {screen === 'createRoom' && <CreateRoomScreen key="createRoom" />}

@@ -79,7 +79,7 @@ export function PlayerHand() {
       </AnimatePresence>
 
       {/* Hand Cards */}
-      <div className={`flex justify-center -space-x-6 sm:-space-x-4 relative h-[100px] sm:h-[130px] md:h-[150px] items-end pb-2 sm:pb-4 transition-opacity duration-300 ${
+      <div className={`flex justify-center -space-x-6 sm:-space-x-4 relative min-h-[120px] sm:min-h-[160px] md:min-h-[180px] items-end pb-2 sm:pb-4 transition-opacity duration-300 ${
         isMyTurn ? 'opacity-100' : 'opacity-60'
       }`}>
         <AnimatePresence mode="popLayout">

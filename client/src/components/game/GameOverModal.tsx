@@ -41,19 +41,22 @@ export function GameOverModal() {
   };
 
   const handleLeaveRoom = () => {
-    // 1. Move to landing first while data still exists
-    setScreen('landing');
+    // 1. Notify server
+    socket.emit('leave_room');
+
+    // 2. Clear submitting state so landing buttons are ready
+    useUIStore.getState().setIsSubmitting(false);
+
+    // 3. Move to landing first while data still exists for the exit animation
+    useUIStore.getState().setScreen('landing');
     
-    // 2. Clear local session
+    // 4. Clear local session storage
     sessionStorage.removeItem('chkobba-storage');
     
-    // 3. Notify server
-    socket.emit('leave_room');
-    
-    // 4. Wipe internal state after a tiny delay to allow navigation
+    // 5. Wipe internal state after a tiny delay to allow navigation to start
     setTimeout(() => {
       setGameOverData(null);
-      reset();
+      useGameStore.getState().reset();
     }, 100);
   };
 

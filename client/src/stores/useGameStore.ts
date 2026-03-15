@@ -143,7 +143,7 @@ export const useGameStore = create<GameStore>()(
         playerId: state.playerId,
         room: state.room,
         gameType: state.gameType
-      }),
+      }) as any,
     }
   )
 );

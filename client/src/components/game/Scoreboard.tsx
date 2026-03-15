@@ -118,7 +118,9 @@ function StatRow({ label, myVal, oppVal, icon, pointMy, pointOpp }: any) {
 
 export function Scoreboard() {
   const gameState = useGameStore((s) => s.gameState);
+  const room = useGameStore((s) => s.room);
   const playerId = useGameStore((s) => s.playerId);
+  const storeIsHost = useGameStore((s) => s.isHost);
   const [expanded, setExpanded] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
 
@@ -133,6 +135,9 @@ export function Scoreboard() {
 
   const currentPlayer = gameState.players.find((p) => p.id === playerId);
   if (!currentPlayer) return null;
+
+  // Use either the store flag or the room's direct hostId for robustness
+  const isHost = storeIsHost || (room?.hostId === playerId);
 
   const myTeam = currentPlayer.team;
   const myScore = myTeam === 0 ? gameState.scores.team0 : gameState.scores.team1;
@@ -158,6 +163,10 @@ export function Scoreboard() {
 
   const myRoundScore = myTeam === 0 ? gameState.roundScores.team0 : gameState.roundScores.team1;
   const oppRoundScore = myTeam === 0 ? gameState.roundScores.team1 : gameState.roundScores.team0;
+
+  const handleReturnToLobby = () => {
+    socket.emit('reset_game');
+  };
 
   const renderStatsContent = () => (
     <div className="bg-black/40 rounded-3xl border border-white/5 p-4 sm:p-6 shadow-inner-dark relative overflow-hidden backdrop-blur-md">
@@ -199,8 +208,18 @@ export function Scoreboard() {
         <StatRow label="CHKOBBA" myVal={myChkobba} oppVal={oppChkobba} pointMy={myChkobba} pointOpp={oppChkobba} />
       </div>
 
-      <div className="mt-8 pt-6 border-t border-brass/20 flex flex-col gap-4">
-        <div className="flex items-center justify-between px-2">
+      <div className="mt-8 pt-6 border-t border-brass/20 flex flex-col gap-3">
+        {isHost && (
+          <Button 
+            variant="primary" 
+            onClick={handleReturnToLobby}
+            className="w-full py-4 text-xs tracking-[0.2em] shadow-glow-gold/10"
+          >
+            End Match & Edit Rules
+          </Button>
+        )}
+
+        <div className="flex items-center justify-between px-2 py-4">
           <div className="text-center">
             <div className="text-[9px] text-accent/60 font-ancient font-bold uppercase tracking-widest mb-1">Round</div>
             <AnimatedNumber value={myRoundScore} className="text-3xl font-ancient font-extrabold text-accent" />
@@ -217,17 +236,29 @@ export function Scoreboard() {
         </div>
 
         <motion.button
-          whileHover={{ scale: 1.02, backgroundColor: 'rgba(255, 255, 255, 0.05)' }}
-          whileTap={{ scale: 0.98 }}
+          whileHover={{ scale: 1.02, backgroundColor: 'rgba(255, 0, 0, 0.1)' }}
+          whileTap={{ scale: 0.96 }}
           onClick={() => {
+            // 1. Notify server
             socket.emit('leave_room');
-            useGameStore.getState().reset();
+            
+            // 2. Clear submitting state so landing buttons are ready
+            useUIStore.getState().setIsSubmitting(false);
+            
+            // 3. Move to landing first while data still exists for the exit animation
             useUIStore.getState().setScreen('landing');
+            
+            // 4. Clear local session storage
             sessionStorage.removeItem('chkobba-storage');
+            
+            // 5. Wipe internal state after a tiny delay to allow navigation to start
+            setTimeout(() => {
+              useGameStore.getState().reset();
+            }, 100);
           }}
-          className="mt-4 w-full flex flex-col items-center justify-center py-4 rounded-xl border border-white/10 bg-black/40 group transition-all"
+          className="w-full flex flex-col items-center justify-center py-4 rounded-xl border border-red-500/20 bg-red-500/5 group transition-all"
         >
-          <span className="text-[11px] text-cream/80 group-hover:text-white font-ancient uppercase tracking-[0.3em] font-black">
+          <span className="text-[11px] text-red-400 group-hover:text-red-300 font-ancient uppercase tracking-[0.3em] font-black">
             Leave Game
           </span>
         </motion.button>

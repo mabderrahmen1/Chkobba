@@ -67,6 +67,12 @@ export function useSocket() {
       if (ui.screen === 'landing' || g.roomId !== data.id) return;
 
       g.setRoom(data);
+      
+      // Sync host status: if the room's hostId matches our playerId, we are the host
+      if (data.hostId && g.playerId === data.hostId && !g.isHost) {
+        g.setPlayer(g.playerId!, true);
+      }
+      
       // Keep gameType in sync with the room's gameType
       if (data.gameType) g.setGameType(data.gameType);
       

@@ -1,8 +1,8 @@
 import { motion } from 'framer-motion';
 
 interface ButtonProps {
-  variant?: 'primary' | 'secondary' | 'success' | 'danger';
-  size?: 'sm' | 'md' | 'lg';
+  variant?: 'primary' | 'secondary' | 'success' | 'danger' | 'ghost' | 'brass';
+  size?: 'sm' | 'md' | 'lg' | 'xl';
   children: React.ReactNode;
   className?: string;
   disabled?: boolean;
@@ -10,38 +10,51 @@ interface ButtonProps {
   type?: 'button' | 'submit';
 }
 
-const variantClasses: Record<string, string> = {
-  primary: 'bg-black/90 text-brass-light border border-brass/50 hover:bg-black hover:border-brass shadow-[0_0_15px_rgba(0,0,0,0.8)] hover:shadow-[0_0_20px_rgba(212,175,55,0.15)] backdrop-blur-md',
-  secondary: 'bg-black/60 text-cream/90 border border-white/10 hover:bg-black/80 hover:text-white hover:border-white/30 backdrop-blur-md shadow-lg',
-  success: 'bg-emerald-950/90 text-emerald-400 border border-emerald-500/50 hover:bg-emerald-900 hover:border-emerald-400 shadow-lg',
-  danger: 'bg-red-950/90 text-red-400 border border-red-500/50 hover:bg-red-900 hover:border-red-400 shadow-lg',
-};
-
 export function Button({
   variant = 'primary',
   size = 'md',
-  className = '',
   children,
+  className = '',
   disabled,
   onClick,
   type = 'button',
 }: ButtonProps) {
-  const sizeClasses = 
-    size === 'sm' ? 'px-4 py-2 text-xs sm:text-sm' : 
-    size === 'lg' ? 'px-8 py-4 text-base sm:text-lg' : 
-    'px-6 py-3 text-sm sm:text-base';
+  const variants = {
+    primary: 'bg-accent text-white shadow-glow-red hover:bg-accent/90 border border-white/10',
+    secondary: 'bg-wood-warm text-cream border border-wood-light/30 hover:bg-wood hover:border-wood-light/50',
+    success: 'bg-emerald-600 text-white shadow-glow-green hover:bg-emerald-500 border border-white/10',
+    danger: 'bg-red-700 text-white shadow-glow-red hover:bg-red-600 border border-white/10',
+    ghost: 'bg-transparent text-cream/60 hover:text-cream hover:bg-white/5 border border-white/5',
+    brass: 'bg-gradient-to-b from-brass-light via-brass to-brass-dark text-black font-black shadow-glow-gold hover:brightness-110 border border-brass-light/50',
+  };
+
+  const sizes = {
+    sm: 'px-3 py-1.5 text-xs',
+    md: 'px-6 py-3 text-sm',
+    lg: 'px-8 py-4 text-base tracking-widest',
+    xl: 'px-10 py-5 text-lg tracking-[0.2em] font-black',
+  };
 
   return (
     <motion.button
-      whileHover={disabled ? undefined : { scale: 1.02 }}
-      whileTap={disabled ? undefined : { scale: 0.98 }}
-      transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+      whileHover={disabled ? {} : { scale: 1.02, translateY: -1 }}
+      whileTap={disabled ? {} : { scale: 0.96, translateY: 0 }}
       type={type}
       disabled={disabled}
       onClick={onClick}
-      className={`${variantClasses[variant]} ${sizeClasses} font-ancient font-bold rounded-xl uppercase tracking-[0.2em] transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center relative ${className}`}
+      className={`
+        rounded-xl font-ancient uppercase transition-all duration-300 
+        disabled:opacity-40 disabled:cursor-not-allowed disabled:grayscale
+        flex items-center justify-center relative overflow-hidden group
+        ${variants[variant]} ${sizes[size]} ${className}
+      `}
     >
-      <span className="relative z-10">{children}</span>
+      {/* Subtle shine effect on hover */}
+      {!disabled && (
+        <div className="absolute inset-0 w-1/2 h-full bg-gradient-to-r from-transparent via-white/10 to-transparent -skew-x-12 -translate-x-full group-hover:animate-shimmer transition-transform" />
+      )}
+      
+      <span className="relative z-10 flex items-center gap-2">{children}</span>
     </motion.button>
   );
 }

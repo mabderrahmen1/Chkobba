@@ -57,72 +57,51 @@ export function GameTable() {
   const oppTeamCaptured = currentPlayer.team === 0 ? team1Captured : team0Captured;
 
   return (
-    <div className="flex-1 w-full h-full cafe-scene flex flex-col items-center justify-center p-1 sm:p-2 md:p-4">
+    <div className="flex-1 w-full h-full cafe-scene flex flex-col items-center justify-center p-1 sm:p-2 md:p-4 relative">
       <CaptureAnimationOverlay />
       
       {/* Background Silhouettes & Lighting */}
       <div className="vignette" />
-      <div className="ambient-light top-[-100px] left-[-100px]" />
-      <div className="ambient-light bottom-[-100px] right-[-100px]" />
+      <div className="ambient-light top-[-100px] left-[-100px] animate-ambient-glow" />
+      <div className="ambient-light bottom-[-100px] right-[-100px] animate-ambient-glow" style={{ animationDelay: '3s' }} />
 
       {/* The Wooden Table Scene */}
-      <div className="relative w-full h-full max-w-6xl max-h-[85vh] sm:max-h-[80vh] flex flex-col items-center justify-center z-10">
+      <div className="relative w-full h-full max-w-6xl max-h-[85vh] sm:max-h-[80vh] flex flex-col items-center justify-center z-10 perspective-1000">
 
         {/* Table Container */}
         <div 
-          className="w-full h-full p-2 sm:p-4 md:p-6 flex flex-col relative overflow-hidden"
+          className="w-full h-full p-2 sm:p-4 md:p-6 flex flex-col relative overflow-hidden bg-wood shadow-theme-lg"
           style={{
-            borderRadius: '2rem',
-            border: '8px solid rgba(139, 69, 19, 0.4)',
-            background: 'linear-gradient(180deg, #2d1606 0%, #1c0d04 100%)',
-            boxShadow: '0 30px 60px rgba(0,0,0,0.8), inset 0 10px 20px rgba(0,0,0,0.5), inset 0 2px 5px rgba(255,255,255,0.1)'
+            borderRadius: '3rem',
+            border: '12px solid #2d1606',
           }}
         >
-          {/* Subtle scratches and texture overlay */}
-          <div className="absolute inset-0 opacity-20 pointer-events-none mix-blend-overlay bg-[url('https://www.transparenttextures.com/patterns/wood-pattern.png')]" />
+          {/* Subtle wood grain texture */}
+          <div className="absolute inset-0 opacity-30 pointer-events-none mix-blend-overlay bg-[url('https://www.transparenttextures.com/patterns/wood-pattern.png')]" />
 
-          {/* The Felt Center — glow border when it's your turn */}
+          {/* The Felt Center */}
           <motion.div
             animate={isMyTurn ? {
-              boxShadow: [
-                'inset 0 0 80px rgba(0,0,0,0.8), 0 0 0px rgba(212,175,55,0)',
-                'inset 0 0 80px rgba(0,0,0,0.8), 0 0 30px rgba(212,175,55,0.5)',
-                'inset 0 0 80px rgba(0,0,0,0.8), 0 0 0px rgba(212,175,55,0)',
-              ],
+              borderColor: ['rgba(212,175,55,0.2)', 'rgba(212,175,55,0.6)', 'rgba(212,175,55,0.2)'],
             } : {
-              boxShadow: 'inset 0 0 80px rgba(0,0,0,0.8)',
+              borderColor: 'rgba(0,0,0,0.5)',
             }}
-            transition={isMyTurn ? { duration: 2.5, repeat: Infinity, ease: 'easeInOut' } : { duration: 0.4 }}
-            className="flex-1 w-full rounded-2xl flex flex-col relative overflow-hidden border border-black/50"
-            style={{
-              background: 'radial-gradient(ellipse at 50% 40%, rgba(58, 107, 53, 0.95) 0%, rgba(45, 84, 41, 0.98) 60%, rgba(30, 58, 28, 1) 100%)',
-            }}
+            transition={{ duration: 2, repeat: Infinity }}
+            className="flex-1 w-full rounded-[2rem] flex flex-col relative overflow-hidden border-2 bg-felt-luxury"
           >
-            {/* Subtle felt texture overlay */}
-            <div className="absolute inset-0 opacity-[0.05] pointer-events-none" style={{
-              backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'4\' height=\'4\' viewBox=\'0 0 4 4\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cpath d=\'M1 3h1v1H1V3zm2-2h1v1H3V1z\' fill=\'%23ffffff\' fill-opacity=\'1\' fill-rule=\'evenodd\'/%3E%3C/svg%3E")',
-            }} />
-
-            {/* Embossed pattern */}
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-5">
-               <svg width="200" height="200" viewBox="0 0 100 100" className="text-black fill-current sm:w-[300px] sm:h-[300px] md:w-[400px] md:h-[400px]">
-                 <path d="M50 5 L58 35 L90 35 L64 55 L74 85 L50 67 L26 85 L36 55 L10 35 L42 35 Z" />
-               </svg>
-            </div>
-
             {/* Grid Layout inside the Felt */}
             <div className="flex-1 w-full h-full relative z-10 flex flex-col justify-center items-center py-4 sm:py-8 md:py-12">
 
-              {/* Ambiance Props (positioned on top of the felt but on edges) */}
+              {/* Ambiance Props */}
               <div className="absolute inset-0 z-30 pointer-events-none">
                 <CafeAmbiance />
               </div>
 
-              {/* Captured Stacks (on felt) */}
-              <div className="absolute bottom-2 left-2 sm:bottom-4 sm:left-4">
+              {/* Captured Stacks */}
+              <div className="absolute bottom-4 left-4">
                 <CapturedStack count={myTeamCaptured} label="Our Cards" variant="ally" />
               </div>
-              <div className="absolute top-2 right-2 sm:top-4 sm:right-4">
+              <div className="absolute top-4 right-4">
                 <CapturedStack count={oppTeamCaptured} label="Their Cards" variant="opponent" />
               </div>
 

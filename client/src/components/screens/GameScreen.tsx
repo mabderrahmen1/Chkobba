@@ -103,9 +103,11 @@ export function GameScreen() {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="h-full flex flex-col p-1 sm:p-2 relative overflow-hidden"
-      style={{ background: '#1a120e' }}
+      transition={{ duration: 0.5 }}
+      className="h-full flex flex-col p-1 sm:p-2 relative overflow-hidden bg-transparent"
     >
+      {/* Cinematic Background (Provided by App.tsx) */}
+      
       {/* Ambient cafe lighting */}
       <div className="absolute inset-0 pointer-events-none" style={{
         background: 'radial-gradient(ellipse at 50% 30%, rgba(212,175,55,0.06) 0%, transparent 50%), radial-gradient(ellipse at 50% 100%, rgba(90,53,32,0.15) 0%, transparent 40%)'

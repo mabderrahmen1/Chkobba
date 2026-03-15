@@ -36,7 +36,7 @@ export function TableCards({ cards }: TableCardsProps) {
   }
 
   return (
-    <div className="flex flex-wrap justify-center items-center gap-2 sm:gap-3 w-full min-h-[var(--card-height)] p-3 sm:p-4">
+    <div className="flex flex-wrap justify-center items-center gap-2 sm:gap-3 w-full min-h-[150px] sm:min-h-[200px] min-w-[300px] p-3 sm:p-4">
       <AnimatePresence mode="popLayout">
         {cards.map((card, index) => {
           const isSelected = selectedTableIndices.includes(index);

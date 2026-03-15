@@ -63,6 +63,7 @@ export function LobbyScreen() {
     }
   }, [room?.id, room?.maxPlayers, room?.gameType, room?.targetScore, room?.turnTimeout]);
 
+  // Reverting to the familiar early return pattern
   if (!room || !playerId) {
     return (
       <div className="h-full flex flex-col items-center justify-center bg-[#1a120e]">
@@ -73,16 +74,7 @@ export function LobbyScreen() {
   }
 
   const currentPlayer = room.players.find((p) => p.id === playerId);
-  if (!currentPlayer) {
-    return (
-      <div className="h-full flex flex-col items-center justify-center bg-[#1a120e]">
-        <div className="w-12 h-12 border-4 border-brass border-t-transparent rounded-full animate-spin mb-4" />
-        <p className="text-brass font-ancient animate-pulse uppercase tracking-widest">Identifying Player...</p>
-      </div>
-    );
-  }
-
-  const isReady = currentPlayer.isReady;
+  const isReady = currentPlayer?.isReady ?? false;
 
   const handleCopy = () => {
     navigator.clipboard?.writeText(room.id)
@@ -92,25 +84,31 @@ export function LobbyScreen() {
 
   const handleReady = () => socket.emit('player_ready');
   const handleStart = () => socket.emit('start_game');
+  const handleAddBot = () => socket.emit('add_bot');
+  
   const handleLeave = () => {
+    // 1. Notify server
     socket.emit('leave_room');
     
-    // Completely wipe state immediately
-    useGameStore.getState().reset();
+    // 2. Clear submitting state so landing buttons are ready
+    useUIStore.getState().setIsSubmitting(false);
+    
+    // 3. Move to landing first while data still exists for the exit animation
     useUIStore.getState().setScreen('landing');
+    
+    // 4. Clear local session storage
     sessionStorage.removeItem('chkobba-storage');
+    
+    // 5. Wipe internal state after a delay to allow navigation to start
+    setTimeout(() => {
+      useGameStore.getState().reset();
+    }, 500);
   };
 
   const updateSetting = (patch: Partial<typeof settings>) => {
     const newSettings = { ...settings, ...patch };
     setSettings(newSettings);
     socket.emit('update_room_settings', newSettings);
-  };
-
-  const handleUpdateSettings = () => {
-    socket.emit('update_room_settings', settings);
-    addToast('Settings updated', 'success');
-    setSettingsDirty(false);
   };
 
   const handleGameTypeChange = (type: GameType) => {
@@ -138,17 +136,14 @@ export function LobbyScreen() {
         minWidth: '320px',
       }}
     >
-      {/* Subtle felt texture */}
       <div className="absolute inset-0 opacity-[0.04] pointer-events-none" style={{
         backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'4\' height=\'4\' viewBox=\'0 0 4 4\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cpath d=\'M1 3h1v1H1V3zm2-2h1v1H3V1z\' fill=\'%23ffffff\' fill-opacity=\'1\' fill-rule=\'evenodd\'/%3E%3C/svg%3E")',
       }} />
       <div className="absolute inset-0 rounded-[30px] sm:rounded-[36px] pointer-events-none border border-white/10" />
 
-      {/* Settings content */}
       <div className="relative z-10 flex flex-col items-center justify-center px-4 sm:px-8 py-6 sm:py-8 gap-6 sm:gap-8 h-full">
         {isHost ? (
           <>
-            {/* Game type toggle */}
             <div className="w-full max-w-[280px]">
               <div className="text-cream/50 font-ancient text-[9px] sm:text-[10px] uppercase tracking-[0.4em] text-center mb-3 font-bold">
                 Game Mode
@@ -170,7 +165,6 @@ export function LobbyScreen() {
               </div>
             </div>
 
-            {/* Target score (Chkobba only) */}
             <AnimatePresence mode="wait">
               {settings.gameType === 'chkobba' && (
                 <motion.div
@@ -203,7 +197,6 @@ export function LobbyScreen() {
               )}
             </AnimatePresence>
 
-            {/* Player count */}
             <div className="w-full max-w-[280px]">
               <div className="text-cream/50 font-ancient text-[9px] sm:text-[10px] uppercase tracking-[0.4em] text-center mb-3 font-bold">
                 Players
@@ -232,7 +225,7 @@ export function LobbyScreen() {
                       onClick={() => updateSetting({ maxPlayers: n })}
                       className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl font-ancient font-bold text-sm sm:text-base border-2 transition-all duration-300 ${
                         settings.maxPlayers === n
-                          ? 'bg-gradient-to-b from-brass-light to-brass-dark text-black border-brass-light shadow-glow-gold'
+                          ? 'bg-gradient-to-b from-brass-light to-brass-dark text-black shadow-glow-gold'
                           : 'bg-black/40 text-cream/40 border-white/10 hover:border-brass/30 hover:bg-black/60 shadow-inner-dark'
                       }`}
                     >{n}</motion.button>
@@ -241,7 +234,6 @@ export function LobbyScreen() {
               )}
             </div>
 
-            {/* Turn Timeout (Chkobba only) */}
             {settings.gameType === 'chkobba' && (
               <div className="w-full max-w-[280px]">
                 <div className="text-cream/50 font-ancient text-[9px] sm:text-[10px] uppercase tracking-[0.4em] text-center mb-3 font-bold">
@@ -263,8 +255,6 @@ export function LobbyScreen() {
                 </div>
               </div>
             )}
-
-            {/* Apply settings automatically now */}
           </>
         ) : (
           <div className="flex flex-col items-center gap-3 py-4">
@@ -290,23 +280,18 @@ export function LobbyScreen() {
 
   return (
     <motion.section
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="h-full relative overflow-y-auto overflow-x-hidden bg-black flex flex-col"
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -10 }}
+      transition={{ duration: 0.4, ease: [0.23, 1, 0.32, 1] }}
+      className="h-full relative overflow-y-auto overflow-x-hidden bg-transparent flex flex-col"
     >
-      {/* Background */}
-      <div
-        className="fixed inset-0 z-0 bg-cover bg-center opacity-30 grayscale-[10%]"
-        style={{ backgroundImage: "url('/bg.jpg')" }}
-      />
+      {/* Cinematic Background (Provided by App.tsx) */}
       <div className="fixed inset-0 z-0" style={{
         background: 'radial-gradient(ellipse at 50% 40%, rgba(26,18,14,0.7) 0%, rgba(26,18,14,1) 90%)'
       }} />
 
       <div className="flex flex-col gap-4 sm:gap-5 px-3 sm:px-6 max-w-5xl w-full py-8 sm:py-12 relative z-10 items-center my-auto mx-auto flex-shrink-0">
-
-        {/* Room code header */}
         <motion.div
           initial={{ y: -20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
@@ -330,7 +315,6 @@ export function LobbyScreen() {
           </div>
         </motion.div>
 
-        {/* Table + seats layout */}
         <motion.div
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
@@ -338,56 +322,43 @@ export function LobbyScreen() {
           className="w-full max-w-[900px] mx-auto"
         >
           {maxSeats === 4 ? (
-            /* ── 4-player: top seat / [left  table  right] / bottom seat ── */
             <div className="flex flex-col items-center gap-6">
-              {/* Top */}
-              <AnimSeat i={2} delay={0.28}><SeatCard player={seat(2)} isMe={isMe(2)} /></AnimSeat>
-              {/* Middle row */}
+              <AnimSeat i={2} delay={0.28}><SeatCard player={seat(2)} isMe={isMe(2)} isHost={isHost} /></AnimSeat>
               <div className="flex items-center gap-6 w-full">
-                {/* Left */}
                 <div className="flex-none">
-                  <AnimSeat i={3} delay={0.32}><SeatCard player={seat(3)} isMe={isMe(3)} /></AnimSeat>
+                  <AnimSeat i={3} delay={0.32}><SeatCard player={seat(3)} isMe={isMe(3)} isHost={isHost} /></AnimSeat>
                 </div>
-                {/* Table */}
                 <div className="flex-1">
                   <TableFelt />
                 </div>
-                {/* Right */}
                 <div className="flex-none">
-                  <AnimSeat i={1} delay={0.36}><SeatCard player={seat(1)} isMe={isMe(1)} /></AnimSeat>
+                  <AnimSeat i={1} delay={0.36}><SeatCard player={seat(1)} isMe={isMe(1)} isHost={isHost} /></AnimSeat>
                 </div>
               </div>
-              {/* Bottom */}
-              <AnimSeat i={0} delay={0.40}><SeatCard player={seat(0)} isMe={isMe(0)} /></AnimSeat>
+              <AnimSeat i={0} delay={0.40}><SeatCard player={seat(0)} isMe={isMe(0)} isHost={isHost} /></AnimSeat>
             </div>
           ) : maxSeats === 3 ? (
-            /* ── 3-player: [top-left  top-right] / table / bottom ── */
             <div className="flex flex-col items-center gap-6">
-              {/* Top row */}
               <div className="flex items-end justify-center gap-20">
-                <AnimSeat i={1} delay={0.28}><SeatCard player={seat(1)} isMe={isMe(1)} /></AnimSeat>
-                <AnimSeat i={2} delay={0.32}><SeatCard player={seat(2)} isMe={isMe(2)} /></AnimSeat>
+                <AnimSeat i={1} delay={0.28}><SeatCard player={seat(1)} isMe={isMe(1)} isHost={isHost} /></AnimSeat>
+                <AnimSeat i={2} delay={0.32}><SeatCard player={seat(2)} isMe={isMe(2)} isHost={isHost} /></AnimSeat>
               </div>
-              {/* Table */}
               <div className="w-full max-w-[500px]">
                 <TableFelt />
               </div>
-              {/* Bottom */}
-              <AnimSeat i={0} delay={0.36}><SeatCard player={seat(0)} isMe={isMe(0)} /></AnimSeat>
+              <AnimSeat i={0} delay={0.36}><SeatCard player={seat(0)} isMe={isMe(0)} isHost={isHost} /></AnimSeat>
             </div>
           ) : (
-            /* ── 2-player: top / table / bottom ── */
             <div className="flex flex-col items-center gap-6">
-              <AnimSeat i={1} delay={0.28}><SeatCard player={seat(1)} isMe={isMe(1)} /></AnimSeat>
+              <AnimSeat i={1} delay={0.28}><SeatCard player={seat(1)} isMe={isMe(1)} isHost={isHost} /></AnimSeat>
               <div className="w-full max-w-[500px]">
                 <TableFelt />
               </div>
-              <AnimSeat i={0} delay={0.36}><SeatCard player={seat(0)} isMe={isMe(0)} /></AnimSeat>
+              <AnimSeat i={0} delay={0.36}><SeatCard player={seat(0)} isMe={isMe(0)} isHost={isHost} /></AnimSeat>
             </div>
           )}
         </motion.div>
 
-        {/* Action buttons - Fixed Bottom Bar */}
         <div className="fixed bottom-0 left-0 right-0 z-50 p-4 sm:p-6 bg-gradient-to-t from-black/90 via-black/60 to-transparent pointer-events-none flex justify-center">
           <motion.div
             initial={{ y: 50, opacity: 0 }}
@@ -395,30 +366,20 @@ export function LobbyScreen() {
             transition={{ delay: 0.45 }}
             className="flex gap-4 sm:gap-6 flex-wrap w-full max-w-2xl justify-center pointer-events-auto bg-black/40 backdrop-blur-xl border border-white/10 p-4 rounded-2xl shadow-glass-panel"
           >
-            <Button 
-              onClick={handleReady} 
-              disabled={isReady} 
-              className="flex-1 min-w-[120px] max-w-[200px]"
-              size="lg"
-            >
+            <Button onClick={handleReady} disabled={isReady} className="flex-1 min-w-[120px] max-w-[200px]" size="lg">
               {isReady ? 'Ready ✓' : 'Ready Up'}
             </Button>
-            {isHost && room.players.length >= 2 && (
-              <Button 
-                variant="success" 
-                onClick={handleStart} 
-                className="flex-1 min-w-[120px] max-w-[200px]"
-                size="lg"
-              >
+            {isHost && room.players.length < room.maxPlayers && (
+              <Button variant="secondary" onClick={handleAddBot} className="flex-1 min-w-[120px] max-w-[200px]" size="lg">
+                Add Bot
+              </Button>
+            )}
+            {isHost && room.players.length === room.maxPlayers && (
+              <Button variant="success" onClick={handleStart} className="flex-1 min-w-[120px] max-w-[200px]" size="lg">
                 Start Game
               </Button>
             )}
-            <Button 
-              variant="danger" 
-              onClick={handleLeave} 
-              className="flex-1 min-w-[120px] max-w-[200px]"
-              size="lg"
-            >
+            <Button variant="danger" onClick={handleLeave} className="flex-1 min-w-[120px] max-w-[200px]" size="lg">
               Leave
             </Button>
           </motion.div>
@@ -428,7 +389,6 @@ export function LobbyScreen() {
   );
 }
 
-/* ─── Animated seat wrapper ─── */
 function AnimSeat({ i, delay, children }: { i: number; delay: number; children: ReactNode }) {
   return (
     <motion.div
@@ -441,53 +401,33 @@ function AnimSeat({ i, delay, children }: { i: number; delay: number; children: 
   );
 }
 
-/* ─── Seat card: person / bot + name + status ─── */
-function SeatCard({ player, isMe }: { player: any; isMe: boolean }) {
-  const room = useGameStore((s) => s.room);
-  const playerId = useGameStore((s) => s.playerId);
-  const isHost = room?.hostId === playerId;
-  const addToast = useUIStore((s) => s.addToast);
-
-  // ── Empty seat ──
+function SeatCard({ player, isMe, isHost }: { player: any | null; isMe: boolean; isHost: boolean }) {
   if (!player) {
     return (
-      <motion.div
-        animate={{ opacity: [0.4, 0.6, 0.4] }}
-        transition={{ duration: 3, repeat: Infinity }}
-        className="flex flex-col items-center gap-2"
-      >
-        <div className="w-14 h-16 sm:w-16 sm:h-20 rounded-2xl border-2 border-dashed border-white/10 flex items-center justify-center bg-black/20 backdrop-blur-sm shadow-inner-dark">
-          <PersonIcon size={24} className="text-white/5" />
+      <div className="flex flex-col items-center gap-2 opacity-30 grayscale-[50%]">
+        <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-black/40 border-2 border-dashed border-white/20 flex items-center justify-center">
+          <PersonIcon size={24} className="text-white/20" />
         </div>
-        {isHost ? (
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => socket.emit('add_bot')}
-            className="text-[8px] sm:text-[9px] text-cream/40 hover:text-brass-light font-ancient font-bold uppercase tracking-[0.2em] border border-white/10 hover:border-brass/40 px-3 py-1.5 rounded-lg transition-colors bg-black/40 hover:bg-white/5 shadow-md"
-          >
-            + Add Bot
-          </motion.button>
-        ) : (
-          <span className="text-[9px] sm:text-[10px] text-white/20 font-ancient uppercase tracking-widest font-bold">
-            Empty
-          </span>
-        )}
-      </motion.div>
+        <div className="bg-black/40 px-3 py-1 rounded-lg border border-white/5">
+          <span className="text-[10px] sm:text-xs font-ancient uppercase tracking-widest text-white/20">Empty</span>
+        </div>
+      </div>
     );
   }
 
-  // ── Bot seat ──
-  if (player.isBot) {
+  const isBot = player.isBot;
+
+  if (isBot) {
     return (
-      <motion.div layout className="flex flex-col items-center gap-2 relative">
-        <div className="relative w-14 h-16 sm:w-16 sm:h-20 rounded-2xl border-2 border-brass/30 bg-gradient-to-br from-brass/5 to-black/60 backdrop-blur-md flex flex-col items-center justify-center shadow-inner-dark">
-          <div className="absolute inset-0 bg-glass-gradient pointer-events-none rounded-xl" />
-          <BotIcon size={22} className="text-brass/60 mb-1 relative z-10 drop-shadow-md" />
-          {/* Bot badge */}
-          <span className="text-[7px] font-ancient font-bold uppercase tracking-widest text-brass-light px-1.5 py-0.5 rounded bg-black/60 border border-brass/20 relative z-10 shadow-sm">
-            BOT
-          </span>
+      <motion.div initial={{ scale: 0.8 }} animate={{ scale: 1 }} className="flex flex-col items-center gap-2 relative">
+        <div className="relative group">
+          <div className="absolute inset-0 bg-blue-500/20 blur-xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
+          <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br from-blue-900/40 to-black/60 border-2 border-blue-500/30 flex items-center justify-center shadow-xl relative z-10">
+            <BotIcon size={28} className="text-blue-400" />
+          </div>
+          <motion.div animate={{ scale: [1, 1.2, 1], opacity: [0.5, 1, 0.5] }} transition={{ duration: 2, repeat: Infinity }}
+            className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.8)] z-20" />
+          
           {/* Remove button (host only) */}
           {isHost && (
             <motion.button
@@ -503,7 +443,6 @@ function SeatCard({ player, isMe }: { player: any; isMe: boolean }) {
             </motion.button>
           )}
         </div>
-        
         <div className="bg-black/60 backdrop-blur-sm border border-white/5 rounded-lg px-3 py-1 shadow-md">
           <span className="text-[10px] sm:text-xs font-ancient font-extrabold tracking-widest max-w-[80px] truncate block text-cream/60">
             {player.nickname}
@@ -520,113 +459,32 @@ function SeatCard({ player, isMe }: { player: any; isMe: boolean }) {
     );
   }
 
-  // ── Human seat ──
-  const borderColor = isMe
-    ? 'border-brass-light shadow-[0_0_20px_rgba(212,175,55,0.4)]'
-    : player.isReady
-      ? 'border-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.3)]'
-      : 'border-white/10 shadow-inner-dark';
-
-  const bgColor = isMe
-    ? 'bg-gradient-to-br from-brass/20 to-black/60'
-    : player.isReady
-      ? 'bg-gradient-to-br from-emerald-900/30 to-black/60'
-      : 'bg-black/50';
-
-  const handleTeamSwitch = () => {
-    if (!isHost || !room || room.gameType !== 'chkobba') return;
-    if (room.maxPlayers === 2) {
-      const newTeam = player.team === 0 ? 1 : 0;
-      socket.emit('update_player_team', { playerId: player.id, team: newTeam });
-    } else if (room.maxPlayers === 4) {
-      const newTeam = player.team === 0 ? 1 : 0;
-      const currentTeamCount = room.players.filter((p: any) => p.team === newTeam).length;
-      if (currentTeamCount < 2) {
-        socket.emit('update_player_team', { playerId: player.id, team: newTeam });
-      } else {
-        addToast('Team is full (max 2 players)', 'error');
-      }
-    }
-  };
+  const borderColor = isMe ? 'border-brass-light shadow-[0_0_20px_rgba(212,175,55,0.4)]' : player.isReady ? 'border-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.3)]' : 'border-white/10 shadow-inner-dark';
+  const bgColor = isMe ? 'bg-gradient-to-br from-brass/20 to-black/60' : player.isReady ? 'bg-gradient-to-br from-emerald-900/30 to-black/60' : 'bg-black/50';
 
   return (
-    <motion.div layout className="flex flex-col items-center gap-2 relative">
-      {/* Crown for host */}
-      {player.isHost && (
-        <motion.div
-          initial={{ y: -5, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          className="absolute -top-5 left-1/2 -translate-x-1/2 text-lg z-20"
-        >
-          <span className="drop-shadow-[0_2px_4px_rgba(212,175,55,0.8)]">👑</span>
-        </motion.div>
-      )}
-
-      {/* Person card */}
-      <div
-        className={`relative w-14 h-16 sm:w-16 sm:h-20 rounded-2xl border-2 flex flex-col items-center justify-center backdrop-blur-md transition-all duration-500 ${borderColor} ${bgColor} ${
-          !player.isConnected ? 'opacity-50 grayscale' : ''
-        }`}
-      >
+    <motion.div className="flex flex-col items-center gap-2 relative">
+      <div className={`w-14 h-14 sm:w-16 sm:h-16 rounded-2xl border-2 ${borderColor} ${bgColor} flex flex-col items-center justify-center transition-all duration-500 relative overflow-hidden group shadow-2xl`}>
         <div className="absolute inset-0 bg-glass-gradient pointer-events-none rounded-xl" />
-        <PersonIcon
-          size={24}
-          className={`relative z-10 ${
-            isMe ? 'text-brass-light drop-shadow-md' : player.isReady ? 'text-emerald-400 drop-shadow-md' : 'text-cream/30'
-          } transition-colors duration-300 mb-1`}
-        />
-
-        {/* Ready check */}
+        <PersonIcon size={24} className={`relative z-10 ${isMe ? 'text-brass-light drop-shadow-md' : player.isReady ? 'text-emerald-400 drop-shadow-md' : 'text-cream/30'} transition-colors duration-300 mb-1`} />
         {player.isReady && (
-          <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center border border-emerald-200 shadow-lg z-20"
-          >
+          <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center border border-emerald-200 shadow-lg z-20">
             <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
             </svg>
           </motion.div>
         )}
-
       </div>
-
-      {/* Name */}
       <div className="bg-black/60 backdrop-blur-sm border border-white/5 rounded-lg px-3 py-1 shadow-md">
-        <span className={`text-[10px] sm:text-xs font-ancient font-extrabold tracking-widest max-w-[80px] truncate block ${
-          isMe ? 'text-transparent bg-clip-text bg-gradient-to-r from-brass-light to-brass-dark' : 'text-cream/80'
-        }`}>
+        <span className={`text-[10px] sm:text-xs font-ancient font-extrabold tracking-widest max-w-[80px] truncate block ${isMe ? 'text-transparent bg-clip-text bg-gradient-to-r from-brass-light to-brass-dark' : 'text-cream/80'}`}>
           {player.nickname}
         </span>
       </div>
-
-      {/* Team badge / button */}
-      {isHost && room?.gameType === 'chkobba' ? (
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={handleTeamSwitch}
-          className={`flex items-center gap-1.5 text-[8px] sm:text-[9px] font-ancient uppercase tracking-[0.2em] px-3 py-1.5 rounded-lg border shadow-lg transition-colors cursor-pointer ${
-            player.team === 0
-              ? 'bg-gradient-to-r from-amber-500 to-amber-700 text-black border-amber-300 font-extrabold shadow-[0_2px_10px_rgba(245,158,11,0.3)] hover:brightness-110'
-              : 'bg-gradient-to-r from-teal-500 to-teal-700 text-black border-teal-300 font-extrabold shadow-[0_2px_10px_rgba(20,184,166,0.3)] hover:brightness-110'
-          }`}
-          title="Click to change team"
-        >
-          <span>Team {player.team + 1}</span>
-          <svg className="w-3 h-3 opacity-90" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-          </svg>
-        </motion.button>
-      ) : (
-        <span className={`text-[8px] sm:text-[9px] font-ancient uppercase tracking-[0.2em] px-3 py-1.5 rounded-lg shadow-md ${
-          player.team === 0
-            ? 'bg-gradient-to-r from-amber-600 to-amber-800 text-black font-extrabold border border-amber-500/50'
-            : 'bg-gradient-to-r from-teal-600 to-teal-800 text-black font-extrabold border border-teal-500/50'
-        }`}>
-          Team {player.team + 1}
-        </span>
-      )}
+      <span className={`text-[8px] sm:text-[9px] font-ancient uppercase tracking-[0.2em] px-3 py-1.5 rounded-lg shadow-md ${
+        player.team === 0 ? 'bg-gradient-to-r from-amber-600 to-amber-800 text-black font-extrabold border border-amber-500/50' : 'bg-gradient-to-r from-teal-600 to-teal-800 text-black font-extrabold border border-teal-500/50'
+      }`}>
+        Team {player.team + 1}
+      </span>
     </motion.div>
   );
 }

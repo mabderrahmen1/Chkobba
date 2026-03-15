@@ -648,11 +648,42 @@ io.on('connection', (socket: Socket) => {
       return;
     }
 
+    const oldMax = currentRoom.maxPlayers;
+    const oldType = currentRoom.gameType;
     console.log(`[Server] Updating settings for room ${currentRoom.id}: ${gameType}, ${maxPlayers} players, ${turnTimeout}s timeout`);
-    currentRoom.updateSettings(maxPlayers, gameType, targetScore, turnTimeout ?? currentRoom.turnTimeout);
+    
+    // updateSettings now returns removed human player IDs
+    const removedIds = currentRoom.updateSettings(maxPlayers, gameType, targetScore, turnTimeout ?? currentRoom.turnTimeout);
 
-    // If team size changed, we might need to re-balance teams or clear games
-    deleteGames(currentRoom.id);
+    // Notify and disconnect removed players
+    removedIds.forEach(pid => {
+      const removedSocket = getSocketByPlayerId(pid);
+      if (removedSocket) {
+        removedSocket.emit('error', { message: 'Room capacity reduced, you were removed.' });
+        removedSocket.leave(currentRoom!.id);
+        // We'll also tell their frontend to reset (optional if we emit an error they handle)
+      }
+      playerSockets.delete(pid);
+    });
+
+    // If game settings changed, notify everyone via chat
+    let changeMsg = `Host updated settings: ${gameType.toUpperCase()}`;
+    if (maxPlayers !== oldMax) changeMsg += `, ${maxPlayers} players`;
+    if (gameType === 'chkobba' && targetScore !== currentRoom.targetScore) changeMsg += `, ${targetScore} pts`;
+    
+    currentRoom.addChatMessage('system', changeMsg, true);
+    io.to(currentRoom.id).emit('chat_message', {
+      playerId: 'system',
+      playerNickname: 'System',
+      message: changeMsg,
+      isSystem: true,
+      timestamp: Date.now()
+    });
+
+    // Clear any games if mode changed drastically
+    if (gameType !== oldType || maxPlayers !== oldMax) {
+      deleteGames(currentRoom.id);
+    }
 
     broadcastRoomUpdate(currentRoom.id);
   });
@@ -661,7 +692,15 @@ io.on('connection', (socket: Socket) => {
    * Add a bot to the room (Host only, lobby only)
    */
   socket.on('add_bot', () => {
-    if (!currentRoom || !currentPlayer?.isHost) return;
+    if (!currentRoom || !currentPlayer) return;
+    
+    // Re-fetch player from room to ensure we have the latest host status
+    const p = currentRoom.players.find(p => p.id === currentPlayer!.id);
+    if (!p || !p.isHost) {
+      socket.emit('error', { message: 'Only host can add bots' });
+      return;
+    }
+
     if ((currentRoom.status as string) !== config.GAME_STATUS.LOBBY) return;
     if (currentRoom.players.length >= currentRoom.maxPlayers) {
       socket.emit('error', { message: 'Room is full' });
@@ -698,7 +737,15 @@ io.on('connection', (socket: Socket) => {
    * Remove a bot from the room (Host only, lobby only)
    */
   socket.on('remove_bot', ({ botId }: { botId: string }) => {
-    if (!currentRoom || !currentPlayer?.isHost) return;
+    if (!currentRoom || !currentPlayer) return;
+
+    // Re-fetch player from room to ensure we have the latest host status
+    const p = currentRoom.players.find(p => p.id === currentPlayer!.id);
+    if (!p || !p.isHost) {
+      socket.emit('error', { message: 'Only host can remove bots' });
+      return;
+    }
+
     if ((currentRoom.status as string) !== config.GAME_STATUS.LOBBY) return;
     const botIdx = currentRoom.players.findIndex(p => p.id === botId && p.isBot);
     if (botIdx === -1) return;
@@ -713,7 +760,10 @@ io.on('connection', (socket: Socket) => {
    */
   socket.on('update_player_team', ({ playerId, team }: { playerId: string, team: number }) => {
     if (!currentRoom || !currentPlayer) return;
-    if (!currentPlayer.isHost) {
+
+    // Re-fetch player from room to ensure we have the latest host status
+    const p = currentRoom.players.find(p => p.id === currentPlayer!.id);
+    if (!p || !p.isHost) {
       socket.emit('error', { message: 'Only host can change teams' });
       return;
     }
@@ -760,8 +810,8 @@ io.on('connection', (socket: Socket) => {
     currentRoom.setReady(currentPlayer.id, true);
     broadcastRoomUpdate(currentRoom.id);
 
-    // Auto-start when all connected human players are ready (bots are always ready)
-    if (currentRoom.allPlayersReady() && currentRoom.players.length >= 2) {
+    // Auto-start when room is full and all connected human players are ready (bots are always ready)
+    if (currentRoom.players.length === currentRoom.maxPlayers && currentRoom.allPlayersReady()) {
       currentRoom.status = config.GAME_STATUS.PLAYING;
       if (currentRoom.gameType === 'rummy') {
         const game = getOrCreateRummyGame(currentRoom.id, currentRoom);
@@ -774,7 +824,7 @@ io.on('connection', (socket: Socket) => {
       io.to(currentRoom.id).emit('game_started');
       broadcastGameState(currentRoom.id);
       broadcastRoomUpdate(currentRoom.id);
-      console.log(`[Server] Auto-started ${currentRoom.gameType} game in room ${currentRoom.id} (all players ready)`);
+      console.log(`[Server] Auto-started ${currentRoom.gameType} game in room ${currentRoom.id} (room full and all ready)`);
     }
   });
 
@@ -783,13 +833,16 @@ io.on('connection', (socket: Socket) => {
    */
   socket.on('start_game', () => {
     if (!currentRoom || !currentPlayer) return;
-    if (!currentPlayer.isHost) {
+    
+    // Re-fetch player from room to ensure we have the latest host status
+    const p = currentRoom.players.find(p => p.id === currentPlayer!.id);
+    if (!p || !p.isHost) {
       socket.emit('error', { message: 'Only host can start game' });
       return;
     }
 
-    if (currentRoom.players.length < 2) {
-      socket.emit('error', { message: 'Need at least 2 players' });
+    if (currentRoom.players.length !== currentRoom.maxPlayers) {
+      socket.emit('error', { message: `Need exactly ${currentRoom.maxPlayers} players to start.` });
       return;
     }
 
@@ -1252,21 +1305,25 @@ io.on('connection', (socket: Socket) => {
     const playerId = currentPlayer.id;
     const nickname = currentPlayer.nickname;
     const wasHost = currentPlayer.isHost;
+    const roomId = currentRoom.id;
 
-    console.log(`[Server] Player ${nickname} is leaving room ${currentRoom.id} permanently`);
+    console.log(`[Server] Player ${nickname} is leaving room ${roomId} permanently`);
 
-    // Remove player permanently
+    // 1. Leave the socket room immediately so we don't receive the broadcasts we're about to send
+    socket.leave(roomId);
+
+    // 2. Remove player permanently from data store
     currentRoom.removePlayer(playerId, true);
     playerSockets.delete(playerId);
 
-    // If host left, we MUST reset the room to lobby so new host can manage it
+    // 3. If host left, we MUST reset the room to lobby so new host can manage it
     if (wasHost) {
       currentRoom.status = config.GAME_STATUS.LOBBY;
       // Clear any active games
-      deleteGames(currentRoom.id);
+      deleteGames(roomId);
       
-      // Notify everyone about the host change and reset
-      io.to(currentRoom.id).emit('lobby_reset');
+      // Notify everyone left about the host change and reset
+      io.to(roomId).emit('lobby_reset');
       
       const newHost = currentRoom.players.find(p => p.isHost && p.isConnected);
       if (newHost) {
@@ -1275,17 +1332,17 @@ io.on('connection', (socket: Socket) => {
           hostSocket.emit('error', { message: 'The host left. You are now the host!' });
         }
       }
-      // CRITICAL: Broadcast the update so the client sees the new hostId
-      broadcastRoomUpdate(currentRoom.id);
+      // CRITICAL: Broadcast the update so the clients see the new hostId
+      broadcastRoomUpdate(roomId);
     }
 
-    // Notify others
-    socket.to(currentRoom.id).emit('player_left', { playerId, nickname });
-    broadcastRoomUpdate(currentRoom.id);
+    // 4. Notify others
+    socket.to(roomId).emit('player_left', { playerId, nickname });
+    broadcastRoomUpdate(roomId);
 
-    // Add system message to chat
+    // 5. Add system message to chat
     currentRoom.addChatMessage('system', `${nickname} left the room`, true);
-    io.to(currentRoom.id).emit('chat_message', {
+    io.to(roomId).emit('chat_message', {
       playerId: 'system',
       playerNickname: 'System',
       message: `${nickname} left the room`,
