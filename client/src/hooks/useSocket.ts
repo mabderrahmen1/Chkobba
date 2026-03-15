@@ -97,7 +97,7 @@ export function useSocket() {
       g.setIsDistributing(true);
       setTimeout(() => {
         g.setIsDistributing(false);
-      }, 2800);
+      }, 1600);
       
       useUIStore.getState().setScreen('game');
     });
@@ -137,7 +137,7 @@ export function useSocket() {
       // Auto-end distribution after animation time (extended to match shuffle + deal)
       setTimeout(() => {
         g.setIsDistributing(false);
-      }, 2800);
+      }, 1600);
     });
 
     socket.on('hayya_captured', (data: { playerNickname: string }) => {

@@ -48,11 +48,11 @@ export function DealingAnimation() {
 }
 
 function DealingCard({ item, index, players, myId, onAppear }: { item: any; index: number; players: any[]; myId: string | null; onAppear: () => void }) {
-  // New audio length is roughly 2 seconds. 
-  // We want the last card to finish its flight right around the 2.8s mark when isDistributing turns false.
+  // The new audio is trimmed and starts instantly. 
+  // We want the cards to start flying shortly after the sound starts.
   
   const totalCards = players.length * 3;
-  const startDelay = 1000; // Wait 1 second for the riffle shuffle to play
+  const startDelay = 200; // Small delay to let the initial riffle sound hit
   const timePerCard = 80; // Delay between each card being thrown
   
   const myDelay = startDelay + (index * timePerCard);
