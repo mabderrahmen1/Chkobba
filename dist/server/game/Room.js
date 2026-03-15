@@ -155,25 +155,41 @@ export class Room {
     }
     /**
      * Update room settings (Host only)
+     * @returns {string[]} List of player IDs removed due to capacity reduction
      */
     updateSettings(maxPlayers, gameType, targetScore, turnTimeout) {
-        // If switching from 4-player to 2-player, reset teams
-        if (this.maxPlayers === 4 && maxPlayers === 2) {
-            this.players.forEach((p, i) => {
-                p.team = i % 2;
-            });
-        }
-        // Remove excess bots if player count reduced
-        while (this.players.filter(p => p.isBot).length > 0 && this.players.length > maxPlayers) {
-            const lastBotIdx = this.players.map(p => p.isBot).lastIndexOf(true);
-            if (lastBotIdx !== -1)
-                this.players.splice(lastBotIdx, 1);
-        }
+        const removedPlayerIds = [];
+        const oldMax = this.maxPlayers;
         this.maxPlayers = maxPlayers;
         this.gameType = gameType;
         this.targetScore = targetScore;
         this.turnTimeout = turnTimeout;
         this.lastActivity = Date.now();
+        // If capacity reduced, remove excess players (last joined first, but keep host)
+        while (this.players.length > this.maxPlayers) {
+            // Try to find a bot to remove first
+            const lastBotIdx = this.players.map(p => p.isBot).lastIndexOf(true);
+            if (lastBotIdx !== -1) {
+                const removed = this.players.splice(lastBotIdx, 1)[0];
+                removedPlayerIds.push(removed.id);
+            }
+            else {
+                // No bots? Remove the last joined non-host player
+                const lastIdx = this.players.length - 1;
+                if (this.players[lastIdx].isHost) {
+                    // Should never happen if we have >1 player and maxPlayers >= 1, but for safety:
+                    break;
+                }
+                const removed = this.players.splice(lastIdx, 1)[0];
+                removedPlayerIds.push(removed.id);
+            }
+        }
+        // Always recalculate teams for everyone when maxPlayers changes to ensure balance
+        this.players.forEach((p, i) => {
+            // Alternating teams (i % 2) works for 2, 4, etc. to have partners across
+            p.team = i % 2;
+        });
+        return removedPlayerIds;
     }
     /**
      * Mark a player as ready
