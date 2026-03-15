@@ -100,8 +100,9 @@ export function LobbyScreen() {
   };
 
   const updateSetting = (patch: Partial<typeof settings>) => {
-    setSettings((s) => ({ ...s, ...patch }));
-    setSettingsDirty(true);
+    const newSettings = { ...settings, ...patch };
+    setSettings(newSettings);
+    socket.emit('update_room_settings', newSettings);
   };
 
   const handleUpdateSettings = () => {
@@ -127,44 +128,42 @@ export function LobbyScreen() {
   /* The felt table inner content — shared between 2/3/4-player layouts */
   const TableFelt = () => (
     <div
-      className="relative rounded-2xl sm:rounded-3xl border-[5px] sm:border-[7px] border-amber-900/80"
+      className="relative rounded-[32px] sm:rounded-[40px] border-[2px] sm:border-[4px] border-brass/20 overflow-hidden"
       style={{
-        background: 'radial-gradient(ellipse at 50% 40%, #3a6b35 0%, #2d5429 50%, #1e3a1c 100%)',
-        boxShadow: 'inset 0 0 60px rgba(0,0,0,0.5), 0 8px 32px rgba(0,0,0,0.6)',
-        minHeight: '280px',
-        minWidth: '260px',
+        background: 'radial-gradient(ellipse at 50% 40%, rgba(58, 107, 53, 0.95) 0%, rgba(45, 84, 41, 0.98) 60%, rgba(30, 58, 28, 1) 100%)',
+        boxShadow: '0 20px 40px rgba(0,0,0,0.8), inset 0 0 60px rgba(0,0,0,0.8)',
+        minHeight: '340px',
+        minWidth: '320px',
       }}
     >
       {/* Subtle felt texture */}
-      <div className="absolute inset-0 rounded-2xl opacity-[0.03] pointer-events-none" style={{
+      <div className="absolute inset-0 opacity-[0.04] pointer-events-none" style={{
         backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'4\' height=\'4\' viewBox=\'0 0 4 4\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cpath d=\'M1 3h1v1H1V3zm2-2h1v1H3V1z\' fill=\'%23ffffff\' fill-opacity=\'1\' fill-rule=\'evenodd\'/%3E%3C/svg%3E")',
       }} />
-      <div className="absolute inset-0 rounded-2xl sm:rounded-3xl pointer-events-none"
-        style={{ boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06), inset 0 -1px 0 rgba(0,0,0,0.2)' }} />
+      <div className="absolute inset-0 rounded-[30px] sm:rounded-[36px] pointer-events-none border border-white/10" />
 
       {/* Settings content */}
-      <div className="relative z-10 flex flex-col items-center justify-center px-4 sm:px-8 py-6 sm:py-8 gap-4 sm:gap-5 h-full">
+      <div className="relative z-10 flex flex-col items-center justify-center px-4 sm:px-8 py-6 sm:py-8 gap-6 sm:gap-8 h-full">
         {isHost ? (
           <>
             {/* Game type toggle */}
-            <div className="w-full max-w-[240px]">
-              <div className="text-cream/25 font-ancient text-[8px] sm:text-[9px] uppercase tracking-[0.3em] text-center mb-2">
+            <div className="w-full max-w-[280px]">
+              <div className="text-cream/50 font-ancient text-[9px] sm:text-[10px] uppercase tracking-[0.4em] text-center mb-3 font-bold">
                 Game Mode
               </div>
-              <div className="flex rounded-lg overflow-hidden border border-brass/30">
+              <div className="flex bg-black/40 p-1.5 rounded-xl border border-white/5 shadow-inner-dark">
                 {(['chkobba', 'rummy'] as GameType[]).map((type) => (
-                  <motion.button
+                  <button
                     key={type}
-                    whileTap={{ scale: 0.97 }}
                     onClick={() => handleGameTypeChange(type)}
-                    className={`flex-1 py-2 sm:py-2.5 font-ancient text-xs sm:text-sm font-bold uppercase tracking-wider transition-all duration-200 ${
+                    className={`flex-1 py-2 sm:py-3 font-ancient text-sm sm:text-base font-bold uppercase tracking-widest transition-all duration-300 rounded-lg ${
                       settings.gameType === type
-                        ? 'bg-brass/85 text-black'
-                        : 'bg-black/30 text-cream/20 hover:text-cream/35'
+                        ? 'bg-gradient-to-b from-brass-light to-brass-dark text-black shadow-glow-gold'
+                        : 'bg-transparent text-cream/40 hover:text-cream/80 hover:bg-white/5'
                     }`}
                   >
                     {type === 'chkobba' ? 'Chkobba' : 'Rummy'}
-                  </motion.button>
+                  </button>
                 ))}
               </div>
             </div>
@@ -178,22 +177,22 @@ export function LobbyScreen() {
                   animate={{ opacity: 1, height: 'auto' }}
                   exit={{ opacity: 0, height: 0 }}
                   transition={{ duration: 0.2 }}
-                  className="w-full max-w-[240px]"
+                  className="w-full max-w-[280px]"
                 >
-                  <div className="text-cream/25 font-ancient text-[8px] sm:text-[9px] uppercase tracking-[0.3em] text-center mb-2">
+                  <div className="text-cream/50 font-ancient text-[9px] sm:text-[10px] uppercase tracking-[0.4em] text-center mb-3 font-bold">
                     Target Score
                   </div>
-                  <div className="flex justify-center gap-2 sm:gap-3">
+                  <div className="flex justify-center gap-4 sm:gap-5">
                     {[11, 21, 31].map((s) => (
                       <motion.button
                         key={s}
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.9 }}
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
                         onClick={() => updateSetting({ targetScore: s })}
-                        className={`w-10 h-10 sm:w-11 sm:h-11 rounded-full font-ancient font-bold text-xs sm:text-sm border-2 transition-all duration-200 ${
+                        className={`w-12 h-12 sm:w-14 sm:h-14 rounded-xl font-ancient font-bold text-sm sm:text-base border-2 transition-all duration-300 ${
                           settings.targetScore === s
-                            ? 'bg-brass/85 text-black border-brass shadow-[0_0_12px_rgba(212,175,55,0.4)] scale-110'
-                            : 'bg-black/25 text-cream/30 border-brass/15 hover:border-brass/30'
+                            ? 'bg-gradient-to-b from-brass-light to-brass-dark text-black border-brass-light shadow-glow-gold'
+                            : 'bg-black/40 text-cream/40 border-white/10 hover:border-brass/30 hover:bg-black/60 shadow-inner-dark'
                         }`}
                       >{s}</motion.button>
                     ))}
@@ -203,37 +202,36 @@ export function LobbyScreen() {
             </AnimatePresence>
 
             {/* Player count */}
-            <div className="w-full max-w-[240px]">
-              <div className="text-cream/25 font-ancient text-[8px] sm:text-[9px] uppercase tracking-[0.3em] text-center mb-2">
+            <div className="w-full max-w-[280px]">
+              <div className="text-cream/50 font-ancient text-[9px] sm:text-[10px] uppercase tracking-[0.4em] text-center mb-3 font-bold">
                 Players
               </div>
               {settings.gameType === 'chkobba' ? (
-                <div className="flex rounded-lg overflow-hidden border border-brass/30 max-w-[180px] mx-auto">
+                <div className="flex bg-black/40 p-1.5 rounded-xl border border-white/5 max-w-[220px] mx-auto shadow-inner-dark">
                   {[{ n: 2, label: '1 vs 1' }, { n: 4, label: '2 vs 2' }].map(({ n, label }) => (
-                    <motion.button
+                    <button
                       key={n}
-                      whileTap={{ scale: 0.97 }}
                       onClick={() => updateSetting({ maxPlayers: n })}
-                      className={`flex-1 py-1.5 sm:py-2 font-ancient text-[10px] sm:text-xs font-bold tracking-wider transition-all duration-200 ${
+                      className={`flex-1 py-1.5 sm:py-2.5 font-ancient text-xs sm:text-sm font-bold tracking-widest transition-all duration-300 rounded-lg ${
                         settings.maxPlayers === n
-                          ? 'bg-brass/85 text-black'
-                          : 'bg-black/30 text-cream/20 hover:text-cream/35'
+                          ? 'bg-gradient-to-b from-brass-light to-brass-dark text-black shadow-glow-gold'
+                          : 'bg-transparent text-cream/40 hover:text-cream/80 hover:bg-white/5'
                       }`}
-                    >{label}</motion.button>
+                    >{label}</button>
                   ))}
                 </div>
               ) : (
-                <div className="flex justify-center gap-2 sm:gap-3">
+                <div className="flex justify-center gap-3 sm:gap-4">
                   {[2, 3, 4].map((n) => (
                     <motion.button
                       key={n}
-                      whileHover={{ scale: 1.1 }}
-                      whileTap={{ scale: 0.9 }}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
                       onClick={() => updateSetting({ maxPlayers: n })}
-                      className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full font-ancient font-bold text-xs sm:text-sm border-2 transition-all duration-200 ${
+                      className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl font-ancient font-bold text-sm sm:text-base border-2 transition-all duration-300 ${
                         settings.maxPlayers === n
-                          ? 'bg-brass/85 text-black border-brass shadow-[0_0_12px_rgba(212,175,55,0.4)] scale-110'
-                          : 'bg-black/25 text-cream/30 border-brass/15 hover:border-brass/30'
+                          ? 'bg-gradient-to-b from-brass-light to-brass-dark text-black border-brass-light shadow-glow-gold'
+                          : 'bg-black/40 text-cream/40 border-white/10 hover:border-brass/30 hover:bg-black/60 shadow-inner-dark'
                       }`}
                     >{n}</motion.button>
                   ))}
@@ -243,20 +241,20 @@ export function LobbyScreen() {
 
             {/* Turn Timeout (Chkobba only) */}
             {settings.gameType === 'chkobba' && (
-              <div className="w-full max-w-[240px]">
-                <div className="text-cream/25 font-ancient text-[8px] sm:text-[9px] uppercase tracking-[0.3em] text-center mb-2">
+              <div className="w-full max-w-[280px]">
+                <div className="text-cream/50 font-ancient text-[9px] sm:text-[10px] uppercase tracking-[0.4em] text-center mb-3 font-bold">
                   Turn Timeout
                 </div>
-                <div className="flex justify-center gap-1.5 flex-wrap">
+                <div className="flex justify-center gap-2 flex-wrap">
                   {[{ v: 0, label: 'Off' }, { v: 30, label: '30s' }, { v: 60, label: '60s' }, { v: 90, label: '90s' }, { v: 120, label: '2m' }].map(({ v, label }) => (
                     <motion.button
                       key={v}
-                      whileTap={{ scale: 0.9 }}
+                      whileTap={{ scale: 0.95 }}
                       onClick={() => updateSetting({ turnTimeout: v })}
-                      className={`px-2 py-1 rounded font-ancient font-bold text-[9px] sm:text-[10px] border transition-all duration-200 ${
+                      className={`px-3 py-1.5 rounded-lg font-ancient font-bold text-[10px] sm:text-[11px] border transition-all duration-300 ${
                         settings.turnTimeout === v
-                          ? 'bg-brass/85 text-black border-brass'
-                          : 'bg-black/25 text-cream/30 border-brass/15 hover:border-brass/30'
+                          ? 'bg-gradient-to-b from-brass-light to-brass-dark text-black border-brass-light shadow-glow-gold'
+                          : 'bg-black/40 text-cream/40 border-white/10 hover:border-brass/30 hover:bg-white/5 shadow-inner-dark'
                       }`}
                     >{label}</motion.button>
                   ))}
@@ -264,36 +262,23 @@ export function LobbyScreen() {
               </div>
             )}
 
-            {/* Apply settings button */}
-            <AnimatePresence>
-              {settingsDirty && (
-                <motion.button
-                  initial={{ opacity: 0, y: -5 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -5 }}
-                  onClick={handleUpdateSettings}
-                  className="text-[9px] sm:text-[10px] text-black bg-brass/80 hover:bg-brass font-ancient uppercase tracking-[0.25em] px-4 py-1.5 rounded-full transition-colors font-bold"
-                >
-                  Apply Changes
-                </motion.button>
-              )}
-            </AnimatePresence>
+            {/* Apply settings automatically now */}
           </>
         ) : (
-          <div className="flex flex-col items-center gap-2 py-2">
-            <span className="text-brass/70 font-ancient text-sm sm:text-base uppercase tracking-[0.2em] font-bold">
+          <div className="flex flex-col items-center gap-3 py-4">
+            <span className="text-transparent bg-clip-text bg-gradient-to-b from-brass-light to-brass-dark font-ancient text-xl sm:text-2xl uppercase tracking-[0.3em] font-extrabold drop-shadow-md">
               {room.gameType === 'chkobba' ? 'Chkobba' : 'Rummy'}
             </span>
             {room.gameType === 'chkobba' && (
-              <span className="text-cream/30 font-ancient text-xs">
+              <span className="text-cream/60 font-ancient text-sm tracking-widest bg-black/40 px-4 py-1 rounded-full border border-white/5">
                 Target: {room.targetScore} pts
               </span>
             )}
-            <span className="text-cream/20 font-ancient text-[10px] uppercase tracking-widest">
-              {room.players.length}/{maxSeats} players
+            <span className="text-cream/40 font-ancient text-xs uppercase tracking-widest mt-2">
+              {room.players.length}/{maxSeats} players joined
             </span>
-            <span className="text-cream/15 font-ancient text-[9px] italic mt-1">
-              Waiting for host...
+            <span className="text-cream/30 font-ancient text-[10px] italic mt-4 animate-pulse">
+              Waiting for host to start...
             </span>
           </div>
         )}
@@ -306,18 +291,18 @@ export function LobbyScreen() {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="h-full flex items-center justify-center overflow-y-auto relative bg-black"
+      className="h-full relative overflow-y-auto overflow-x-hidden bg-black flex flex-col"
     >
       {/* Background */}
       <div
-        className="absolute inset-0 z-0 bg-cover bg-center opacity-30 grayscale-[10%]"
-        style={{ backgroundImage: "url('/tun1.jpg')" }}
+        className="fixed inset-0 z-0 bg-cover bg-center opacity-30 grayscale-[10%]"
+        style={{ backgroundImage: "url('/bg.jpg')" }}
       />
-      <div className="absolute inset-0 z-0" style={{
+      <div className="fixed inset-0 z-0" style={{
         background: 'radial-gradient(ellipse at 50% 40%, rgba(26,18,14,0.7) 0%, rgba(26,18,14,1) 90%)'
       }} />
 
-      <div className="flex flex-col gap-4 sm:gap-5 px-3 sm:px-6 max-w-4xl w-full py-4 sm:py-6 relative z-10 items-center">
+      <div className="flex flex-col gap-4 sm:gap-5 px-3 sm:px-6 max-w-5xl w-full py-8 sm:py-12 relative z-10 items-center my-auto mx-auto flex-shrink-0">
 
         {/* Room code header */}
         <motion.div
@@ -348,21 +333,23 @@ export function LobbyScreen() {
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ delay: 0.2, type: 'spring', stiffness: 150 }}
-          className="w-full max-w-[680px] mx-auto"
+          className="w-full max-w-[900px] mx-auto"
         >
           {maxSeats === 4 ? (
             /* ── 4-player: top seat / [left  table  right] / bottom seat ── */
-            <div className="flex flex-col items-center gap-4">
+            <div className="flex flex-col items-center gap-6">
               {/* Top */}
               <AnimSeat i={2} delay={0.28}><SeatCard player={seat(2)} isMe={isMe(2)} /></AnimSeat>
               {/* Middle row */}
-              <div className="flex items-center gap-4 w-full">
+              <div className="flex items-center gap-6 w-full">
                 {/* Left */}
                 <div className="flex-none">
                   <AnimSeat i={3} delay={0.32}><SeatCard player={seat(3)} isMe={isMe(3)} /></AnimSeat>
                 </div>
                 {/* Table */}
-                <div className="flex-1"><TableFelt /></div>
+                <div className="flex-1">
+                  <TableFelt />
+                </div>
                 {/* Right */}
                 <div className="flex-none">
                   <AnimSeat i={1} delay={0.36}><SeatCard player={seat(1)} isMe={isMe(1)} /></AnimSeat>
@@ -373,22 +360,26 @@ export function LobbyScreen() {
             </div>
           ) : maxSeats === 3 ? (
             /* ── 3-player: [top-left  top-right] / table / bottom ── */
-            <div className="flex flex-col items-center gap-4">
+            <div className="flex flex-col items-center gap-6">
               {/* Top row */}
-              <div className="flex items-end justify-center gap-16">
+              <div className="flex items-end justify-center gap-20">
                 <AnimSeat i={1} delay={0.28}><SeatCard player={seat(1)} isMe={isMe(1)} /></AnimSeat>
                 <AnimSeat i={2} delay={0.32}><SeatCard player={seat(2)} isMe={isMe(2)} /></AnimSeat>
               </div>
               {/* Table */}
-              <TableFelt />
+              <div className="w-full max-w-[500px]">
+                <TableFelt />
+              </div>
               {/* Bottom */}
               <AnimSeat i={0} delay={0.36}><SeatCard player={seat(0)} isMe={isMe(0)} /></AnimSeat>
             </div>
           ) : (
             /* ── 2-player: top / table / bottom ── */
-            <div className="flex flex-col items-center gap-4">
+            <div className="flex flex-col items-center gap-6">
               <AnimSeat i={1} delay={0.28}><SeatCard player={seat(1)} isMe={isMe(1)} /></AnimSeat>
-              <TableFelt />
+              <div className="w-full max-w-[500px]">
+                <TableFelt />
+              </div>
               <AnimSeat i={0} delay={0.36}><SeatCard player={seat(0)} isMe={isMe(0)} /></AnimSeat>
             </div>
           )}
@@ -399,17 +390,29 @@ export function LobbyScreen() {
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.45 }}
-          className="flex gap-2 sm:gap-3 flex-wrap w-full max-w-md justify-center"
+          className="flex gap-4 sm:gap-6 flex-wrap w-full max-w-lg justify-center mt-6 relative z-50"
         >
-          <Button size="sm" onClick={handleReady} disabled={isReady} className="flex-1 min-w-[100px] max-w-[150px]">
+          <Button 
+            onClick={handleReady} 
+            disabled={isReady} 
+            className="flex-1 min-w-[120px] max-w-[160px] py-2.5 text-sm font-semibold rounded-lg shadow-sm"
+          >
             {isReady ? 'Ready ✓' : 'Ready Up'}
           </Button>
           {isHost && room.players.length >= 2 && (
-            <Button size="sm" variant="success" onClick={handleStart} className="flex-1 min-w-[100px] max-w-[150px]">
+            <Button 
+              variant="success" 
+              onClick={handleStart} 
+              className="flex-1 min-w-[120px] max-w-[160px] py-2.5 text-sm font-semibold rounded-lg shadow-sm"
+            >
               Start Game
             </Button>
           )}
-          <Button size="sm" variant="danger" onClick={handleLeave} className="flex-1 min-w-[100px] max-w-[150px]">
+          <Button 
+            variant="danger" 
+            onClick={handleLeave} 
+            className="flex-1 min-w-[120px] max-w-[160px] py-2.5 text-sm font-semibold rounded-lg shadow-sm"
+          >
             Leave
           </Button>
         </motion.div>
@@ -444,22 +447,22 @@ function SeatCard({ player, isMe }: { player: any; isMe: boolean }) {
       <motion.div
         animate={{ opacity: [0.4, 0.6, 0.4] }}
         transition={{ duration: 3, repeat: Infinity }}
-        className="flex flex-col items-center gap-1"
+        className="flex flex-col items-center gap-2"
       >
-        <div className="w-12 h-14 sm:w-14 sm:h-16 rounded-xl border-2 border-dashed border-brass/15 flex items-center justify-center bg-black/20 backdrop-blur-sm">
-          <PersonIcon size={22} className="text-cream-dark/15" />
+        <div className="w-14 h-16 sm:w-16 sm:h-20 rounded-2xl border-2 border-dashed border-white/10 flex items-center justify-center bg-black/20 backdrop-blur-sm shadow-inner-dark">
+          <PersonIcon size={24} className="text-white/5" />
         </div>
         {isHost ? (
           <motion.button
-            whileHover={{ scale: 1.08 }}
-            whileTap={{ scale: 0.92 }}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
             onClick={() => socket.emit('add_bot')}
-            className="text-[7px] sm:text-[8px] text-brass/60 hover:text-brass font-ancient uppercase tracking-wider border border-brass/20 hover:border-brass/50 px-1.5 py-0.5 rounded transition-colors"
+            className="text-[8px] sm:text-[9px] text-cream/40 hover:text-brass-light font-ancient font-bold uppercase tracking-[0.2em] border border-white/10 hover:border-brass/40 px-3 py-1.5 rounded-lg transition-colors bg-black/40 hover:bg-white/5 shadow-md"
           >
-            + Bot
+            + Add Bot
           </motion.button>
         ) : (
-          <span className="text-[8px] sm:text-[9px] text-cream-dark/20 font-ancient uppercase tracking-wider">
+          <span className="text-[9px] sm:text-[10px] text-white/20 font-ancient uppercase tracking-widest font-bold">
             Empty
           </span>
         )}
@@ -470,11 +473,12 @@ function SeatCard({ player, isMe }: { player: any; isMe: boolean }) {
   // ── Bot seat ──
   if (player.isBot) {
     return (
-      <motion.div layout className="flex flex-col items-center gap-1 relative">
-        <div className="relative w-12 h-14 sm:w-14 sm:h-16 rounded-xl border-2 border-brass/40 bg-brass/5 backdrop-blur-sm flex flex-col items-center justify-center">
-          <BotIcon size={20} className="text-brass/70 mb-0.5" />
+      <motion.div layout className="flex flex-col items-center gap-2 relative">
+        <div className="relative w-14 h-16 sm:w-16 sm:h-20 rounded-2xl border-2 border-brass/30 bg-gradient-to-br from-brass/5 to-black/60 backdrop-blur-md flex flex-col items-center justify-center shadow-inner-dark">
+          <div className="absolute inset-0 bg-glass-gradient pointer-events-none rounded-xl" />
+          <BotIcon size={22} className="text-brass/60 mb-1 relative z-10 drop-shadow-md" />
           {/* Bot badge */}
-          <span className="text-[6px] font-ancient uppercase tracking-widest text-brass/50 px-1 py-0.5 rounded bg-brass/10 border border-brass/20 leading-none">
+          <span className="text-[7px] font-ancient font-bold uppercase tracking-widest text-brass-light px-1.5 py-0.5 rounded bg-black/60 border border-brass/20 relative z-10 shadow-sm">
             BOT
           </span>
           {/* Remove button (host only) */}
@@ -483,20 +487,25 @@ function SeatCard({ player, isMe }: { player: any; isMe: boolean }) {
               whileHover={{ scale: 1.15 }}
               whileTap={{ scale: 0.9 }}
               onClick={() => socket.emit('remove_bot', { botId: player.id })}
-              className="absolute -top-1.5 -right-1.5 w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-red-800/80 hover:bg-red-600 text-white flex items-center justify-center border border-red-500/60 shadow z-20 transition-colors"
+              className="absolute -top-2 -right-2 w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-gradient-to-br from-red-500 to-red-800 text-white flex items-center justify-center border border-red-300 shadow-lg z-30 transition-colors"
               title="Remove bot"
             >
-              <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
               </svg>
             </motion.button>
           )}
         </div>
-        <span className="text-[9px] sm:text-[10px] font-ancient font-bold tracking-wide max-w-[60px] truncate text-brass/60">
-          {player.nickname}
-        </span>
-        <span className={`text-[7px] sm:text-[8px] font-ancient uppercase tracking-widest px-1.5 py-0.5 rounded ${
-          player.team === 0 ? 'bg-amber-600/70 text-black font-bold' : 'bg-teal-600/70 text-black font-bold'
+        
+        <div className="bg-black/60 backdrop-blur-sm border border-white/5 rounded-lg px-3 py-1 shadow-md">
+          <span className="text-[10px] sm:text-xs font-ancient font-extrabold tracking-widest max-w-[80px] truncate block text-cream/60">
+            {player.nickname}
+          </span>
+        </div>
+        <span className={`text-[8px] sm:text-[9px] font-ancient uppercase tracking-[0.2em] px-3 py-1.5 rounded-lg shadow-md ${
+          player.team === 0 
+            ? 'bg-gradient-to-r from-amber-800 to-amber-950 text-amber-500 font-extrabold border border-amber-800/50' 
+            : 'bg-gradient-to-r from-teal-800 to-teal-950 text-teal-500 font-extrabold border border-teal-800/50'
         }`}>
           Team {player.team + 1}
         </span>
@@ -506,16 +515,16 @@ function SeatCard({ player, isMe }: { player: any; isMe: boolean }) {
 
   // ── Human seat ──
   const borderColor = isMe
-    ? 'border-brass shadow-[0_0_16px_rgba(212,175,55,0.3)]'
+    ? 'border-brass-light shadow-[0_0_20px_rgba(212,175,55,0.4)]'
     : player.isReady
-      ? 'border-green-500/60'
-      : 'border-cream-dark/25';
+      ? 'border-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.3)]'
+      : 'border-white/10 shadow-inner-dark';
 
   const bgColor = isMe
-    ? 'bg-brass/10'
+    ? 'bg-gradient-to-br from-brass/20 to-black/60'
     : player.isReady
-      ? 'bg-green-900/15'
-      : 'bg-black/30';
+      ? 'bg-gradient-to-br from-emerald-900/30 to-black/60'
+      : 'bg-black/50';
 
   const handleTeamSwitch = () => {
     if (!isHost || !room || room.gameType !== 'chkobba') return;
@@ -534,29 +543,30 @@ function SeatCard({ player, isMe }: { player: any; isMe: boolean }) {
   };
 
   return (
-    <motion.div layout className="flex flex-col items-center gap-1 relative">
+    <motion.div layout className="flex flex-col items-center gap-2 relative">
       {/* Crown for host */}
       {player.isHost && (
         <motion.div
           initial={{ y: -5, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          className="absolute -top-4 left-1/2 -translate-x-1/2 text-sm z-10"
+          className="absolute -top-5 left-1/2 -translate-x-1/2 text-lg z-20"
         >
-          <span className="drop-shadow-lg">👑</span>
+          <span className="drop-shadow-[0_2px_4px_rgba(212,175,55,0.8)]">👑</span>
         </motion.div>
       )}
 
       {/* Person card */}
       <div
-        className={`relative w-12 h-14 sm:w-14 sm:h-16 rounded-xl border-2 flex flex-col items-center justify-center backdrop-blur-sm transition-all duration-300 ${borderColor} ${bgColor} ${
-          !player.isConnected ? 'opacity-40' : ''
+        className={`relative w-14 h-16 sm:w-16 sm:h-20 rounded-2xl border-2 flex flex-col items-center justify-center backdrop-blur-md transition-all duration-500 ${borderColor} ${bgColor} ${
+          !player.isConnected ? 'opacity-50 grayscale' : ''
         }`}
       >
+        <div className="absolute inset-0 bg-glass-gradient pointer-events-none rounded-xl" />
         <PersonIcon
-          size={20}
-          className={`${
-            isMe ? 'text-brass' : player.isReady ? 'text-green-400/80' : 'text-cream/40'
-          } transition-colors duration-300 mb-0.5`}
+          size={24}
+          className={`relative z-10 ${
+            isMe ? 'text-brass-light drop-shadow-md' : player.isReady ? 'text-emerald-400 drop-shadow-md' : 'text-cream/30'
+          } transition-colors duration-300 mb-1`}
         />
 
         {/* Ready check */}
@@ -564,45 +574,52 @@ function SeatCard({ player, isMe }: { player: any; isMe: boolean }) {
           <motion.div
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
-            className="absolute -top-1 -right-1 w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-green-500 flex items-center justify-center border border-green-400"
+            className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center border border-emerald-200 shadow-lg z-20"
           >
-            <svg className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+            <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
             </svg>
           </motion.div>
         )}
 
-        {/* Team switch button (host only, Chkobba games) */}
-        {isHost && room?.gameType === 'chkobba' && (
-          <motion.button
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-            onClick={handleTeamSwitch}
-            className="absolute -bottom-1 -right-1 w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-brass/90 text-black flex items-center justify-center border border-brass shadow-lg z-20"
-            title="Switch team"
-          >
-            <svg className="w-3 h-3 sm:w-3.5 sm:h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
-            </svg>
-          </motion.button>
-        )}
       </div>
 
       {/* Name */}
-      <span className={`text-[9px] sm:text-[10px] font-ancient font-bold tracking-wide max-w-[60px] truncate ${
-        isMe ? 'text-brass' : 'text-cream/60'
-      }`}>
-        {player.nickname}
-      </span>
+      <div className="bg-black/60 backdrop-blur-sm border border-white/5 rounded-lg px-3 py-1 shadow-md">
+        <span className={`text-[10px] sm:text-xs font-ancient font-extrabold tracking-widest max-w-[80px] truncate block ${
+          isMe ? 'text-transparent bg-clip-text bg-gradient-to-r from-brass-light to-brass-dark' : 'text-cream/80'
+        }`}>
+          {player.nickname}
+        </span>
+      </div>
 
-      {/* Team badge */}
-      <span className={`text-[7px] sm:text-[8px] font-ancient uppercase tracking-widest px-1.5 py-0.5 rounded ${
-        player.team === 0
-          ? 'bg-amber-600/70 text-black font-bold'
-          : 'bg-teal-600/70 text-black font-bold'
-      }`}>
-        Team {player.team + 1}
-      </span>
+      {/* Team badge / button */}
+      {isHost && room?.gameType === 'chkobba' ? (
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={handleTeamSwitch}
+          className={`flex items-center gap-1.5 text-[8px] sm:text-[9px] font-ancient uppercase tracking-[0.2em] px-3 py-1.5 rounded-lg border shadow-lg transition-colors cursor-pointer ${
+            player.team === 0
+              ? 'bg-gradient-to-r from-amber-500 to-amber-700 text-black border-amber-300 font-extrabold shadow-[0_2px_10px_rgba(245,158,11,0.3)] hover:brightness-110'
+              : 'bg-gradient-to-r from-teal-500 to-teal-700 text-black border-teal-300 font-extrabold shadow-[0_2px_10px_rgba(20,184,166,0.3)] hover:brightness-110'
+          }`}
+          title="Click to change team"
+        >
+          <span>Team {player.team + 1}</span>
+          <svg className="w-3 h-3 opacity-90" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+          </svg>
+        </motion.button>
+      ) : (
+        <span className={`text-[8px] sm:text-[9px] font-ancient uppercase tracking-[0.2em] px-3 py-1.5 rounded-lg shadow-md ${
+          player.team === 0
+            ? 'bg-gradient-to-r from-amber-600 to-amber-800 text-black font-extrabold border border-amber-500/50'
+            : 'bg-gradient-to-r from-teal-600 to-teal-800 text-black font-extrabold border border-teal-500/50'
+        }`}>
+          Team {player.team + 1}
+        </span>
+      )}
     </motion.div>
   );
 }

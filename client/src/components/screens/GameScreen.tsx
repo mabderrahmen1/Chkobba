@@ -26,7 +26,7 @@ export function GameScreen() {
   const turnTimeoutSec = useGameStore((s) => s.turnTimeoutSec);
   const [countdown, setCountdown] = useState<number | null>(null);
 
-  const { playClink, playLighter } = useAmbianceSound();
+  const { playClink, playLighter, playCardShuffle } = useAmbianceSound();
   const lighterPlayed = useRef(false);
   const prevRound = useRef(gameState?.roundNumber ?? 0);
   const [copied, setCopied] = useState(false);
@@ -56,13 +56,17 @@ export function GameScreen() {
     return () => clearInterval(interval);
   }, [turnStartedAt, turnTimeoutSec]);
 
-  // Play clink on round start (Chkobba only)
+  // Play clink and shuffle on round start (Chkobba only)
   useEffect(() => {
     if (gameState && gameState.roundNumber !== prevRound.current) {
       prevRound.current = gameState.roundNumber;
       playClink();
+      // Only play shuffle on round start, not initial load if round is 1
+      if (gameState.roundNumber > 0) {
+        playCardShuffle();
+      }
     }
-  }, [gameState?.roundNumber, playClink, gameState]);
+  }, [gameState?.roundNumber, playClink, playCardShuffle, gameState]);
 
   if (gameType === 'rummy' || rummyGameState) {
     return <RummyGameScreen />;
@@ -179,11 +183,11 @@ export function GameScreen() {
       {/* Action Log — Desktop only */}
       <MoveLog />
 
-      {/* Room Info — Bottom Left */}
+      {/* Room Info — Bottom Left (Above Chat) */}
       <div className="fixed bottom-3 left-3 z-[45] hidden sm:flex flex-col gap-1">
         <motion.div 
           whileTap={{ scale: 0.95 }}
-          className="flex items-center gap-2 bg-black/40 backdrop-blur-md border border-brass/20 rounded-lg px-3 py-1.5 cursor-pointer hover:bg-black/60 transition-colors group relative"
+          className="flex items-center gap-2 bg-black/40 backdrop-blur-md border border-brass/20 rounded-lg px-3 py-1.5 cursor-pointer hover:bg-black/60 transition-colors group relative shadow-inner-dark"
           onClick={handleCopyCode}
         >
           <AnimatePresence>

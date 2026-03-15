@@ -5,6 +5,7 @@
 import config from '../config.js';
 import Deck from './Deck.js';
 import scoring from './scoring.js';
+import { findCombinations } from './Bot.js';
 /**
  * Game class
  * Manages the game state for a room
@@ -163,6 +164,13 @@ export class Game {
         return this.players.every(p => p.hand.length === 0);
     }
     /**
+     * Check if any combination of table cards sums to target value
+     */
+    canCaptureCombo(target) {
+        const combos = findCombinations(this.tableCards, target);
+        return combos.length > 0;
+    }
+    /**
      * Play a card from hand
      * @param {string} playerId - Player ID
      * @param {number} cardIndex - Index of card in hand
@@ -181,6 +189,10 @@ export class Game {
             return { success: false, error: 'Invalid card index' };
         }
         const playedCard = player.hand[cardIndex];
+        // Chkobba Rule: If there’s an exact single-card match, it takes priority.
+        // Check if any single card on the table matches the played card's value.
+        const singleMatchIndex = this.tableCards.findIndex(c => c.value === playedCard.value);
+        const hasSingleMatch = singleMatchIndex !== -1;
         // Case 1: Capture Intent
         if (tableIndices.length > 0) {
             // Validate indices
@@ -191,8 +203,15 @@ export class Game {
             }
             const selectedTableCards = tableIndices.map(i => this.tableCards[i]);
             const sum = selectedTableCards.reduce((acc, c) => acc + c.value, 0);
-            // Chkobba Rule: If a single card matches the value, you MUST take it (or another sum)
-            // but usually the rules are simplified for digital: we just validate the specific intent.
+            // Rule Enforcement: Single-card match takes priority
+            if (hasSingleMatch) {
+                if (selectedTableCards.length !== 1 || selectedTableCards[0].value !== playedCard.value) {
+                    return {
+                        success: false,
+                        error: `If there’s an exact single-card match, it takes priority. You must capture the ${this.tableCards[singleMatchIndex].rank} on the table.`
+                    };
+                }
+            }
             const isSingleMatch = selectedTableCards.length === 1 && selectedTableCards[0].value === playedCard.value;
             const isSumMatch = sum === playedCard.value;
             if (!isSingleMatch && !isSumMatch) {
@@ -235,8 +254,24 @@ export class Game {
             };
         }
         // Case 2: Discard Intent (No selection)
-        // Validate that NO captures are possible (Optional, but good for competitive play)
-        // For now, allow discard if user explicitly chose no table cards.
+        // Mandatory capture rule: If ANY capture is possible, you must take it.
+        if (hasSingleMatch) {
+            return {
+                success: false,
+                error: `If there’s an exact single-card match, it takes priority. You must capture the ${this.tableCards[singleMatchIndex].rank} on the table.`
+            };
+        }
+        // Check for combination captures
+        // Import helper from Bot or shared if needed, or implement here.
+        // Given the request specifically emphasized single-card match, 
+        // I'll ensure it's handled. For combination matches, the standard 
+        // rule says they are also mandatory if no single match exists.
+        // Check if any combination matches the played card's value
+        // We can use a simple subset sum or just check if any combination exists.
+        const hasComboMatch = this.canCaptureCombo(playedCard.value);
+        if (hasComboMatch) {
+            return { success: false, error: 'A capture is possible with this card. You must select the cards to capture.' };
+        }
         player.hand.splice(cardIndex, 1);
         this.tableCards.push(playedCard);
         // Track last action for animation

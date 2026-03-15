@@ -36,50 +36,56 @@ export function CreateRoomScreen() {
       initial={{ opacity: 0, x: 20 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -20 }}
-      className="h-full flex items-center justify-center relative overflow-hidden"
+      className="h-full relative overflow-y-auto overflow-x-hidden bg-black flex flex-col"
     >
-      <div className="absolute inset-0" style={{
-        background: 'radial-gradient(ellipse at 50% 40%, rgba(90,53,32,0.3) 0%, rgba(26,18,14,1) 70%)'
+      <div className="fixed inset-0 z-0 bg-cover bg-center opacity-30 grayscale-[10%]"
+        style={{ backgroundImage: "url('/bg.jpg')" }}
+      />
+      <div className="fixed inset-0 z-0" style={{
+        background: 'radial-gradient(ellipse at 50% 40%, rgba(90,53,32,0.6) 0%, rgba(26,18,14,0.9) 70%)'
       }} />
 
-      {/* The Table */}
-      <div className="relative z-10 w-full max-w-xl mx-4">
+      <div className="relative z-10 w-full max-w-5xl mx-auto my-auto py-8 px-4 flex-shrink-0">
         <div
-          className="relative rounded-[32px] sm:rounded-[40px] border-[5px] sm:border-[7px] border-amber-900/80 px-6 py-7 sm:px-10 sm:py-9"
+          className="relative rounded-[40px] sm:rounded-[60px] border-[2px] sm:border-[4px] border-brass/20 px-6 py-8 sm:px-16 sm:py-14 overflow-hidden"
           style={{
-            background: 'radial-gradient(circle, #3a6b35 0%, #2d5429 60%, #1e3a1c 100%)',
-            boxShadow: 'inset 0 0 50px rgba(0,0,0,0.5), 0 10px 40px rgba(0,0,0,0.6)',
+            background: 'radial-gradient(ellipse at 50% 40%, rgba(58, 107, 53, 0.95) 0%, rgba(45, 84, 41, 0.98) 60%, rgba(30, 58, 28, 1) 100%)',
+            boxShadow: '0 30px 60px rgba(0,0,0,0.8), inset 0 0 100px rgba(0,0,0,0.8)',
+            minHeight: '500px'
           }}
         >
-          <div className="absolute inset-0 rounded-[28px] sm:rounded-[36px] pointer-events-none"
-            style={{ boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.05)' }} />
+          {/* Subtle felt texture overlay */}
+          <div className="absolute inset-0 opacity-[0.04] pointer-events-none" style={{
+            backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'4\' height=\'4\' viewBox=\'0 0 4 4\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cpath d=\'M1 3h1v1H1V3zm2-2h1v1H3V1z\' fill=\'%23ffffff\' fill-opacity=\'1\' fill-rule=\'evenodd\'/%3E%3C/svg%3E")',
+          }} />
+          <div className="absolute inset-0 rounded-[38px] sm:rounded-[56px] pointer-events-none border border-white/10" />
 
-          <h2 className="text-center text-brass font-ancient text-lg sm:text-xl font-bold mb-6 sm:mb-8 uppercase tracking-widest">
-            Set Up Game
+          <h2 className="text-center text-transparent bg-clip-text bg-gradient-to-b from-brass-light to-brass-dark font-ancient text-3xl sm:text-5xl font-extrabold mb-10 sm:mb-14 uppercase tracking-[0.2em] drop-shadow-md relative z-10">
+            Game Setup
           </h2>
 
           {/* Game Type — two toggle buttons */}
-          <div className="mb-6 sm:mb-8">
-            <div className="text-cream/30 font-ancient text-[9px] sm:text-[10px] uppercase tracking-[0.25em] text-center mb-3">
-              Game
+          <div className="mb-10 sm:mb-14 relative z-10">
+            <div className="text-cream/50 font-ancient text-[11px] sm:text-xs uppercase tracking-[0.4em] text-center mb-5 font-bold">
+              Game Mode
             </div>
-            <div className="flex justify-center gap-0 rounded-lg overflow-hidden border border-brass/30 max-w-xs mx-auto">
+            <div className="flex justify-center gap-2 bg-black/40 p-2 rounded-2xl border border-white/5 max-w-lg mx-auto shadow-inner-dark">
               <button
                 onClick={() => handleGameTypeChange('chkobba')}
-                className={`flex-1 py-2.5 sm:py-3 font-ancient text-sm sm:text-base font-bold uppercase tracking-wider transition-all duration-200 ${
+                className={`flex-1 py-4 sm:py-5 font-ancient text-base sm:text-xl font-bold uppercase tracking-widest transition-all duration-300 rounded-xl ${
                   gameType === 'chkobba'
-                    ? 'bg-brass/90 text-black'
-                    : 'bg-black/40 text-cream/25 hover:text-cream/40'
+                    ? 'bg-gradient-to-b from-brass-light to-brass-dark text-black shadow-glow-gold'
+                    : 'bg-transparent text-cream/40 hover:text-cream/80 hover:bg-white/5'
                 }`}
               >
                 Chkobba
               </button>
               <button
                 onClick={() => handleGameTypeChange('rummy')}
-                className={`flex-1 py-2.5 sm:py-3 font-ancient text-sm sm:text-base font-bold uppercase tracking-wider transition-all duration-200 ${
+                className={`flex-1 py-4 sm:py-5 font-ancient text-base sm:text-xl font-bold uppercase tracking-widest transition-all duration-300 rounded-xl ${
                   gameType === 'rummy'
-                    ? 'bg-brass/90 text-black'
-                    : 'bg-black/40 text-cream/25 hover:text-cream/40'
+                    ? 'bg-gradient-to-b from-brass-light to-brass-dark text-black shadow-glow-gold'
+                    : 'bg-transparent text-cream/40 hover:text-cream/80 hover:bg-white/5'
                 }`}
               >
                 Rummy
@@ -93,23 +99,23 @@ export function CreateRoomScreen() {
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
-              className="mb-6 sm:mb-8"
+              className="mb-10 sm:mb-14 relative z-10"
             >
-              <div className="text-cream/30 font-ancient text-[9px] sm:text-[10px] uppercase tracking-[0.25em] text-center mb-3">
+              <div className="text-cream/50 font-ancient text-[11px] sm:text-xs uppercase tracking-[0.4em] text-center mb-5 font-bold">
                 Target Score
               </div>
-              <div className="flex justify-center gap-3 sm:gap-4">
+              <div className="flex justify-center gap-6 sm:gap-8">
                 {[11, 21, 31].map((score) => (
                   <motion.button
                     key={score}
-                    whileHover={{ scale: 1.1 }}
+                    whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     onClick={() => setTargetScore(score)}
-                    className={`w-12 h-12 sm:w-14 sm:h-14 rounded-full font-ancient font-bold text-sm sm:text-base
-                      transition-all duration-200 border-2 ${
+                    className={`w-16 h-16 sm:w-20 sm:h-20 rounded-2xl font-ancient font-extrabold text-xl sm:text-2xl
+                      transition-all duration-300 border-2 ${
                       targetScore === score
-                        ? 'bg-brass/90 text-black border-brass shadow-[0_0_16px_rgba(212,175,55,0.5)] scale-110'
-                        : 'bg-black/30 text-cream/40 border-brass/20 hover:border-brass/40'
+                        ? 'bg-gradient-to-b from-brass-light to-brass-dark text-black border-brass-light shadow-glow-gold'
+                        : 'bg-black/40 text-cream/40 border-white/10 hover:border-brass/30 hover:bg-black/60 shadow-inner-dark'
                     }`}
                   >
                     {score}
@@ -120,46 +126,46 @@ export function CreateRoomScreen() {
           )}
 
           {/* Players */}
-          <div className="mb-7 sm:mb-9">
-            <div className="text-cream/30 font-ancient text-[9px] sm:text-[10px] uppercase tracking-[0.25em] text-center mb-3">
-              Players
+          <div className="mb-10 sm:mb-14 relative z-10">
+            <div className="text-cream/50 font-ancient text-[11px] sm:text-xs uppercase tracking-[0.4em] text-center mb-5 font-bold">
+              Number of Players
             </div>
             {gameType === 'chkobba' ? (
-              <div className="flex justify-center gap-0 rounded-lg overflow-hidden border border-brass/30 max-w-[200px] mx-auto">
+              <div className="flex justify-center gap-2 bg-black/40 p-2 rounded-2xl border border-white/5 max-w-[280px] mx-auto shadow-inner-dark">
                 <button
                   onClick={() => setMaxPlayers(2)}
-                  className={`flex-1 py-2 sm:py-2.5 font-ancient text-xs sm:text-sm font-bold tracking-wider transition-all duration-200 ${
+                  className={`flex-1 py-3 sm:py-4 font-ancient text-sm sm:text-lg font-bold tracking-widest transition-all duration-300 rounded-xl ${
                     maxPlayers === 2
-                      ? 'bg-brass/90 text-black'
-                      : 'bg-black/40 text-cream/25 hover:text-cream/40'
+                      ? 'bg-gradient-to-b from-brass-light to-brass-dark text-black shadow-glow-gold'
+                      : 'bg-transparent text-cream/40 hover:text-cream/80 hover:bg-white/5'
                   }`}
                 >
                   1 vs 1
                 </button>
                 <button
                   onClick={() => setMaxPlayers(4)}
-                  className={`flex-1 py-2 sm:py-2.5 font-ancient text-xs sm:text-sm font-bold tracking-wider transition-all duration-200 ${
+                  className={`flex-1 py-3 sm:py-4 font-ancient text-sm sm:text-lg font-bold tracking-widest transition-all duration-300 rounded-xl ${
                     maxPlayers === 4
-                      ? 'bg-brass/90 text-black'
-                      : 'bg-black/40 text-cream/25 hover:text-cream/40'
+                      ? 'bg-gradient-to-b from-brass-light to-brass-dark text-black shadow-glow-gold'
+                      : 'bg-transparent text-cream/40 hover:text-cream/80 hover:bg-white/5'
                   }`}
                 >
                   2 vs 2
                 </button>
               </div>
             ) : (
-              <div className="flex justify-center gap-2 sm:gap-3">
+              <div className="flex justify-center gap-4 sm:gap-6">
                 {[2, 3, 4].map((n) => (
                   <motion.button
                     key={n}
-                    whileHover={{ scale: 1.1 }}
+                    whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     onClick={() => setMaxPlayers(n)}
-                    className={`w-11 h-11 sm:w-12 sm:h-12 rounded-full font-ancient font-bold text-sm
-                      transition-all duration-200 border-2 ${
+                    className={`w-14 h-14 sm:w-16 sm:h-16 rounded-2xl font-ancient font-extrabold text-lg sm:text-xl
+                      transition-all duration-300 border-2 ${
                       maxPlayers === n
-                        ? 'bg-brass/90 text-black border-brass shadow-[0_0_16px_rgba(212,175,55,0.5)] scale-110'
-                        : 'bg-black/30 text-cream/40 border-brass/20 hover:border-brass/40'
+                        ? 'bg-gradient-to-b from-brass-light to-brass-dark text-black border-brass-light shadow-glow-gold'
+                        : 'bg-black/40 text-cream/40 border-white/10 hover:border-brass/30 hover:bg-black/60 shadow-inner-dark'
                     }`}
                   >
                     {n}
@@ -175,32 +181,32 @@ export function CreateRoomScreen() {
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
-              className="mb-7 sm:mb-9"
+              className="mb-10 sm:mb-14 relative z-10"
             >
-              <div className="text-cream/30 font-ancient text-[9px] sm:text-[10px] uppercase tracking-[0.25em] text-center mb-3">
-                Your Team
+              <div className="text-cream/50 font-ancient text-[11px] sm:text-xs uppercase tracking-[0.4em] text-center mb-5 font-bold">
+                Choose Your Side
               </div>
-              <div className="flex justify-center gap-3 sm:gap-4">
+              <div className="flex justify-center gap-4 sm:gap-6">
                 <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
+                  whileHover={{ scale: 1.03 }}
+                  whileTap={{ scale: 0.97 }}
                   onClick={() => setHostTeam(0)}
-                  className={`px-4 py-2.5 sm:py-3 rounded-lg font-ancient font-bold text-sm sm:text-base uppercase tracking-wider transition-all duration-200 border-2 ${
+                  className={`px-8 py-4 sm:py-5 rounded-2xl font-ancient font-extrabold text-sm sm:text-lg uppercase tracking-widest transition-all duration-300 border-2 shadow-inner-dark ${
                     hostTeam === 0
-                      ? 'bg-amber-600/80 text-black border-amber-500 shadow-[0_0_16px_rgba(245,158,11,0.4)]'
-                      : 'bg-black/30 text-cream/40 border-brass/20 hover:border-brass/40'
+                      ? 'bg-gradient-to-b from-amber-400 to-amber-700 text-black border-amber-300 shadow-[0_0_25px_rgba(245,158,11,0.5)]'
+                      : 'bg-black/40 text-cream/40 border-white/10 hover:border-amber-500/50 hover:bg-white/5'
                   }`}
                 >
                   Team 1
                 </motion.button>
                 <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
+                  whileHover={{ scale: 1.03 }}
+                  whileTap={{ scale: 0.97 }}
                   onClick={() => setHostTeam(1)}
-                  className={`px-4 py-2.5 sm:py-3 rounded-lg font-ancient font-bold text-sm sm:text-base uppercase tracking-wider transition-all duration-200 border-2 ${
+                  className={`px-8 py-4 sm:py-5 rounded-2xl font-ancient font-extrabold text-sm sm:text-lg uppercase tracking-widest transition-all duration-300 border-2 shadow-inner-dark ${
                     hostTeam === 1
-                      ? 'bg-teal-600/80 text-black border-teal-500 shadow-[0_0_16px_rgba(20,184,166,0.4)]'
-                      : 'bg-black/30 text-cream/40 border-brass/20 hover:border-brass/40'
+                      ? 'bg-gradient-to-b from-teal-400 to-teal-700 text-black border-teal-300 shadow-[0_0_25px_rgba(20,184,166,0.5)]'
+                      : 'bg-black/40 text-cream/40 border-white/10 hover:border-teal-500/50 hover:bg-white/5'
                   }`}
                 >
                   Team 2
@@ -211,40 +217,48 @@ export function CreateRoomScreen() {
 
           {/* Turn Timeout (Chkobba only) */}
           {gameType === 'chkobba' && (
-            <div className="mb-7 sm:mb-9">
-              <div className="text-cream/30 font-ancient text-[9px] sm:text-[10px] uppercase tracking-[0.25em] text-center mb-3">
-                Turn Timeout
+            <div className="mb-12 sm:mb-16 relative z-10">
+              <div className="text-cream/50 font-ancient text-[11px] sm:text-xs uppercase tracking-[0.4em] text-center mb-5 font-bold">
+                Thinking Time
               </div>
-              <div className="flex justify-center gap-2 sm:gap-3 flex-wrap">
+              <div className="flex justify-center gap-3 sm:gap-4 flex-wrap">
                 {[{ v: 0, label: 'Off' }, { v: 30, label: '30s' }, { v: 60, label: '60s' }, { v: 90, label: '90s' }, { v: 120, label: '2m' }].map(({ v, label }) => (
                   <motion.button
                     key={v}
-                    whileHover={{ scale: 1.1 }}
+                    whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     onClick={() => setTurnTimeout(v)}
-                    className={`w-12 h-10 sm:w-14 sm:h-11 rounded-lg font-ancient font-bold text-xs sm:text-sm
-                      transition-all duration-200 border-2 ${
+                    className={`w-16 h-12 sm:w-20 sm:h-14 rounded-xl font-ancient font-bold text-xs sm:text-base
+                      transition-all duration-300 border-2 ${
                       turnTimeout === v
-                        ? 'bg-brass/90 text-black border-brass shadow-[0_0_12px_rgba(212,175,55,0.4)] scale-105'
-                        : 'bg-black/30 text-cream/40 border-brass/20 hover:border-brass/40'
+                        ? 'bg-gradient-to-b from-brass-light to-brass-dark text-black border-brass-light shadow-glow-gold'
+                        : 'bg-black/40 text-cream/40 border-white/10 hover:border-brass/30 hover:bg-white/5 shadow-inner-dark'
                     }`}
                   >
                     {label}
                   </motion.button>
                 ))}
               </div>
-              {turnTimeout > 0 && (
-                <p className="text-cream/20 font-ancient text-[8px] text-center mt-2">
-                  AFK players are replaced by a bot after {turnTimeout}s
-                </p>
-              )}
             </div>
           )}
 
           {/* Action buttons */}
-          <div className="flex gap-3 sm:gap-4 max-w-sm mx-auto">
-            <Button onClick={handleCreate} className="flex-1">Create</Button>
-            <Button variant="secondary" onClick={() => setScreen('landing')} className="flex-1">Cancel</Button>
+          <div className="flex gap-4 sm:gap-6 max-w-lg mx-auto relative z-50">
+            <Button 
+              onClick={handleCreate} 
+              className="flex-1"
+              size="lg"
+            >
+              Create Room
+            </Button>
+            <Button 
+              variant="secondary" 
+              onClick={() => setScreen('landing')} 
+              className="flex-1"
+              size="lg"
+            >
+              Cancel
+            </Button>
           </div>
         </div>
       </div>

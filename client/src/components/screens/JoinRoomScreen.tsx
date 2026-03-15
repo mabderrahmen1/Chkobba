@@ -30,37 +30,46 @@ export function JoinRoomScreen() {
       initial={{ opacity: 0, x: 20 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -20 }}
-      className="h-full flex items-center justify-center relative overflow-hidden bg-black"
+      className="h-full relative overflow-y-auto overflow-x-hidden bg-black flex flex-col"
     >
       {/* Immersive Background Image */}
       <div 
-        className="absolute inset-0 z-0 bg-cover bg-center opacity-40 grayscale-[20%]"
-        style={{ backgroundImage: "url('/tun1.jpg')" }}
+        className="fixed inset-0 z-0 bg-cover bg-center opacity-30 grayscale-[10%]"
+        style={{ backgroundImage: "url('/bg.jpg')" }}
       />
 
-      <div className="absolute inset-0 z-0" style={{
-        background: 'radial-gradient(ellipse at 50% 40%, rgba(26,18,14,0.6) 0%, rgba(26,18,14,1) 85%)'
+      <div className="fixed inset-0 z-0" style={{
+        background: 'radial-gradient(ellipse at 50% 40%, rgba(90,53,32,0.5) 0%, rgba(26,18,14,0.9) 80%)'
       }} />
 
-      <div className="flex flex-col gap-4 sm:gap-6 px-4 sm:px-8 max-w-md w-full relative z-10">
-        <h2 className="text-2xl font-ancient font-bold text-center text-brass">Join Room</h2>
+      <div className="relative z-10 w-full max-w-md mx-auto my-auto py-8 px-4 flex-shrink-0">
+        <div className="bg-surface-glass backdrop-blur-xl border border-brass/20 rounded-[32px] p-8 sm:p-12 shadow-glass-panel relative overflow-hidden">
+          {/* Glass glare effect */}
+          <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent pointer-events-none" />
 
-        <div className="flex flex-col gap-2">
-          <label className="font-ancient text-sm text-cream-dark">Room Code</label>
-          <Input
-            value={roomCode}
-            onChange={(e) => setRoomCode(e.target.value.toUpperCase())}
-            onKeyDown={(e) => e.key === 'Enter' && handleJoin()}
-            placeholder="ABCD1234"
-            maxLength={8}
-            className="text-center uppercase tracking-widest font-mono text-xl"
-            autoComplete="off"
-          />
-        </div>
+          <div className="relative z-10 flex flex-col gap-6">
+            <div className="text-center mb-4">
+              <h2 className="text-3xl sm:text-4xl font-ancient font-extrabold text-transparent bg-clip-text bg-gradient-to-b from-brass-light to-brass-dark tracking-widest drop-shadow-md">JOIN ROOM</h2>
+            </div>
 
-        <div className="flex gap-4 mt-4">
-          <Button onClick={handleJoin} className="flex-1">Join</Button>
-          <Button variant="secondary" onClick={() => setScreen('landing')} className="flex-1">Cancel</Button>
+            <div className="flex flex-col gap-3">
+              <label className="font-ancient text-xs text-cream/50 tracking-[0.2em] uppercase ml-1">Room Code</label>
+              <Input
+                value={roomCode}
+                onChange={(e) => setRoomCode(e.target.value.toUpperCase())}
+                onKeyDown={(e) => e.key === 'Enter' && handleJoin()}
+                placeholder="ABCD1234"
+                maxLength={8}
+                className="text-center uppercase tracking-[0.3em] font-mono text-xl sm:text-2xl"
+                autoComplete="off"
+              />
+            </div>
+
+            <div className="flex gap-4 mt-6">
+              <Button onClick={handleJoin} className="flex-1" size="lg">Join</Button>
+              <Button variant="secondary" onClick={() => setScreen('landing')} className="flex-1" size="md">Back</Button>
+            </div>
+          </div>
         </div>
       </div>
     </motion.section>

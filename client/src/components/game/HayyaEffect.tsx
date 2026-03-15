@@ -8,12 +8,12 @@ function Diamond({ delay, x, y, size, opacity }: { delay: number; x: number; y: 
       initial={{ opacity: 0, scale: 0, x: 0, y: 0, rotate: 0 }}
       animate={{
         opacity: [0, opacity, opacity * 0.6, 0],
-        scale: [0, 1, 0.8, 0],
+        scale: [0, 1.2, 0.8, 0],
         x,
         y,
-        rotate: [0, 45, 90],
+        rotate: [0, 90, 180],
       }}
-      transition={{ duration: 1.8, delay, ease: 'easeOut' }}
+      transition={{ duration: 2.2, delay, ease: 'easeOut' }}
       className="absolute pointer-events-none"
       style={{
         width: size,
@@ -22,21 +22,22 @@ function Diamond({ delay, x, y, size, opacity }: { delay: number; x: number; y: 
         top: '50%',
         transform: 'rotate(45deg)',
         background: 'linear-gradient(135deg, #ff6b35, #e67e22, #f39c12)',
-        boxShadow: `0 0 ${size}px rgba(230, 126, 34, 0.6)`,
+        boxShadow: `0 0 ${size * 2}px rgba(230, 126, 34, 0.8)`,
+        zIndex: 10,
       }}
     />
   );
 }
 
-function GlowRing({ delay, size }: { delay: number; size: number }) {
+function WaveRing({ delay, size }: { delay: number; size: number }) {
   return (
     <motion.div
-      initial={{ opacity: 0, scale: 0 }}
+      initial={{ opacity: 0, scale: 0.2 }}
       animate={{
-        opacity: [0, 0.6, 0],
-        scale: [0.2, 1, 1.5],
+        opacity: [0, 0.7, 0],
+        scale: [0.2, 1.5, 3],
       }}
-      transition={{ duration: 1.4, delay, ease: 'easeOut' }}
+      transition={{ duration: 1.5, delay, ease: 'easeOut' }}
       className="absolute pointer-events-none rounded-full"
       style={{
         width: size,
@@ -45,8 +46,8 @@ function GlowRing({ delay, size }: { delay: number; size: number }) {
         top: '50%',
         marginLeft: -size / 2,
         marginTop: -size / 2,
-        border: '2px solid rgba(230, 126, 34, 0.5)',
-        boxShadow: '0 0 20px rgba(230, 126, 34, 0.3), inset 0 0 20px rgba(230, 126, 34, 0.1)',
+        border: '3px solid rgba(255, 107, 53, 0.6)',
+        boxShadow: '0 0 30px rgba(255, 107, 53, 0.4), inset 0 0 30px rgba(255, 107, 53, 0.2)',
       }}
     />
   );
@@ -62,24 +63,24 @@ export function HayyaEffect() {
     if (hasHayya) {
       setShow(true);
     } else {
-      // Faster hide
       const t = setTimeout(() => setShow(false), 300);
       return () => clearTimeout(t);
     }
   }, [hasHayya]);
 
-  const diamonds = Array.from({ length: 16 }, (_, i) => ({
-    delay: Math.random() * 0.4,
-    x: (Math.random() - 0.5) * 400,
-    y: (Math.random() - 0.5) * 350,
-    size: 6 + Math.random() * 14,
-    opacity: 0.5 + Math.random() * 0.5,
+  const diamonds = Array.from({ length: 24 }, (_, i) => ({
+    delay: Math.random() * 0.5,
+    x: (Math.random() - 0.5) * 600,
+    y: (Math.random() - 0.5) * 500,
+    size: 8 + Math.random() * 20,
+    opacity: 0.6 + Math.random() * 0.4,
   }));
 
   const rings = [
-    { delay: 0, size: 80 },
-    { delay: 0.1, size: 160 },
-    { delay: 0.2, size: 260 },
+    { delay: 0, size: 100 },
+    { delay: 0.15, size: 200 },
+    { delay: 0.3, size: 300 },
+    { delay: 0.45, size: 450 },
   ];
 
   return (
@@ -92,19 +93,19 @@ export function HayyaEffect() {
           transition={{ duration: 0.2 }}
           className="fixed inset-0 z-[100] flex items-center justify-center pointer-events-none"
         >
-          {/* Orange radial flash */}
+          {/* Vibrant orange radial flash */}
           <motion.div
             initial={{ opacity: 0 }}
-            animate={{ opacity: [0, 0.3, 0] }}
-            transition={{ duration: 0.5 }}
+            animate={{ opacity: [0, 0.5, 0] }}
+            transition={{ duration: 0.6 }}
             className="absolute inset-0"
-            style={{ background: 'radial-gradient(circle, rgba(230,126,34,0.4) 0%, transparent 60%)' }}
+            style={{ background: 'radial-gradient(circle, rgba(255,107,53,0.5) 0%, transparent 70%)' }}
           />
 
           {/* Expanding rings */}
           <div className="absolute inset-0 flex items-center justify-center overflow-hidden">
             {rings.map((r, i) => (
-              <GlowRing key={i} {...r} />
+              <WaveRing key={i} {...r} />
             ))}
             {diamonds.map((d, i) => (
               <Diamond key={i} {...d} />
@@ -113,43 +114,50 @@ export function HayyaEffect() {
 
           {/* Center diamond icon + text */}
           <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: [0, 1.3, 1] }}
-            transition={{ duration: 0.4, ease: 'easeOut' }}
+            initial={{ scale: 0, y: 50 }}
+            animate={{ scale: [0, 1.5, 1], y: [50, -10, 0] }}
+            transition={{ duration: 0.5, ease: 'easeOut' }}
             className="relative z-10 flex flex-col items-center"
           >
-            {/* Large diamond symbol */}
+            {/* Massive rotating diamond symbol */}
             <motion.div
-              animate={{ rotate: [0, 10, -10, 0], scale: [1, 1.1, 1] }}
-              transition={{ duration: 1.2, repeat: 0, ease: 'easeInOut' }}
-              className="text-5xl sm:text-7xl mb-2"
-              style={{
-                filter: 'drop-shadow(0 0 20px rgba(230, 126, 34, 0.8))',
+              animate={{ 
+                rotate: [0, 180, 360],
+                scale: [1, 1.2, 1],
+                filter: [
+                  'drop-shadow(0 0 20px rgba(230, 126, 34, 0.8))',
+                  'drop-shadow(0 0 50px rgba(230, 126, 34, 1))',
+                  'drop-shadow(0 0 20px rgba(230, 126, 34, 0.8))'
+                ]
               }}
+              transition={{ rotate: { duration: 4, repeat: Infinity, ease: "linear" }, scale: { duration: 1.5, repeat: Infinity, ease: "easeInOut" } }}
+              className="text-7xl sm:text-9xl mb-4"
             >
-              <span style={{ color: '#e67e22' }}>&#9830;</span>
+              <span style={{ color: '#ff6b35' }}>&#9830;</span>
             </motion.div>
 
             <motion.div
-              initial={{ opacity: 0, y: 10 }}
+              initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.25 }}
-              className="text-2xl sm:text-4xl font-ancient font-bold tracking-wider"
+              transition={{ delay: 0.3 }}
+              className="text-4xl sm:text-6xl md:text-7xl font-ancient font-black tracking-[0.2em]"
               style={{
                 color: '#f39c12',
-                textShadow: '0 0 20px rgba(230,126,34,0.7), 0 0 40px rgba(230,126,34,0.3), 0 3px 6px rgba(0,0,0,0.5)',
+                textShadow: '0 0 30px rgba(255,107,53,0.8), 0 0 60px rgba(255,107,53,0.4), 0 5px 10px rgba(0,0,0,0.6)',
               }}
             >
               HAYYA!
             </motion.div>
+            
             <motion.div
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4 }}
-              className="text-xs sm:text-sm font-ancient mt-1"
-              style={{ color: '#e67e22', textShadow: '0 0 8px rgba(230,126,34,0.4)' }}
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.5 }}
+              className="bg-orange-950/60 backdrop-blur-md px-6 py-1.5 rounded-lg border border-orange-500/40 shadow-xl mt-4"
             >
-              7 of Diamonds captured by {hayyaPlayer}
+              <span className="text-orange-400 font-ancient text-sm sm:text-base uppercase tracking-widest font-bold">
+                7 of Diamonds by {hayyaPlayer}
+              </span>
             </motion.div>
           </motion.div>
         </motion.div>

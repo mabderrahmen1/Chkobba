@@ -274,17 +274,8 @@ function jokerSVG(): string {
 
 export function generateCardBackSVG(): string {
   return `<svg viewBox="0 0 100 140" xmlns="http://www.w3.org/2000/svg" class="card-svg">
-  <defs>
-    <pattern id="moorish" patternUnits="userSpaceOnUse" width="20" height="20">
-      <path d="M10 0 L20 10 L10 20 L0 10Z" fill="none" stroke="#d4af37" stroke-width="0.5" opacity="0.5"/>
-      <circle cx="10" cy="10" r="2" fill="#d4af37" opacity="0.5"/>
-    </pattern>
-  </defs>
-  <rect width="100" height="140" rx="7" ry="7" fill="#2a1610" stroke="#d4af37" stroke-width="1"/>
-  <rect x="4" y="4" width="92" height="132" rx="4" fill="url(#moorish)"/>
-  <rect x="8" y="8" width="84" height="124" rx="2" fill="none" stroke="#d4af37" stroke-width="1"/>
-  <circle cx="50" cy="70" r="18" fill="#2a1610" stroke="#d4af37" stroke-width="1.5"/>
-  <circle cx="50" cy="70" r="8" fill="none" stroke="#d4af37" stroke-width="0.8" opacity="0.6"/>
+  <rect width="100" height="140" rx="7" ry="7" fill="#ffffff" stroke="#000000" stroke-width="2"/>
+  <image href="/card_back.png" x="2" y="2" width="96" height="136" preserveAspectRatio="xMidYMid slice" />
 </svg>`;
 }
 

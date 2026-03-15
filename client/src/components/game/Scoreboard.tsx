@@ -10,7 +10,7 @@ import { socket } from '../../lib/socket';
 function CardIcon({ rank, suit, className }: { rank: string; suit: string; className?: string }) {
   const svg = generateCardSVG(rank, suit);
   return (
-    <div 
+    <div
       className={`w-7 h-10 sm:w-9 sm:h-13 rounded-sm overflow-hidden shadow-glow-brass/20 border border-white/10 bg-white/5 transition-transform ${className}`}
       dangerouslySetInnerHTML={{ __html: svg }}
     />
@@ -59,6 +59,56 @@ function PointIndicator({ my, opp, active }: { my: number; opp: number; active?:
   return <span className="text-white/10 text-[10px] font-ancient">—</span>;
 }
 
+function StatRow({ label, myVal, oppVal, icon, pointMy, pointOpp }: any) {
+  const isLeading = pointMy > pointOpp;
+  const isLosing = pointOpp > pointMy;
+
+  return (
+    <div className={`flex items-center justify-between py-4 border-b border-white/5 last:border-0 relative transition-all duration-500 px-3 rounded-xl mb-1 ${
+      isLeading ? 'bg-accent/10 shadow-[inset_0_0_20px_rgba(192,57,43,0.1)]' :
+      isLosing ? 'bg-turquoise/10 shadow-[inset_0_0_20px_rgba(64,224,208,0.1)]' :
+      'bg-white/5'
+    }`}>
+      {/* My Team Column */}
+      <div className="w-16 flex flex-col items-end">
+        <AnimatedNumber
+          value={myVal}
+          className={`font-ancient font-extrabold text-2xl sm:text-3xl ${isLeading ? 'text-accent drop-shadow-glow-red' : 'text-cream/40'}`}
+        />
+        {pointMy > pointOpp && (
+          <span className="text-[8px] font-bold text-accent uppercase tracking-tighter">+1 POINT</span>
+        )}
+      </div>
+
+      {/* Center Label/Icon Column */}
+      <div className="flex flex-col items-center flex-1 px-4">
+        {icon && (
+          <motion.div
+            whileHover={{ scale: 1.1, rotate: 5 }}
+            className="mb-3 drop-shadow-[0_10px_10px_rgba(0,0,0,0.5)] z-10"
+          >
+            {icon}
+          </motion.div>
+        )}
+        <span className="text-[10px] sm:text-[11px] text-cream/60 font-ancient uppercase tracking-[0.3em] font-extrabold text-center leading-none">
+          {label}
+        </span>
+      </div>
+
+      {/* Opponent Column */}
+      <div className="w-16 flex flex-col items-start">
+        <AnimatedNumber
+          value={oppVal}
+          className={`font-ancient font-extrabold text-2xl sm:text-3xl ${isLosing ? 'text-turquoise drop-shadow-glow-turquoise' : 'text-cream/40'}`}
+        />
+        {oppVal > myVal && (
+          <span className="text-[8px] font-bold text-turquoise uppercase tracking-tighter">+1 POINT</span>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export function Scoreboard() {
   const gameState = useGameStore((s) => s.gameState);
   const playerId = useGameStore((s) => s.playerId);
@@ -102,115 +152,78 @@ export function Scoreboard() {
   const myRoundScore = myTeam === 0 ? gameState.roundScores.team0 : gameState.roundScores.team1;
   const oppRoundScore = myTeam === 0 ? gameState.roundScores.team1 : gameState.roundScores.team0;
 
-  const StatRow = ({ label, myVal, oppVal, icon, pointMy, pointOpp }: any) => {
-    const isLeading = pointMy > pointOpp;
-    const isLosing = pointOpp > pointMy;
-
-    return (
-      <div className={`flex items-center justify-between py-4 border-b border-white/5 last:border-0 relative ${isLeading ? 'bg-accent/5' : isLosing ? 'bg-turquoise/5' : ''} transition-colors px-2 rounded-lg`}>
-        <div className="w-14 text-right">
-          <AnimatedNumber value={myVal} className={`font-ancient font-bold text-xl sm:text-2xl ${isLeading ? 'text-accent drop-shadow-glow-accent' : 'text-accent'}`} />
-        </div>
-        
-        <div className="flex flex-col items-center flex-1 px-4">
-          {icon && <motion.div whileHover={{ scale: 1.1 }} className="mb-2.5 drop-shadow-2xl">{icon}</motion.div>}
-          <span className="text-[11px] sm:text-xs text-cream font-ancient uppercase tracking-[0.3em] font-bold text-center leading-none mb-1.5 opacity-90">
-            {label}
-          </span>
-          <div className="h-5 flex items-center justify-center">
-            {pointMy !== undefined ? (
-              <PointIndicator my={pointMy} opp={pointOpp} active={true} />
-            ) : (
-              (myVal > 0 || oppVal > 0) ? (
-                 <div className="flex gap-6">
-                    {myVal > 0 && <span className="text-accent text-xs font-bold font-ancient shadow-glow-accent">+{myVal}</span>}
-                    {oppVal > 0 && <span className="text-turquoise text-xs font-bold font-ancient shadow-glow-turquoise">+{oppVal}</span>}
-                 </div>
-              ) : <span className="text-white/5 text-[10px] font-ancient">—</span>
-            )}
-          </div>
-        </div>
-
-        <div className="w-14 text-left">
-          <AnimatedNumber value={oppVal} className={`font-ancient font-bold text-xl sm:text-2xl ${isLosing ? 'text-turquoise drop-shadow-glow-turquoise' : 'text-turquoise'}`} />
-        </div>
-      </div>
-    );
-  };
-
   const renderStatsContent = () => (
-    <div className="bg-black/60 rounded-2xl border border-brass/20 p-4 sm:p-8 shadow-[inset_0_0_40px_rgba(0,0,0,0.8)] relative overflow-hidden">
-      <div className="absolute top-2 left-2 w-4 h-4 border-t border-l border-brass/30 rounded-tl-lg" />
-      <div className="absolute top-2 right-2 w-4 h-4 border-t border-r border-brass/30 rounded-tr-lg" />
-      <div className="absolute bottom-2 left-2 w-4 h-4 border-b border-l border-brass/30 rounded-bl-lg" />
-      <div className="absolute bottom-2 right-2 w-4 h-4 border-b border-r border-brass/30 rounded-br-lg" />
-
-      <div className="space-y-2">
+    <div className="bg-black/40 rounded-3xl border border-white/5 p-4 sm:p-6 shadow-inner-dark relative overflow-hidden backdrop-blur-md">
+      <div className="space-y-1">
         <StatRow label="CARTA" myVal={myCards} oppVal={oppCards} pointMy={myCards} pointOpp={oppCards} />
-        
-        <StatRow 
-          label="DINARI" 
-          myVal={myDinari} 
-          oppVal={oppDinari} 
-          pointMy={myDinari} 
+
+        <StatRow
+          label="DINARI"
+          myVal={myDinari}
+          oppVal={oppDinari}
+          pointMy={myDinari}
           pointOpp={oppDinari}
-          icon={<CardIcon rank="A" suit="diamonds" className="ring-2 ring-brass/40 rotate-[-2deg]" />}
+          icon={<CardIcon rank="A" suit="diamonds" className="rotate-[-4deg] scale-110 shadow-glow-gold" />}
         />
 
-        <StatRow 
-          label="BERMILA" 
-          myVal={mySevens} 
-          oppVal={oppSevens} 
-          pointMy={mySevens} 
+        <StatRow
+          label="BERMILA"
+          myVal={mySevens}
+          oppVal={oppSevens}
+          pointMy={mySevens}
           pointOpp={oppSevens}
           icon={
-            <div className="flex -space-x-4">
-              <CardIcon rank="7" suit="spades" className="rotate-[-8deg] -translate-x-1" />
-              <CardIcon rank="7" suit="hearts" className="rotate-[8deg] translate-x-1" />
+            <div className="flex -space-x-5">
+              <CardIcon rank="7" suit="spades" className="rotate-[-12deg] -translate-x-1" />
+              <CardIcon rank="7" suit="hearts" className="rotate-[12deg] translate-x-1" />
             </div>
           }
         />
 
-        <StatRow 
-          label="7 HAYA" 
-          myVal={myHasHaya ? 1 : 0} 
-          oppVal={oppHasHaya ? 1 : 0} 
-          icon={<CardIcon rank="7" suit="diamonds" className="ring-2 ring-accent shadow-glow-gold scale-110" />}
+        <StatRow
+          label="7 HAYA"
+          myVal={myHasHaya ? 1 : 0}
+          oppVal={oppHasHaya ? 1 : 0}
+          pointMy={myHasHaya ? 1 : 0}
+          pointOpp={oppHasHaya ? 1 : 0}
+          icon={<CardIcon rank="7" suit="diamonds" className="ring-2 ring-accent shadow-[0_0_20px_rgba(192,57,43,0.6)] scale-125 z-20" />}
         />
 
-        <StatRow label="CHKOBBA" myVal={myChkobba} oppVal={oppChkobba} />
+        <StatRow label="CHKOBBA" myVal={myChkobba} oppVal={oppChkobba} pointMy={myChkobba} pointOpp={oppChkobba} />
       </div>
 
-      <div className="mt-8 pt-6 border-t-2 border-brass/30 flex items-center justify-between px-4 bg-brass/5 rounded-b-xl pb-2">
-        <div className="text-center min-w-[70px]">
-          <div className="text-[10px] text-accent font-ancient font-bold uppercase tracking-widest mb-1 opacity-50">Round Pts</div>
-          <AnimatedNumber value={myRoundScore} className="text-4xl font-ancient font-bold text-accent drop-shadow-glow-accent" />
-        </div>
-        
-        <div className="flex flex-col items-center">
-           <div className="text-[12px] text-brass font-ancient font-bold uppercase tracking-[0.4em] px-6 py-2 bg-black/60 rounded-full border border-brass/40 shadow-glow-brass/10">TOTAL</div>
+      <div className="mt-8 pt-6 border-t border-brass/20 flex flex-col gap-4">
+        <div className="flex items-center justify-between px-2">
+          <div className="text-center">
+            <div className="text-[9px] text-accent/60 font-ancient font-bold uppercase tracking-widest mb-1">Round</div>
+            <AnimatedNumber value={myRoundScore} className="text-3xl font-ancient font-extrabold text-accent" />
+          </div>
+
+          <div className="bg-black/60 px-5 py-2 rounded-xl border border-brass/20 shadow-glow-gold/5">
+            <span className="text-[10px] text-brass-light font-ancient font-black uppercase tracking-[0.4em]">TOTAL PTS</span>
+          </div>
+
+          <div className="text-center">
+            <div className="text-[9px] text-turquoise/60 font-ancient font-bold uppercase tracking-widest mb-1">Round</div>
+            <AnimatedNumber value={oppRoundScore} className="text-3xl font-ancient font-extrabold text-turquoise" />
+          </div>
         </div>
 
-        <div className="text-center min-w-[70px]">
-          <div className="text-[10px] text-turquoise font-ancient font-bold uppercase tracking-widest mb-1 opacity-50">Round Pts</div>
-          <AnimatedNumber value={oppRoundScore} className="text-4xl font-ancient font-bold text-turquoise drop-shadow-glow-turquoise" />
-        </div>
-      </div>
-
-      <div className="mt-10 flex justify-center border-t border-white/5 pt-8">
-        <motion.button 
-          whileHover={{ scale: 1.02, backgroundColor: 'rgba(239, 68, 68, 0.1)' }}
+        <motion.button
+          whileHover={{ scale: 1.02, backgroundColor: 'rgba(239, 68, 68, 0.15)' }}
           whileTap={{ scale: 0.98 }}
           onClick={() => {
-            socket.emit('forfeit');
-            setExpanded(false);
+            if (window.confirm('Are you sure you want to forfeit this match?')) {
+              socket.emit('forfeit');
+              setExpanded(false);
+            }
           }}
-          className="group flex flex-col items-center gap-1.5 px-10 py-3 rounded-2xl border border-red-500/20 transition-all"
+          className="mt-4 w-full flex flex-col items-center justify-center py-4 rounded-2xl border border-red-500/30 bg-red-500/5 group transition-all"
         >
-          <span className="text-[11px] text-red-500/80 group-hover:text-red-500 font-ancient uppercase tracking-[0.3em] font-bold">
+          <span className="text-[11px] text-red-500 font-ancient uppercase tracking-[0.3em] font-black group-hover:drop-shadow-glow-red">
             Concede Match
           </span>
-          <span className="text-[8px] text-red-500/30 uppercase tracking-widest font-ancient group-hover:text-red-500/50">Forfeit Session</span>
+          <span className="text-[8px] text-red-500/40 uppercase tracking-widest font-bold mt-1">GIVE UP ROUND</span>
         </motion.button>
       </div>
     </div>
@@ -224,69 +237,72 @@ export function Scoreboard() {
     >
       <motion.div
         layout
-        transition={{ type: "spring", stiffness: 350, damping: 30 }}
-        className="bg-black/95 backdrop-blur-3xl border border-brass/50 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.9)] cursor-pointer select-none overflow-hidden"
+        transition={{ type: "spring", stiffness: 400, damping: 30 }}
+        className="glass-panel-heavy rounded-3xl shadow-2xl cursor-pointer select-none overflow-hidden premium-border-brass min-w-[220px] sm:min-w-[280px]"
         onClick={() => setExpanded(e => !e)}
       >
-        <div className="px-5 py-4 sm:px-6 sm:py-5 grid grid-cols-[1fr_auto_1fr] items-center gap-4 sm:gap-8 min-w-[200px] sm:min-w-[240px]">
-          <div className="flex flex-col items-center text-center">
-            <div className="flex flex-col items-center mb-1.5">
-              <span className="text-[10px] text-accent/80 font-ancient uppercase font-bold tracking-[0.15em] truncate w-full max-w-[70px] sm:max-w-[90px] leading-tight">
-                {myNickname}
-              </span>
-              <div className="h-[1px] w-4 bg-accent/20 my-0.5" />
-              <span className="text-[8px] text-accent/50 font-ancient font-bold tracking-tighter">
-                {currentPlayer.wins || 0} — {currentPlayer.losses || 0}
-              </span>
-            </div>
-            <AnimatedNumber value={myScore} className="text-3xl sm:text-4xl font-ancient font-bold text-accent drop-shadow-glow-accent" />
+        <div className="px-6 py-5 grid grid-cols-[1fr_auto_1fr] items-center gap-4 sm:gap-6 relative overflow-hidden">
+          {/* Active Lead Glow */}
+          <div className={`absolute inset-0 opacity-10 pointer-events-none ${
+            myScore > oppScore ? 'bg-accent animate-pulse' :
+            oppScore > myScore ? 'bg-turquoise animate-pulse' : ''
+          }`} />
+
+          <div className="flex flex-col items-center text-center relative z-10">
+            <span className={`text-[10px] sm:text-[11px] font-ancient uppercase font-black tracking-widest truncate w-full max-w-[80px] mb-1 ${
+              myScore >= oppScore ? 'text-accent' : 'text-cream/40'
+            }`}>
+              {myNickname}
+            </span>
+            <AnimatedNumber
+              value={myScore}
+              className={`text-4xl sm:text-5xl font-ancient font-black ${
+                myScore > oppScore ? 'text-accent drop-shadow-glow-red' :
+                myScore === oppScore ? 'text-brass-light' : 'text-accent/40'
+              }`}
+            />
           </div>
 
-          <div className="flex flex-col items-center justify-center px-2">
-             <div className="flex items-center gap-2 opacity-60 mb-1.5">
-                <div className="w-4 h-[1px] bg-gradient-to-r from-transparent to-brass" />
-                <span className="text-[10px] text-brass font-bold uppercase tracking-widest">VS</span>
-                <div className="w-4 h-[1px] bg-gradient-to-l from-transparent to-brass" />
-             </div>
-             <div className="px-3 py-1 rounded-full bg-brass/10 border border-brass/30 shadow-inner">
-                <span className="text-[9px] text-brass-light font-ancient font-bold uppercase tracking-[0.25em] whitespace-nowrap">
-                  ROUND {gameState.roundNumber}
-                </span>
-             </div>
-          </div>
-
-          <div className="flex flex-col items-center text-center">
-            <div className="flex flex-col items-center mb-1.5">
-              <span className="text-[10px] text-turquoise/80 font-ancient uppercase font-bold tracking-[0.15em] truncate w-full max-w-[70px] sm:max-w-[90px] leading-tight">
-                {oppNickname}
-              </span>
-              <div className="h-[1px] w-4 bg-turquoise/20 my-0.5" />
-              <span className="text-[8px] text-turquoise/50 font-ancient font-bold tracking-tighter">
-                {oppPlayer?.wins || 0} — {oppPlayer?.losses || 0}
+          <div className="flex flex-col items-center justify-center relative z-10">
+            <div className="text-[10px] text-brass font-black mb-1 opacity-40">VS</div>
+            <div className="px-3 py-1 rounded-lg bg-black/60 border border-brass/30 shadow-inner">
+              <span className="text-[9px] text-brass-light font-ancient font-black uppercase tracking-[0.2em] whitespace-nowrap">
+                RD {gameState.roundNumber}
               </span>
             </div>
-            <AnimatedNumber value={oppScore} className="text-3xl sm:text-4xl font-ancient font-bold text-turquoise drop-shadow-glow-turquoise" />
+          </div>
+
+          <div className="flex flex-col items-center text-center relative z-10">
+            <span className={`text-[10px] sm:text-[11px] font-ancient uppercase font-black tracking-widest truncate w-full max-w-[80px] mb-1 ${
+              oppScore >= myScore ? 'text-turquoise' : 'text-cream/40'
+            }`}>
+              {oppNickname}
+            </span>
+            <AnimatedNumber
+              value={oppScore}
+              className={`text-4xl sm:text-5xl font-ancient font-black ${
+                oppScore > myScore ? 'text-turquoise drop-shadow-glow-turquoise' :
+                oppScore === myScore ? 'text-brass-light' : 'text-turquoise/40'
+              }`}
+            />
           </div>
         </div>
 
         {!isMobile && (
-          <AnimatePresence mode="wait">
+          <AnimatePresence>
             {expanded && (
               <motion.div
                 initial={{ height: 0, opacity: 0 }}
                 animate={{ height: 'auto', opacity: 1 }}
                 exit={{ height: 0, opacity: 0 }}
-                transition={{ 
-                  height: { type: "spring", stiffness: 300, damping: 35 },
-                  opacity: { duration: 0.25, ease: "linear" }
-                }}
-                className="overflow-hidden bg-black/60"
+                transition={{ duration: 0.4, ease: [0.23, 1, 0.32, 1] }}
+                className="overflow-hidden bg-black/20"
               >
-                <div className="p-6 border-t border-brass/30">
-                   <div className="text-[11px] text-brass font-ancient uppercase tracking-[0.4em] text-center mb-8 border-b border-brass/10 pb-4 font-bold">
-                      LIVE MATCH TRACKER
-                   </div>
-                   {renderStatsContent()}
+                <div className="p-6 border-t border-white/5">
+                  <div className="text-[11px] text-brass font-ancient uppercase tracking-[0.5em] text-center mb-8 font-black opacity-60">
+                    LIVE STATS
+                  </div>
+                  {renderStatsContent()}
                 </div>
               </motion.div>
             )}
@@ -296,21 +312,20 @@ export function Scoreboard() {
 
       {isMobile && (
         <Modal isOpen={expanded} onClose={() => setExpanded(false)}>
-           <div className="flex flex-col items-center">
-              <div className="w-full flex items-center justify-center gap-4 mb-8 border-b border-brass/20 pb-5">
-                <div className="w-8 h-px bg-brass/30" />
-                <div className="text-brass font-ancient uppercase tracking-[0.4em] text-center text-xl font-bold">
-                  Match Stats
-                </div>
-                <div className="w-8 h-px bg-brass/30" />
-              </div>
-              <div className="w-full px-1 max-h-[70vh] overflow-y-auto custom-scrollbar">
-                {renderStatsContent()}
-              </div>
-              <div className="mt-8 flex justify-center w-full">
-                <Button variant="secondary" onClick={() => setExpanded(false)} className="w-full py-5 text-xl font-ancient tracking-[0.2em]">Close</Button>
-              </div>
-           </div>
+          <div className="flex flex-col items-center">
+            <div className="w-full flex flex-col items-center mb-8 border-b border-white/10 pb-6">
+              <h2 className="text-brass-light font-ancient uppercase tracking-[0.4em] text-2xl font-black mb-2">
+                Match Progress
+              </h2>
+              <div className="w-12 h-1 bg-brass/30 rounded-full" />
+            </div>
+            <div className="w-full px-1 max-h-[70vh] overflow-y-auto custom-scrollbar">
+              {renderStatsContent()}
+            </div>
+            <div className="mt-8 w-full">
+              <Button variant="secondary" onClick={() => setExpanded(false)} className="w-full py-5 text-lg">Close Dashboard</Button>
+            </div>
+          </div>
         </Modal>
       )}
     </motion.div>

@@ -26,7 +26,7 @@ interface BotMove {
 /**
  * Find all combinations of table card indices that sum to target value
  */
-function findCombinations(tableCards: Card[], target: number): number[][] {
+export function findCombinations(tableCards: Card[], target: number): number[][] {
   const result: number[][] = [];
 
   function search(startIdx: number, remaining: number, current: number[]) {
@@ -93,9 +93,12 @@ export function getBotMove(game: Game, botPlayerId: string): BotMove {
           (card.rank === '7' && card.suit === 'diamonds') ||
           capturedCards.some(c => c.rank === '7' && c.suit === 'diamonds'),
       });
+      // Rule: If there’s an exact single-card match, it takes priority.
+      // Do not consider combinations for this card if a single match exists.
+      continue;
     }
 
-    // Combination captures (also valid when a single match exists)
+    // Combination captures (only if no single match exists for this card)
     const combos = findCombinations(table, card.value);
     for (const combo of combos) {
       // Skip single-element combos — already added as the single-match entry above

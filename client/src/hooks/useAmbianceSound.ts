@@ -138,5 +138,33 @@ export function useAmbianceSound() {
     osc.stop(now + 0.2);
   }, [getCtx]);
 
-  return { playClink, playLighter, playBubble, playWaitressVoice, playCardSlide, playCardPlace };
+  // Realistic card shuffle sound
+  const playCardShuffle = useCallback(() => {
+    const ctx = getCtx();
+    const now = ctx.currentTime;
+    
+    // Create multiple quick friction "snaps"
+    for (let i = 0; i < 12; i++) {
+      const snapTime = now + i * 0.08;
+      const bufLen = ctx.sampleRate * 0.1;
+      const buf = ctx.createBuffer(1, bufLen, ctx.sampleRate);
+      const d = buf.getChannelData(0);
+      for (let j = 0; j < bufLen; j++) {
+        d[j] = (Math.random() * 2 - 1) * (1 - j / bufLen) * 0.2;
+      }
+      const src = ctx.createBufferSource();
+      src.buffer = buf;
+      const filter = ctx.createBiquadFilter();
+      filter.type = 'bandpass';
+      filter.frequency.setValueAtTime(1000 + i * 100, snapTime);
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(0, snapTime);
+      g.gain.linearRampToValueAtTime(0.1, snapTime + 0.01);
+      g.gain.exponentialRampToValueAtTime(0.001, snapTime + 0.08);
+      src.connect(filter).connect(g).connect(ctx.destination);
+      src.start(snapTime);
+    }
+  }, [getCtx]);
+
+  return { playClink, playLighter, playBubble, playWaitressVoice, playCardSlide, playCardPlace, playCardShuffle };
 }

@@ -364,7 +364,7 @@ export function VintageRadio() {
         initial={{ opacity: 0, y: -40, scale: 0.9 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ type: 'spring', stiffness: 200, damping: 20 }}
-        className="fixed top-20 left-2 sm:top-24 sm:left-3 z-50 select-none"
+        className="fixed top-4 left-4 z-50 select-none hidden md:block"
         style={{ width: isMobile ? 190 : 250 }}
       >
         {/* ─── RADIO BODY ─── */}
@@ -519,13 +519,10 @@ export function VintageRadio() {
 
             {/* ─── SPEAKER AREA WITH FLANKING KNOBS ─── */}
             <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 4 : 6, marginBottom: isMobile ? 6 : 8 }}>
-              {/* LEFT BIG KNOB — TUNING */}
+              {/* LEFT BIG KNOB — POWER */}
               <div
-                ref={tuningKnobRef}
-                onMouseDown={handleTuningKnobDown}
-                onTouchStart={handleTuningKnobDown}
-                onClick={nextTrack}
-                title="Tuning — drag to browse, click for next"
+                onClick={togglePower}
+                title={isOn ? 'Turn OFF' : 'Turn ON'}
                 style={{
                   width: bigKnobSize,
                   height: bigKnobSize,
@@ -539,7 +536,7 @@ export function VintageRadio() {
                   justifyContent: 'center',
                   position: 'relative',
                   transition: 'transform 0.3s ease',
-                  transform: `rotate(${tuningAngle}deg)`,
+                  transform: `rotate(${isOn ? 90 : 0}deg)`,
                 }}
               >
                 {/* Knob indicator line */}
@@ -555,7 +552,7 @@ export function VintageRadio() {
                     borderRadius: 2,
                   }}
                 />
-                {/* Knob ring */}
+                {/* Center Ring & LED */}
                 <div
                   style={{
                     width: bigKnobSize - 8,
@@ -563,8 +560,22 @@ export function VintageRadio() {
                     borderRadius: '50%',
                     border: '1px solid rgba(0,0,0,0.2)',
                     boxShadow: 'inset 0 1px 2px rgba(255,255,255,0.2)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
                   }}
-                />
+                >
+                  <div
+                    style={{
+                      width: isMobile ? 6 : 8,
+                      height: isMobile ? 6 : 8,
+                      borderRadius: '50%',
+                      background: isOn ? '#4ade80' : '#ef4444',
+                      boxShadow: isOn ? '0 0 8px #4ade80' : 'inset 0 1px 2px rgba(0,0,0,0.6)',
+                      transition: 'all 0.3s',
+                    }}
+                  />
+                </div>
               </div>
 
               {/* SPEAKER GRILLE */}
@@ -675,41 +686,8 @@ export function VintageRadio() {
               </div>
             </div>
 
-            {/* ─── SMALL KNOBS ROW ─── */}
-            <div style={{ display: 'flex', justifyContent: 'center', gap: isMobile ? 8 : 14, alignItems: 'center' }}>
-              {/* Power knob */}
-              <motion.div
-                whileHover={{ scale: 1.15 }}
-                whileTap={{ scale: 0.9 }}
-                onClick={togglePower}
-                title={isOn ? 'Power OFF' : 'Power ON'}
-                style={{
-                  width: smallKnobSize,
-                  height: smallKnobSize,
-                  borderRadius: '50%',
-                  background: brassGradient,
-                  boxShadow: brassShadow,
-                  cursor: 'pointer',
-                  position: 'relative',
-                }}
-              >
-                {/* Power LED */}
-                <div
-                  style={{
-                    position: 'absolute',
-                    top: -6,
-                    left: '50%',
-                    transform: 'translateX(-50%)',
-                    width: 5,
-                    height: 5,
-                    borderRadius: '50%',
-                    background: powerGlow ? '#4ade80' : '#2a1a10',
-                    boxShadow: powerGlow ? '0 0 6px #4ade80, 0 0 12px rgba(74,222,128,0.4)' : 'inset 0 1px 1px rgba(0,0,0,0.5)',
-                    transition: 'all 0.3s',
-                  }}
-                />
-              </motion.div>
-
+            {/* ─── SMALL KNOBS ROW (3 BUTTONS) ─── */}
+            <div style={{ display: 'flex', justifyContent: 'center', gap: isMobile ? 12 : 20, alignItems: 'center' }}>
               {/* Prev knob */}
               <motion.div
                 whileHover={{ scale: 1.15, rotate: -20 }}
@@ -805,7 +783,7 @@ export function VintageRadio() {
             userSelect: 'none',
           }}
         >
-          <span>Tune</span>
+          <span>Pwr</span>
           <span>Vol {volume}%</span>
         </div>
       </motion.div>

@@ -2,9 +2,11 @@ import { useGameStore } from '../../stores/useGameStore';
 import { socket } from '../../lib/socket';
 import { Card } from './Card';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useAmbianceSound } from '../../hooks/useAmbianceSound';
 
 export function PlayerHand() {
   const { gameState, playerId, selectedCardIndex, setSelectedCard, selectedTableIndices, clearSelections } = useGameStore();
+  const { playCardPlace } = useAmbianceSound();
 
   if (!gameState?.hand || !playerId) return null;
 
@@ -22,6 +24,7 @@ export function PlayerHand() {
 
   const handleConfirmPlay = () => {
     if (!canConfirm || selectedCardIndex === null) return;
+    playCardPlace();
     socket.emit('play_card', {
       cardIndex: selectedCardIndex,
       tableIndices: selectedTableIndices

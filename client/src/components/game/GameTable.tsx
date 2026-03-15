@@ -82,28 +82,42 @@ export function GameTable() {
       <div className="relative w-full h-full max-w-6xl max-h-[85vh] sm:max-h-[80vh] flex flex-col items-center justify-center z-10">
 
         {/* Table Container */}
-        <div className="bg-wood table-edge-responsive w-full h-full p-2 sm:p-4 md:p-6 flex flex-col shadow-inner-dark overflow-hidden relative">
-
+        <div 
+          className="w-full h-full p-2 sm:p-4 md:p-6 flex flex-col relative overflow-hidden"
+          style={{
+            borderRadius: '2rem',
+            border: '8px solid rgba(139, 69, 19, 0.4)',
+            background: 'linear-gradient(180deg, #2d1606 0%, #1c0d04 100%)',
+            boxShadow: '0 30px 60px rgba(0,0,0,0.8), inset 0 10px 20px rgba(0,0,0,0.5), inset 0 2px 5px rgba(255,255,255,0.1)'
+          }}
+        >
           {/* Subtle scratches and texture overlay */}
-          <div className="absolute inset-0 opacity-10 pointer-events-none mix-blend-overlay bg-[url('https://www.transparenttextures.com/patterns/wood-pattern.png')]" />
+          <div className="absolute inset-0 opacity-20 pointer-events-none mix-blend-overlay bg-[url('https://www.transparenttextures.com/patterns/wood-pattern.png')]" />
 
           {/* The Felt Center — glow border when it's your turn */}
           <motion.div
             animate={isMyTurn ? {
               boxShadow: [
-                'inset 0 0 60px rgba(0,0,0,0.8), 0 0 0px rgba(212,175,55,0)',
-                'inset 0 0 60px rgba(0,0,0,0.8), 0 0 20px rgba(212,175,55,0.4)',
-                'inset 0 0 60px rgba(0,0,0,0.8), 0 0 0px rgba(212,175,55,0)',
+                'inset 0 0 80px rgba(0,0,0,0.8), 0 0 0px rgba(212,175,55,0)',
+                'inset 0 0 80px rgba(0,0,0,0.8), 0 0 30px rgba(212,175,55,0.5)',
+                'inset 0 0 80px rgba(0,0,0,0.8), 0 0 0px rgba(212,175,55,0)',
               ],
             } : {
-              boxShadow: 'inset 0 0 60px rgba(0,0,0,0.8)',
+              boxShadow: 'inset 0 0 80px rgba(0,0,0,0.8)',
             }}
             transition={isMyTurn ? { duration: 2.5, repeat: Infinity, ease: 'easeInOut' } : { duration: 0.4 }}
-            className="flex-1 w-full bg-felt rounded-xl flex flex-col relative overflow-hidden"
+            className="flex-1 w-full rounded-2xl flex flex-col relative overflow-hidden border border-black/50"
+            style={{
+              background: 'radial-gradient(ellipse at 50% 40%, rgba(58, 107, 53, 0.95) 0%, rgba(45, 84, 41, 0.98) 60%, rgba(30, 58, 28, 1) 100%)',
+            }}
           >
+            {/* Subtle felt texture overlay */}
+            <div className="absolute inset-0 opacity-[0.05] pointer-events-none" style={{
+              backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'4\' height=\'4\' viewBox=\'0 0 4 4\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cpath d=\'M1 3h1v1H1V3zm2-2h1v1H3V1z\' fill=\'%23ffffff\' fill-opacity=\'1\' fill-rule=\'evenodd\'/%3E%3C/svg%3E")',
+            }} />
 
             {/* Embossed pattern */}
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-10">
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-5">
                <svg width="200" height="200" viewBox="0 0 100 100" className="text-black fill-current sm:w-[300px] sm:h-[300px] md:w-[400px] md:h-[400px]">
                  <path d="M50 5 L58 35 L90 35 L64 55 L74 85 L50 67 L26 85 L36 55 L10 35 L42 35 Z" />
                </svg>
