@@ -106,6 +106,7 @@ export class Game {
         this.lastCapturer = null;
         this.continuePlayers.clear();
         this.lastAction = null;
+        this.roundJustEnded = false; // Reset this so timers can start
         // Reset player hands and captured cards
         for (const player of this.players) {
             player.hand = [];

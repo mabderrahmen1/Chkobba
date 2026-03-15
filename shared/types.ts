@@ -116,6 +116,8 @@ export interface RummyPlayer {
   isHost: boolean;
   isReady: boolean;
   isConnected: boolean;
+  isBot?: boolean;
+  team: number;
   hand: Card[];
   melds: Meld[];
   points: number; // Points from melds
@@ -133,4 +135,7 @@ export interface RummyGameState {
   deckCount: number; // Number of decks used
   canLayOff: boolean; // Can players lay off cards on existing melds
   hasDrawn: boolean; // Whether current player has drawn this turn
+  roundNumber: number;
+  roundJustEnded: boolean;
+  lastRoundResult: any;
 }
