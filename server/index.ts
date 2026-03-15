@@ -14,7 +14,7 @@ import store from './store.js';
 import Game from './game/Game.js';
 import { Room } from './game/Room.js';
 import { RummyGame } from './game/RummyGame.js';
-import { getBotMove, getRandomBotName } from './game/Bot.js';
+import { getBotMove, executeRummyBotTurn, getRandomBotName } from './game/Bot.js';
 import { generatePlayerId } from './game/Room.js';
 import { Player } from '../shared/types.js';
 import { GameType } from '../shared/rules.js';
@@ -181,54 +181,77 @@ function broadcastGameState(roomId: string): void {
  */
 function executeBotMove(roomId: string, botPlayerId: string): void {
   const room = store.getRoom(roomId);
-  const game = chkobbaGames.get(roomId);
-  if (!room || !game || game.winner) return;
+  if (!room) return;
 
   try {
-    const move = getBotMove(game, botPlayerId);
-    const result = game.playCard(botPlayerId, move.cardIndex, move.tableIndices);
+    if (room.gameType === 'rummy') {
+      const game = rummyGames.get(roomId);
+      if (!game || game.winner) return;
 
-    if (!result.success) {
-      // Fallback: play first card as discard
-      game.playCard(botPlayerId, 0, []);
-    }
-
-    room.lastActivity = Date.now();
-    broadcastGameState(roomId);
-
-    const botPlayer = room.players.find(p => p.id === botPlayerId);
-
-    if (result.capture?.isChkobba) {
-      io.to(roomId).emit('chkobba', {
-        playerId: botPlayerId,
-        playerNickname: botPlayer?.nickname || 'Bot'
-      });
-    }
-
-    if (result.capture?.isHayya) {
-      io.to(roomId).emit('hayya_captured', {
-        playerId: botPlayerId,
-        playerNickname: botPlayer?.nickname || 'Bot'
-      });
-    }
-
-    if (game.roundJustEnded && game.lastRoundResult) {
-      io.to(roomId).emit('round_end', game.lastRoundResult);
+      executeRummyBotTurn(game, botPlayerId);
+      room.lastActivity = Date.now();
+      broadcastGameState(roomId);
 
       if (game.winner) {
-        io.to(roomId).emit('game_over', { winner: game.winner, scores: game.scores });
+        const scores = { team0: 0, team1: 0 };
+        for (const p of game.players) {
+          if ((p as any).team === 0) scores.team0 += p.penaltyPoints || 0;
+          else scores.team1 += p.penaltyPoints || 0;
+        }
+        io.to(roomId).emit('game_over', { winner: game.winner, scores });
         return;
       }
 
-      // Auto-add all bots to continuePlayers so only humans need to click Continue
-      for (const p of room.players) {
-        if (p.isBot) game.continuePlayers.add(p.id);
-      }
-      // Don't start next timer — wait for humans to click Continue
-      return;
-    }
+      startTurnTimer(roomId);
+    } else {
+      const game = chkobbaGames.get(roomId);
+      if (!game || game.winner) return;
 
-    startTurnTimer(roomId);
+      const move = getBotMove(game, botPlayerId);
+      const result = game.playCard(botPlayerId, move.cardIndex, move.tableIndices);
+
+      if (!result.success) {
+        // Fallback: play first card as discard
+        game.playCard(botPlayerId, 0, []);
+      }
+
+      room.lastActivity = Date.now();
+      broadcastGameState(roomId);
+
+      const botPlayer = room.players.find(p => p.id === botPlayerId);
+
+      if (result.capture?.isChkobba) {
+        io.to(roomId).emit('chkobba', {
+          playerId: botPlayerId,
+          playerNickname: botPlayer?.nickname || 'Bot'
+        });
+      }
+
+      if (result.capture?.isHayya) {
+        io.to(roomId).emit('hayya_captured', {
+          playerId: botPlayerId,
+          playerNickname: botPlayer?.nickname || 'Bot'
+        });
+      }
+
+      if (game.roundJustEnded && game.lastRoundResult) {
+        io.to(roomId).emit('round_end', game.lastRoundResult);
+
+        if (game.winner) {
+          io.to(roomId).emit('game_over', { winner: game.winner, scores: game.scores });
+          return;
+        }
+
+        // Auto-add all bots to continuePlayers so only humans need to click Continue
+        for (const p of room.players) {
+          if (p.isBot) game.continuePlayers.add(p.id);
+        }
+        // Don't start next timer — wait for humans to click Continue
+        return;
+      }
+
+      startTurnTimer(roomId);
+    }
   } catch (err) {
     console.error(`[Bot] Error executing move in room ${roomId}:`, err);
   }
@@ -246,16 +269,31 @@ function startTurnTimer(roomId: string): void {
   const room = store.getRoom(roomId);
   if (!room || (room.status as string) !== config.GAME_STATUS.PLAYING) return;
 
-  const game = chkobbaGames.get(roomId);
-  if (!game || game.winner || game.roundJustEnded) return;
+  let currentPlayerId: string;
+  let isGameOver = false;
+  let isRoundEnded = false;
 
-  const currentPlayerId = game.currentTurn;
+  if (room.gameType === 'rummy') {
+    const game = rummyGames.get(roomId);
+    if (!game) return;
+    currentPlayerId = game.currentTurn;
+    isGameOver = !!game.winner;
+  } else {
+    const game = chkobbaGames.get(roomId);
+    if (!game) return;
+    currentPlayerId = game.currentTurn;
+    isGameOver = !!game.winner;
+    isRoundEnded = game.roundJustEnded;
+  }
+
+  if (isGameOver || isRoundEnded) return;
+
   const currentPlayer = room.players.find(p => p.id === currentPlayerId);
   if (!currentPlayer) return;
 
   if (currentPlayer.isBot) {
     // Natural-feeling bot delay: 0.8 – 2 s
-    const delay = 800 + Math.random() * 1200;
+    const delay = room.gameType === 'rummy' ? 1500 + Math.random() * 1500 : 800 + Math.random() * 1200;
     const t = setTimeout(() => {
       turnTimers.delete(roomId);
       executeBotMove(roomId, currentPlayerId);
@@ -272,8 +310,15 @@ function startTurnTimer(roomId: string): void {
     const t = setTimeout(() => {
       turnTimers.delete(roomId);
       const updRoom = store.getRoom(roomId);
-      const updGame = chkobbaGames.get(roomId);
-      if (!updRoom || !updGame || updGame.winner) return;
+      
+      let isStillGameOver = false;
+      if (updRoom?.gameType === 'rummy') {
+        isStillGameOver = !!rummyGames.get(roomId)?.winner;
+      } else {
+        isStillGameOver = !!chkobbaGames.get(roomId)?.winner;
+      }
+      
+      if (!updRoom || isStillGameOver) return;
 
       const afkPlayer = updRoom.players.find(p => p.id === currentPlayerId);
       if (!afkPlayer || afkPlayer.isBot) return;

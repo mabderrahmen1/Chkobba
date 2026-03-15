@@ -5,24 +5,45 @@ import { useEffect } from 'react';
 
 export function DealingAnimation() {
   const isDistributing = useGameStore((s) => s.isDistributing);
-  const players = useGameStore((s) => s.gameState?.players || []);
+  const gameType = useGameStore((s) => s.gameType);
+  const chkobbaPlayers = useGameStore((s) => s.gameState?.players || []);
+  const rummyPlayers = useGameStore((s) => s.rummyGameState?.players || []);
+  
+  const players = gameType === 'rummy' ? rummyPlayers : chkobbaPlayers;
   const myId = useGameStore((s) => s.playerId);
   const { playCardDealShort } = useAmbianceSound();
 
   if (!isDistributing) return null;
 
-  // Simulate 3 cards being dealt to each player
+  const cardsPerPlayer = gameType === 'rummy' ? 13 : 3;
+
+  // For Rummy, we might not want to animate all 13*4=52 cards if it lags, 
+  // but let's try it with a very fast interval.
   const cards = [];
   for (let p = 0; p < players.length; p++) {
-    for (let c = 0; c < 3; c++) {
+    for (let c = 0; c < cardsPerPlayer; c++) {
       cards.push({ playerIndex: p, cardIndex: c });
     }
   }
 
+  // Interleave the cards so they deal one to each player in round-robin fashion
+  const orderedCards = [];
+  for (let c = 0; c < cardsPerPlayer; c++) {
+    for (let p = 0; p < players.length; p++) {
+      orderedCards.push({ playerIndex: p, cardIndex: c });
+    }
+  }
+
+  // Calculate time per card to fit inside the ~1.6s audio window
+  // Available time: ~1400ms (after 200ms start delay)
+  // We want the last card to finish its delay before 1400ms.
+  const totalCards = orderedCards.length;
+  const timePerCard = Math.min(80, Math.floor(1200 / totalCards));
+
   return (
     <div className="fixed inset-0 pointer-events-none z-[80] flex items-center justify-center">
       <AnimatePresence>
-        {cards.map((item, i) => (
+        {orderedCards.map((item, i) => (
           <DealingCard 
             key={`${item.playerIndex}-${item.cardIndex}`} 
             item={item} 
@@ -30,6 +51,7 @@ export function DealingAnimation() {
             players={players}
             myId={myId}
             onAppear={playCardDealShort}
+            timePerCard={timePerCard}
           />
         ))}
       </AnimatePresence>
@@ -47,14 +69,8 @@ export function DealingAnimation() {
   );
 }
 
-function DealingCard({ item, index, players, myId, onAppear }: { item: any; index: number; players: any[]; myId: string | null; onAppear: () => void }) {
-  // The new audio is trimmed and starts instantly. 
-  // We want the cards to start flying shortly after the sound starts.
-  
-  const totalCards = players.length * 3;
-  const startDelay = 200; // Small delay to let the initial riffle sound hit
-  const timePerCard = 80; // Delay between each card being thrown
-  
+function DealingCard({ item, index, players, myId, onAppear, timePerCard }: { item: any; index: number; players: any[]; myId: string | null; onAppear: () => void; timePerCard: number }) {
+  const startDelay = 200; 
   const myDelay = startDelay + (index * timePerCard);
 
   useEffect(() => {
@@ -77,7 +93,7 @@ function DealingCard({ item, index, players, myId, onAppear }: { item: any; inde
         opacity: [0, 1, 1, 0]
       }}
       transition={{ 
-        duration: 0.4, // Fast flight
+        duration: 0.4, 
         delay: myDelay / 1000,
         ease: "easeOut"
       }}

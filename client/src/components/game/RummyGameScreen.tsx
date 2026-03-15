@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGameStore } from '../../stores/useGameStore';
 import { useSocketStore } from '../../stores/useSocketStore';
@@ -8,6 +8,7 @@ import { Button } from '../ui/Button';
 import { GameOverModal } from './GameOverModal';
 import { VintageRadio } from './ambiance/VintageRadio';
 import { useAmbianceSound } from '../../hooks/useAmbianceSound';
+import { DealingAnimation } from './DealingAnimation';
 import type { RummyPlayer, Meld, MeldType, Card as CardType } from '@shared/types';
 
 interface DragCard {
@@ -26,9 +27,17 @@ export function RummyGameScreen() {
   const playerId = useGameStore((s) => s.playerId);
   const gameOverData = useGameStore((s) => s.gameOverData);
   const isConnected = useSocketStore((s) => s.isConnected);
-  const { playCardSlide, playCardPlace } = useAmbianceSound();
+  const isDistributing = useGameStore((s) => s.isDistributing);
+  const { playCardSlide, playCardPlace, playCardShuffle } = useAmbianceSound();
 
   const [isOverMeldZone, setIsOverMeldZone] = useState(false);
+
+  // Ensure shuffle plays when distributing state turns on
+  useEffect(() => {
+    if (isDistributing) {
+      playCardShuffle();
+    }
+  }, [isDistributing, playCardShuffle]);
 
   if (!gameState) {
     return (
@@ -109,6 +118,16 @@ export function RummyGameScreen() {
     setLayOffMode(false);
   };
 
+  const handleLayOffDrop = (meldId: string) => {
+    if (!isCurrentTurn || !isConnected || !draggedCard) return;
+    playCardPlace();
+    socket.emit('rummy_lay_off', { meldId, cardIndex: draggedCard.cardIndex });
+    setSelectedCards([]);
+    setLayOffMode(false);
+    setDraggedCard(null);
+    setIsOverMeldZone(false);
+  };
+
   const toggleCardSelection = (index: number) => {
     setSelectedCards((prev) => {
       const next = prev.includes(index) ? prev.filter((i) => i !== index) : [...prev, index];
@@ -138,10 +157,23 @@ export function RummyGameScreen() {
       ? selectedCards
       : [...selectedCards, draggedCard.cardIndex];
     
-    if (indices.length >= 3) {
-      // Would need to validate meld type here
-      // For now, just create with first valid type
-      handleCreateMeld('set');
+    if (indices.length >= 3 && currentPlayer?.hand) {
+      const cards = indices.map(i => currentPlayer.hand[i]);
+      const nonJokers = cards.filter(c => !c.isJoker);
+      
+      let type: 'set' | 'sequence' = 'sequence'; // Default
+      
+      if (nonJokers.length >= 2) {
+        // If at least two non-jokers have the same rank, it's definitely meant to be a set
+        if (nonJokers[0].rank === nonJokers[1].rank) {
+          type = 'set';
+        }
+      } else if (nonJokers.length === 1) {
+        // Only one non-joker, technically valid for both if enough jokers, guess set
+        type = 'set';
+      }
+
+      handleCreateMeld(type);
     }
     
     setDraggedCard(null);
@@ -168,9 +200,18 @@ export function RummyGameScreen() {
   };
 
   return (
-    <div className="h-full w-full flex flex-col bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-[#3a2818] via-[#1a120e] to-[#0d0907] overflow-hidden">
+    <motion.section
+      id="game-screen"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.5 }}
+      className="h-full w-full flex flex-col bg-transparent overflow-hidden relative"
+    >
+      <DealingAnimation />
+      
       {/* Ambient lighting */}
-      <div className="absolute inset-0 pointer-events-none" style={{
+      <div className="absolute inset-0 pointer-events-none z-0" style={{
         background: 'radial-gradient(ellipse at 50% 30%, rgba(212,175,55,0.06) 0%, transparent 50%), radial-gradient(ellipse at 50% 100%, rgba(90,53,32,0.15) 0%, transparent 40%)'
       }} />
       
@@ -234,6 +275,7 @@ export function RummyGameScreen() {
             player={player}
             position="left"
             isCurrentTurn={gameState.currentTurn === player.id}
+            isDistributing={isDistributing}
           />
         ))}
 
@@ -253,6 +295,8 @@ export function RummyGameScreen() {
             setDraggedCard={setDraggedCard}
             layOffMode={layOffMode && isCurrentTurn && hasDrawn}
             onLayOff={handleLayOff}
+            onLayOffDrop={handleLayOffDrop}
+            isDistributing={isDistributing}
           />
         </div>
 
@@ -263,6 +307,7 @@ export function RummyGameScreen() {
             player={player}
             position="right"
             isCurrentTurn={gameState.currentTurn === player.id}
+            isDistributing={isDistributing}
           />
         ))}
       </div>
@@ -281,6 +326,7 @@ export function RummyGameScreen() {
           onCreateMeld={handleCreateMeld}
           sortMode={sortMode}
           onSortChange={setSortMode}
+          isDistributing={isDistributing}
         />
       </div>
 
@@ -289,7 +335,7 @@ export function RummyGameScreen() {
 
       {/* Game Over Modal */}
       {gameOverData && <GameOverModal />}
-    </div>
+    </motion.section>
   );
 }
 
@@ -297,11 +343,12 @@ export function RummyGameScreen() {
 
 interface PlayerZoneProps {
   player: RummyPlayer;
-  position: 'left' | 'right' | 'opponent';
+  position: 'left' | 'right' | 'opponent' | 'self';
   isCurrentTurn: boolean;
+  isDistributing: boolean;
 }
 
-function PlayerZone({ player, position, isCurrentTurn }: PlayerZoneProps) {
+function PlayerZone({ player, position, isCurrentTurn, isDistributing }: PlayerZoneProps) {
   return (
     <motion.div
       animate={isCurrentTurn ? { scale: [1, 1.02, 1] } : {}}
@@ -314,7 +361,7 @@ function PlayerZone({ player, position, isCurrentTurn }: PlayerZoneProps) {
         {player.nickname}
       </div>
       <div className="flex -space-x-4 sm:-space-x-6">
-        {player.hand.slice(0, 5).map((_, i) => (
+        {!isDistributing && player.hand.slice(0, 5).map((_, i) => (
           <motion.div
             key={i}
             initial={{ x: i * 20 }}
@@ -323,14 +370,14 @@ function PlayerZone({ player, position, isCurrentTurn }: PlayerZoneProps) {
             className="w-8 h-11 sm:w-10 sm:h-14 bg-gradient-to-br from-[#8B4513] to-[#5D2906] rounded border border-[#A0522D] shadow-lg"
           />
         ))}
-        {player.hand.length > 5 && (
+        {!isDistributing && player.hand.length > 5 && (
           <div className="w-8 h-11 sm:w-10 sm:h-14 flex items-center justify-center text-cream/60 text-xs font-bold">
             +{player.hand.length - 5}
           </div>
         )}
       </div>
-      <div className="text-cream/60 text-[10px] sm:text-xs mt-2">{player.hand.length} cards</div>
-      {player.melds.length > 0 && (
+      <div className="text-cream/60 text-[10px] sm:text-xs mt-2">{!isDistributing ? player.hand.length : 0} cards</div>
+      {!isDistributing && player.melds.length > 0 && (
         <div className="flex gap-1 mt-2">
           {player.melds.slice(0, 3).map((meld, idx) => (
             <div key={idx} className="w-5 h-7 sm:w-6 sm:h-8 bg-amber-900/40 rounded border border-amber-700/30" />
@@ -358,6 +405,8 @@ interface TableAreaProps {
   setDraggedCard: (c: DragCard | null) => void;
   layOffMode: boolean;
   onLayOff: (meldId: string) => void;
+  onLayOffDrop: (meldId: string) => void;
+  isDistributing: boolean;
 }
 
 function TableArea({
@@ -374,6 +423,8 @@ function TableArea({
   setDraggedCard,
   layOffMode,
   onLayOff,
+  onLayOffDrop,
+  isDistributing,
 }: TableAreaProps) {
   const currentPlayer = gameState.players.find((p: RummyPlayer) => p.id === playerId);
 
@@ -389,18 +440,22 @@ function TableArea({
           <div className="text-cream/80 text-[10px] sm:text-xs uppercase tracking-wider">Draw</div>
           <button
             onClick={onDraw}
-            disabled={!isCurrentTurn}
+            disabled={!isCurrentTurn || isDistributing}
             className={`relative w-16 h-24 sm:w-20 sm:h-28 md:w-24 md:h-32 rounded-lg border-2 transition-all duration-300 ${
-              isCurrentTurn
+              isCurrentTurn && !isDistributing
                 ? 'border-yellow-400/60 cursor-pointer hover:shadow-[0_0_30px_rgba(212,175,55,0.3)]'
                 : 'border-[#5D2906] cursor-not-allowed opacity-40'
             } bg-gradient-to-br from-[#8B4513] to-[#5D2906]`}
           >
             {/* Card back pattern */}
-            <div className="absolute inset-2 rounded border border-[#A0522D]/30" />
-            <div className="absolute inset-4 rounded border border-[#A0522D]/20" />
+            {!isDistributing && (
+              <>
+                <div className="absolute inset-2 rounded border border-[#A0522D]/30" />
+                <div className="absolute inset-4 rounded border border-[#A0522D]/20" />
+              </>
+            )}
           </button>
-          <div className="text-cream/50 text-[10px] sm:text-xs">{gameState.drawPile.length} cards</div>
+          <div className="text-cream/50 text-[10px] sm:text-xs">{!isDistributing ? gameState.drawPile.length : 0} cards</div>
         </motion.div>
 
         {/* Meld zone - center */}
@@ -424,6 +479,7 @@ function TableArea({
         >
           {/* All players' melds */}
           {(() => {
+            if (isDistributing) return null;
             const allMelds = gameState.players.flatMap((p: RummyPlayer) => p.melds);
             if (allMelds.length === 0) {
               return (
@@ -446,10 +502,23 @@ function TableArea({
                     animate={{ scale: 1, opacity: 1 }}
                     transition={{ type: 'spring', stiffness: 300, damping: 20 }}
                     onClick={() => layOffMode && onLayOff(meld.id)}
+                    onDragOver={(e) => {
+                      if (draggedCard) {
+                        e.preventDefault();
+                        e.stopPropagation(); // Prevent main dropzone from overriding
+                      }
+                    }}
+                    onDrop={(e) => {
+                      if (draggedCard) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        onLayOffDrop(meld.id);
+                      }
+                    }}
                     className={`flex gap-0.5 sm:gap-1 p-1 rounded-lg backdrop-blur-sm transition-all duration-200 ${
                       layOffMode
                         ? 'bg-emerald-900/50 border border-emerald-400/50 cursor-pointer hover:border-emerald-300 hover:shadow-[0_0_12px_rgba(52,211,153,0.4)]'
-                        : 'bg-black/30 border border-transparent'
+                        : 'bg-black/30 border border-transparent hover:border-emerald-500/50'
                     }`}
                   >
                     {meld.cards.map((card: CardType, cardIdx: number) => (
@@ -462,7 +531,7 @@ function TableArea({
               </div>
             );
           })()}
-          {layOffMode && (
+          {layOffMode && !isDistributing && (
             <div className="absolute top-1 right-2 text-emerald-300/80 text-[9px] font-ancient uppercase tracking-widest">
               Click meld to lay off
             </div>
@@ -475,7 +544,7 @@ function TableArea({
           whileHover={isCurrentTurn ? { scale: 1.05 } : {}}
         >
           <div className="text-cream/80 text-[10px] sm:text-xs uppercase tracking-wider">Discard</div>
-          {topDiscard ? (
+          {topDiscard && !isDistributing ? (
             <button
               onClick={onDrawDiscard}
               disabled={!isCurrentTurn}
@@ -513,6 +582,7 @@ interface PlayerHandProps {
   onCreateMeld: (type: MeldType) => void;
   sortMode: 'suit' | 'rank' | 'none';
   onSortChange: (mode: 'suit' | 'rank' | 'none') => void;
+  isDistributing: boolean;
 }
 
 function PlayerHand({
@@ -527,6 +597,7 @@ function PlayerHand({
   onCreateMeld,
   sortMode,
   onSortChange,
+  isDistributing,
 }: PlayerHandProps) {
   // Get the original indices from sorted hand
   const originalIndices = sortedHand.map(h => h.index);
@@ -558,7 +629,7 @@ function PlayerHand({
 
       {/* Action buttons */}
       <AnimatePresence>
-        {mappedSelectedCards.length >= 3 && isCurrentTurn && (
+        {!isDistributing && mappedSelectedCards.length >= 3 && isCurrentTurn && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -583,7 +654,7 @@ function PlayerHand({
 
       {/* Cards */}
       <div className="flex justify-center items-end w-full px-4 overflow-visible">
-        {sortedHand.map((item, displayIndex) => {
+        {!isDistributing && sortedHand.map((item, displayIndex) => {
           const originalIndex = item.index;
           const card = item.card;
           const isSelected = selectedCards.includes(originalIndex);

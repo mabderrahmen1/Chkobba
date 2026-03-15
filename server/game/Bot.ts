@@ -164,3 +164,82 @@ export function getBotMove(game: Game, botPlayerId: string): BotMove {
 
   return { cardIndex: bestIdx, tableIndices: [] };
 }
+
+/**
+ * Basic AI for Rummy
+ */
+export function executeRummyBotTurn(game: any, botPlayerId: string): void {
+  const player = game.getPlayer(botPlayerId);
+  if (!player || game.currentTurn !== botPlayerId || game.winner) return;
+
+  // 1. Draw phase
+  if (!game.hasDrawn) {
+    // Basic logic: if discard pile top card helps us, take it. Otherwise draw from deck.
+    const topDiscard = game.discardPile[game.discardPile.length - 1];
+    let takeDiscard = false;
+    
+    if (topDiscard) {
+      // Extremely simple: if it's a joker or high card, take it
+      if (topDiscard.isJoker || ['K', 'Q', 'J', 'A'].includes(topDiscard.rank)) {
+        takeDiscard = true;
+      }
+    }
+
+    if (takeDiscard) {
+      game.drawFromDiscard(botPlayerId);
+    } else {
+      game.drawFromDeck(botPlayerId);
+    }
+  }
+
+  // 2. Meld phase (very basic: try to make 3-card sets)
+  // Real rummy bots need complex combinatorics. We'll just try to find sets.
+  let madeMeld = true;
+  while (madeMeld && !game.winner) {
+    madeMeld = false;
+    const hand = player.hand;
+    
+    // Group by rank
+    const byRank: Record<string, number[]> = {};
+    hand.forEach((c: any, i: number) => {
+      if (!c.isJoker) {
+        byRank[c.rank] = byRank[c.rank] || [];
+        byRank[c.rank].push(i);
+      }
+    });
+
+    for (const rank in byRank) {
+      if (byRank[rank].length >= 3) {
+        // We have a set!
+        const indices = byRank[rank].slice(0, 3); // Take first 3
+        const result = game.createMeld(botPlayerId, indices, 'set');
+        if (result.success) {
+          madeMeld = true;
+          break; // restart loop because hand changed
+        }
+      }
+    }
+  }
+
+  // 3. Discard phase
+  if (!game.winner) {
+    // Discard the highest value card that isn't part of a pair
+    let discardIdx = 0;
+    let highestVal = -1;
+    
+    // Simple logic: find a card with no matching rank in hand
+    const hand = player.hand;
+    for (let i = 0; i < hand.length; i++) {
+      const c = hand[i];
+      if (c.isJoker) continue;
+      
+      const isPair = hand.some((other: any, j: number) => i !== j && other.rank === c.rank);
+      if (!isPair && c.value > highestVal) {
+        highestVal = c.value;
+        discardIdx = i;
+      }
+    }
+    
+    game.discardCard(botPlayerId, discardIdx);
+  }
+}

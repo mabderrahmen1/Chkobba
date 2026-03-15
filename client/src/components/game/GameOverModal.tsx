@@ -3,6 +3,8 @@ import { useUIStore } from '../../stores/useUIStore';
 import { socket } from '../../lib/socket';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
+import { useAmbianceSound } from '../../hooks/useAmbianceSound';
+import { useEffect } from 'react';
 
 export function GameOverModal() {
   const gameOverData = useGameStore((s) => s.gameOverData);
@@ -10,6 +12,7 @@ export function GameOverModal() {
   const gameState = useGameStore((s) => s.gameState);
   const rummyGameState = useGameStore((s) => s.rummyGameState);
   const room = useGameStore((s) => s.room);
+  const { playChkobbaSound } = useAmbianceSound();
   
   // Use reactive selector for isHost
   // If we have room data, check hostId. Fallback to store's isHost.
@@ -20,14 +23,29 @@ export function GameOverModal() {
   const setScreen = useUIStore((s) => s.setScreen);
 
   const isRummy = !gameState && !!rummyGameState;
-  if (!gameOverData || (!gameState && !rummyGameState)) return null;
 
-  const { winner, scores } = gameOverData;
+  const { winner, scores } = gameOverData || { winner: { team: -1 }, scores: { team0: 0, team1: 0 } };
 
-  const activePlayers = isRummy ? rummyGameState!.players : gameState!.players;
+  const activePlayers = isRummy ? (rummyGameState?.players || []) : (gameState?.players || []);
   const playerTeam = (activePlayers as any[]).find((p) => p.id === playerId)?.team ?? -1;
-  const didWin = winner.players?.includes(useGameStore.getState().nickname) || playerTeam === winner.team;
-  const isForfeit = winner.reason === 'opponents_timeout' || winner.reason === 'timeout' || winner.reason === 'forfeit';
+  const didWin = winner?.players?.includes(useGameStore.getState().nickname) || playerTeam === winner?.team;
+  const isForfeit = winner?.reason === 'opponents_timeout' || winner?.reason === 'timeout' || winner?.reason === 'forfeit';
+
+  useEffect(() => {
+    if (gameOverData && didWin && !isForfeit) {
+      playChkobbaSound(); // Hype sound for victory!
+      
+      // Trigger screen shake
+      const el = document.getElementById('game-screen');
+      if (el) {
+        el.classList.add('chkobba-shake-intense');
+        const onEnd = () => el.classList.remove('chkobba-shake-intense');
+        el.addEventListener('animationend', onEnd, { once: true });
+      }
+    }
+  }, [gameOverData, didWin, isForfeit, playChkobbaSound]);
+
+  if (!gameOverData || (!gameState && !rummyGameState)) return null;
 
   const handlePlayAgain = () => {
     setGameOverData(null);
