@@ -24,7 +24,13 @@ export function PlayerHand() {
 
   const handleConfirmPlay = () => {
     if (!canConfirm || selectedCardIndex === null) return;
-    playCardPlace();
+    
+    // Only play 'piou' sound if we are NOT capturing anything (eating)
+    // If capturing, TableCards.tsx will play the 'flip' sound instead
+    if (selectedTableIndices.length === 0) {
+      playCardPlace();
+    }
+    
     socket.emit('play_card', {
       cardIndex: selectedCardIndex,
       tableIndices: selectedTableIndices

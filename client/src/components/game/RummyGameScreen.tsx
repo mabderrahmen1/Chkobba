@@ -99,7 +99,7 @@ export function RummyGameScreen() {
 
   const handleDrawDiscard = () => {
     if (!isCurrentTurn || !isConnected) return;
-    playCardCapture();
+    // Sound is handled by the useEffect watching discardPile length
     socket.emit('rummy_draw_discard');
   };
 
