@@ -13,12 +13,14 @@ interface ToastMessage {
 interface UIStore {
   screen: Screen;
   showAmbiance: boolean;
+  soundEffectsMuted: boolean;
   toasts: ToastMessage[];
   waitressStatus: WaitressStatus;
   isWaitressVisible: boolean;
   isSubmitting: boolean;
   setScreen: (screen: Screen) => void;
   toggleAmbiance: () => void;
+  toggleSoundEffects: () => void;
   addToast: (message: string, type?: ToastType) => void;
   removeToast: (id: string) => void;
   setWaitressStatus: (status: WaitressStatus) => void;
@@ -45,6 +47,7 @@ const getInitialScreen = (): Screen => {
 export const useUIStore = create<UIStore>((set) => ({
   screen: getInitialScreen(),
   showAmbiance: true,
+  soundEffectsMuted: false,
   toasts: [],
   waitressStatus: 'idle',
   isWaitressVisible: false,
@@ -52,6 +55,7 @@ export const useUIStore = create<UIStore>((set) => ({
 
   setScreen: (screen) => set({ screen }),
   toggleAmbiance: () => set((state) => ({ showAmbiance: !state.showAmbiance })),
+  toggleSoundEffects: () => set((state) => ({ soundEffectsMuted: !state.soundEffectsMuted })),
 
   addToast: (message, type = 'info') => {
     const id = Math.random().toString(36).substr(2, 9);

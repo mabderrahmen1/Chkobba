@@ -1,4 +1,5 @@
 import { useGameStore } from '../../stores/useGameStore';
+import { useUIStore } from '../../stores/useUIStore';
 import { PlayerZone } from './PlayerZone';
 import { TableCards } from './TableCards';
 import { PlayerHand } from './PlayerHand';
@@ -12,6 +13,8 @@ import { socket } from '../../lib/socket';
 export function GameTable() {
   const gameState = useGameStore((s) => s.gameState);
   const playerId = useGameStore((s) => s.playerId);
+  const soundEffectsMuted = useUIStore((s) => s.soundEffectsMuted);
+  const toggleSoundEffects = useUIStore((s) => s.toggleSoundEffects);
 
   if (!gameState || !playerId) return null;
 
@@ -62,12 +65,33 @@ export function GameTable() {
       <CaptureAnimationOverlay />
       <DealingAnimation />
 
-      {/* Background Silhouettes & Lighting */}      <div className="vignette" />
+      {/* Mute Button */}
+      <div className="absolute top-4 left-4 z-[60]">
+        <button
+          onClick={toggleSoundEffects}
+          className="p-2 rounded-full bg-black/40 border border-brass/30 text-brass hover:bg-black/60 transition-all shadow-lg"
+          title={soundEffectsMuted ? "Unmute SFX" : "Mute SFX"}
+        >
+          {soundEffectsMuted ? (
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
+            </svg>
+          ) : (
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+            </svg>
+          )}
+        </button>
+      </div>
+
+      {/* Background Silhouettes & Lighting */}
+      <div className="vignette" />
       <div className="ambient-light top-[-100px] left-[-100px] animate-ambient-glow" />
       <div className="ambient-light bottom-[-100px] right-[-100px] animate-ambient-glow" style={{ animationDelay: '3s' }} />
 
       {/* The Wooden Table Scene */}
-      <div className="relative w-full h-full max-w-6xl max-h-[85vh] sm:max-h-[80vh] flex flex-col items-center justify-center z-10 perspective-1000">
+      <div className="relative w-full h-full max-w-6xl max-h-[85vh] sm:max-h-[80vh] flex flex-col items-center justify-center z-10 perspective-1000 scale-[0.8] sm:scale-90 md:scale-100">
 
         {/* Table Container */}
         <div 

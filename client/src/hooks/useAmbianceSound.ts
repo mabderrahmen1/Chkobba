@@ -1,4 +1,5 @@
 import { useRef, useCallback } from 'react';
+import { useUIStore } from '../stores/useUIStore';
 
 // Cache to avoid multiple network requests for frequent sounds
 let shuffleBufferCache: AudioBuffer | null = null;
@@ -11,6 +12,7 @@ let captureBufferCache: AudioBuffer | null = null;
  */
 export function useAmbianceSound() {
   const ctxRef = useRef<AudioContext | null>(null);
+  const soundEffectsMuted = useUIStore((s) => s.soundEffectsMuted);
 
   const getCtx = useCallback(() => {
     if (!ctxRef.current) {
@@ -22,6 +24,7 @@ export function useAmbianceSound() {
 
   // Hookah smoking sound
   const playBubble = useCallback(() => {
+    if (soundEffectsMuted) return;
     const audio = new Audio('/pics/freesound_community-hookah-bubling-69642.mp3');
     audio.volume = 0.7;
     audio.play().catch(() => {
@@ -42,10 +45,11 @@ export function useAmbianceSound() {
         osc.stop(popTime + 0.15);
       }
     });
-  }, [getCtx]);
+  }, [getCtx, soundEffectsMuted]);
 
   // Coffee drinking sound
   const playClink = useCallback(() => {
+    if (soundEffectsMuted) return;
     const audio = new Audio('/pics/freesound_community-drinking-coffe-107121.mp3');
     audio.volume = 0.6;
     audio.play().catch(() => {
@@ -60,12 +64,13 @@ export function useAmbianceSound() {
       g.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
       osc.connect(g).connect(ctx.destination);
       osc.start(now);
-      osc.stop(now + 0.6);
+      osc.stop(now + 0.5);
     });
-  }, [getCtx]);
+  }, [getCtx, soundEffectsMuted]);
 
   // Lighter flick sound
   const playLighter = useCallback(() => {
+    if (soundEffectsMuted) return;
     const audio = new Audio('/pics/freesound_community-cigarette-cracklings-lighter-smoke-6693.mp3');
     audio.volume = 0.6;
     audio.play().catch(() => {
@@ -82,10 +87,11 @@ export function useAmbianceSound() {
       src.connect(g).connect(ctx.destination);
       src.start(now);
     });
-  }, [getCtx]);
+  }, [getCtx, soundEffectsMuted]);
 
   // Waitress Voice
   const playWaitressVoice = useCallback(() => {
+    if (soundEffectsMuted) return;
     const audio = new Audio('/pics/ai_mee_universe-ai_mee_universe-te-gusta-mi-bikini-150219.mp3');
     audio.volume = 0.8;
     audio.play().catch(() => {
@@ -103,10 +109,11 @@ export function useAmbianceSound() {
       osc.start(now);
       osc.stop(now + 0.6);
     });
-  }, [getCtx]);
+  }, [getCtx, soundEffectsMuted]);
 
   // Card slide sound (drawing card)
   const playCardSlide = useCallback(() => {
+    if (soundEffectsMuted) return;
     const ctx = getCtx();
     const now = ctx.currentTime;
     const bufLen = ctx.sampleRate * 0.15;
@@ -124,10 +131,11 @@ export function useAmbianceSound() {
     g.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
     src.connect(filter).connect(g).connect(ctx.destination);
     src.start(now);
-  }, [getCtx]);
+  }, [getCtx, soundEffectsMuted]);
 
   // Card place sound (discarding/playing card)
   const playCardPlace = useCallback(() => {
+    if (soundEffectsMuted) return;
     const ctx = getCtx();
     const now = ctx.currentTime;
     const osc = ctx.createOscillator();
@@ -141,16 +149,13 @@ export function useAmbianceSound() {
     osc.connect(g).connect(ctx.destination);
     osc.start(now);
     osc.stop(now + 0.2);
-  }, [getCtx]);
+  }, [getCtx, soundEffectsMuted]);
 
   // Dramatic sound for Chkobba!
   const playChkobbaSound = useCallback(() => {
+    if (soundEffectsMuted) return;
     const ctx = getCtx();
     const now = ctx.currentTime;
-    
-    // Play GOOBA sound with fade in/out
-    const audio = new Audio('/gooba.mp3');
-    audio.volume = 0; // Start at 0 for manual fade if needed, but Audio element is easier for long files
     
     // Using AudioContext for precise control and fading
     fetch('/gooba.mp3')
@@ -187,10 +192,11 @@ export function useAmbianceSound() {
         osc1.start(now);
         osc1.stop(now + 1.2);
       });
-  }, [getCtx]);
+  }, [getCtx, soundEffectsMuted]);
 
   // Mystical/Legendary sound for Hayya! (7 of Diamonds)
   const playHayyaSound = useCallback(() => {
+    if (soundEffectsMuted) return;
     const ctx = getCtx();
     const now = ctx.currentTime;
     
@@ -232,10 +238,11 @@ export function useAmbianceSound() {
           osc.stop(startTime + 2);
         });
       });
-  }, [getCtx]);
+  }, [getCtx, soundEffectsMuted]);
 
   // Realistic card shuffle sound (Riffle)
   const playCardShuffle = useCallback(() => {
+    if (soundEffectsMuted) return;
     const ctx = getCtx();
     const now = ctx.currentTime;
 
@@ -281,10 +288,11 @@ export function useAmbianceSound() {
           src.start(snapTime);
         }
       });
-  }, [getCtx]);
+  }, [getCtx, soundEffectsMuted]);
 
   // Fast card dealing sound (Short segment from the long deal file)
   const playCardDealShort = useCallback(() => {
+    if (soundEffectsMuted) return;
     const ctx = getCtx();
     const now = ctx.currentTime;
     
@@ -312,10 +320,11 @@ export function useAmbianceSound() {
         playSlice(audioBuffer);
       })
       .catch(() => playCardSlide()); // Fallback
-  }, [getCtx, playCardSlide]);
+  }, [getCtx, playCardSlide, soundEffectsMuted]);
 
   // Sound when a player "eats" (captures) a card
   const playCardCapture = useCallback(() => {
+    if (soundEffectsMuted) return;
     const ctx = getCtx();
     const now = ctx.currentTime;
 
@@ -341,7 +350,7 @@ export function useAmbianceSound() {
         playBuf(audioBuffer);
       })
       .catch(() => playCardPlace()); // Fallback
-  }, [getCtx, playCardPlace]);
+  }, [getCtx, playCardPlace, soundEffectsMuted]);
 
   return { playClink, playLighter, playBubble, playWaitressVoice, playCardSlide, playCardPlace, playCardShuffle, playChkobbaSound, playHayyaSound, playCardDealShort, playCardCapture };
 }
