@@ -121,7 +121,7 @@ export function calculateChkobba(team0Chkobba, team1Chkobba) {
 /**
  * Calculate all round scores
  * @param {RoundData} roundData - Round data
- * @returns {RoundResult} Complete score breakdown
+ * @returns {ChkobbaRoundResult} Complete score breakdown
  */
 export function calculateRoundScores({ team0Captured, team1Captured, team0Chkobba = 0, team1Chkobba = 0 }) {
     const carta = calculateCarta(team0Captured, team1Captured);

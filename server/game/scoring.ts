@@ -4,7 +4,7 @@
  */
 
 import * as rules from '../../shared/rules.js';
-import { Card, RoundResult } from '../../shared/types.js';
+import { Card, ChkobbaRoundResult } from '../../shared/types.js';
 
 /**
  * Count cards by suit
@@ -149,14 +149,14 @@ interface RoundData {
 /**
  * Calculate all round scores
  * @param {RoundData} roundData - Round data
- * @returns {RoundResult} Complete score breakdown
+ * @returns {ChkobbaRoundResult} Complete score breakdown
  */
 export function calculateRoundScores({
   team0Captured,
   team1Captured,
   team0Chkobba = 0,
   team1Chkobba = 0
-}: RoundData): RoundResult {
+}: RoundData): ChkobbaRoundResult {
   const carta = calculateCarta(team0Captured, team1Captured);
   const dinari = calculateDinari(team0Captured, team1Captured);
   const bermila = calculateBermila(team0Captured, team1Captured);

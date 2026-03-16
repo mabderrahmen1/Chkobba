@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGameStore } from '../../stores/useGameStore';
 import { useSocketStore } from '../../stores/useSocketStore';
+import { useUIStore } from '../../stores/useUIStore';
 import { socket } from '../../lib/socket';
 import { Card } from './Card';
 import { Button } from '../ui/Button';

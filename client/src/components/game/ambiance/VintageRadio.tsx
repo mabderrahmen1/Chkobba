@@ -10,8 +10,8 @@ declare global {
   }
 }
 
-const FIRST_VIDEO_ID = 'd7eikm5KZ9w';
-const PLAYLIST_ID = 'RDd7eikm5KZ9w';
+const FIRST_VIDEO_ID = 'v7QJlY_WRBs';
+const PLAYLIST_ID = 'RDv7QJlY_WRBs';
 
 export function VintageRadio() {
   const [player, setPlayer] = useState<any>(null);

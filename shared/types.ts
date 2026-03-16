@@ -82,7 +82,9 @@ export interface ChatMessage {
   isSystem?: boolean;
 }
 
-export interface RoundResult {
+export type RoundResult = ChkobbaRoundResult | RummyRoundResult;
+
+export interface ChkobbaRoundResult {
   breakdown: {
     carta: { team0: number; team1: number };
     dinari: { team0: number; team1: number };
@@ -91,6 +93,12 @@ export interface RoundResult {
     chkobba: { team0: number; team1: number };
   };
   totals: { team0: number; team1: number };
+}
+
+export interface RummyRoundResult {
+  winnerId: string;
+  winnerNickname: string;
+  penalties: Record<string, number>;
 }
 
 export interface Winner {

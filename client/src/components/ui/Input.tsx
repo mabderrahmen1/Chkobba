@@ -1,4 +1,6 @@
-interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
+import React from 'react';
+
+interface InputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'onChange'> {
   label?: string;
   onChange: (value: string) => void;
   icon?: React.ReactNode;

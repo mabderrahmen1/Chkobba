@@ -3,17 +3,20 @@ import { useGameStore } from '../../stores/useGameStore';
 import { socket } from '../../lib/socket';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
+import type { ChkobbaRoundResult, RummyRoundResult } from '@shared/types.js';
 
 export function RoundEndModal() {
   const roundResult = useGameStore((s) => s.roundResult);
   const gameState = useGameStore((s) => s.gameState);
   const rummyGameState = useGameStore((s) => s.rummyGameState);
-  const playerId = useGameStore((s) => s.playerId);
   const setRoundResult = useGameStore((s) => s.setRoundResult);
   const [waiting, setWaiting] = useState(false);
 
   const gameType = useGameStore((s) => s.gameType);
   const isRummy = gameType === 'rummy';
+
+  const chkobbaResult = !isRummy ? roundResult as ChkobbaRoundResult : null;
+  const rummyResult = isRummy ? roundResult as RummyRoundResult : null;
 
   const gameIsOver = isRummy ? !!rummyGameState?.winner : !!gameState?.winner;
 
@@ -30,13 +33,13 @@ export function RoundEndModal() {
     setWaiting(false);
   }
 
-  const chkobbaCategories = !isRummy && roundResult?.breakdown
+  const chkobbaCategories = chkobbaResult?.breakdown
     ? [
-        { name: 'Carta (Most Cards)', scores: roundResult.breakdown.carta },
-        { name: 'Dinari (Most Diamonds)', scores: roundResult.breakdown.dinari },
-        { name: 'Bermila (Most 7s)', scores: roundResult.breakdown.bermila },
-        { name: 'Sabaa el Haya (7\u2666)', scores: roundResult.breakdown.sabaaElHaya },
-        { name: 'Chkobba (Sweeps)', scores: roundResult.breakdown.chkobba },
+        { name: 'Carta (Most Cards)', scores: chkobbaResult.breakdown.carta },
+        { name: 'Dinari (Most Diamonds)', scores: chkobbaResult.breakdown.dinari },
+        { name: 'Bermila (Most 7s)', scores: chkobbaResult.breakdown.bermila },
+        { name: 'Sabaa el Haya (7\u2666)', scores: chkobbaResult.breakdown.sabaaElHaya },
+        { name: 'Chkobba (Sweeps)', scores: chkobbaResult.breakdown.chkobba },
       ]
     : [];
 
@@ -50,7 +53,7 @@ export function RoundEndModal() {
         <div className="flex flex-col gap-4 text-center">
           <div className="bg-emerald-900/20 border border-emerald-500/30 p-4 rounded-xl">
             <span className="text-emerald-400 font-ancient text-lg uppercase tracking-widest block mb-1">Winner</span>
-            <span className="text-white font-bold text-2xl">{roundResult?.winnerNickname}</span>
+            <span className="text-white font-bold text-2xl">{rummyResult?.winnerNickname}</span>
           </div>
           
           <div className="flex flex-col gap-2">
@@ -59,7 +62,7 @@ export function RoundEndModal() {
               {rummyGameState?.players.map(p => (
                 <div key={p.id} className="bg-black/40 p-2 rounded-lg border border-white/5 flex justify-between items-center px-4">
                   <span className="text-cream-dark text-xs truncate max-w-[80px]">{p.nickname}</span>
-                  <span className="text-red-400 font-bold">{roundResult?.penalties?.[p.id] || 0}</span>
+                  <span className="text-red-400 font-bold">{rummyResult?.penalties?.[p.id] || 0}</span>
                 </div>
               ))}
             </div>
@@ -87,12 +90,12 @@ export function RoundEndModal() {
               </div>
             </div>
           ))}
-          {roundResult && (
+          {chkobbaResult && (
             <div className="flex justify-between px-4 py-3 mt-2 border-t border-brass/20 pt-4">
               <span className="font-ancient font-bold text-brass">Total</span>
               <div className="flex gap-4">
-                <span className="font-bold text-accent w-8 text-center">{roundResult.totals.team0}</span>
-                <span className="font-bold text-turquoise w-8 text-center">{roundResult.totals.team1}</span>
+                <span className="font-bold text-accent w-8 text-center">{chkobbaResult.totals.team0}</span>
+                <span className="font-bold text-turquoise w-8 text-center">{chkobbaResult.totals.team1}</span>
               </div>
             </div>
           )}
