@@ -43,6 +43,13 @@
     }
   }
 
+  @media (max-width: 375px) {
+    :root {
+      --card-width: 42px;
+      --card-height: 59px;
+    }
+  }
+
   html, body, #root {
     height: 100%;
     background: #0a0500;

@@ -71,10 +71,10 @@ export function GameTable() {
 
         {/* Table Container */}
         <div 
-          className="w-full h-full p-2 sm:p-4 md:p-6 flex flex-col relative overflow-hidden bg-wood shadow-theme-lg"
+          className="w-full h-full p-1.5 sm:p-4 md:p-6 flex flex-col relative overflow-hidden bg-wood shadow-theme-lg"
           style={{
-            borderRadius: '3rem',
-            border: '12px solid #2d1606',
+            borderRadius: 'clamp(1rem, 5vw, 3rem)',
+            border: 'clamp(4px, 1.5vw, 12px) solid #2d1606',
           }}
         >
           {/* Subtle wood grain texture */}
@@ -88,10 +88,10 @@ export function GameTable() {
               borderColor: 'rgba(0,0,0,0.5)',
             }}
             transition={{ duration: 2, repeat: Infinity }}
-            className="flex-1 w-full rounded-[2rem] flex flex-col relative overflow-hidden border-2 bg-felt-luxury"
+            className="flex-1 w-full rounded-[clamp(0.75rem, 4vw, 2rem)] flex flex-col relative overflow-hidden border-2 bg-felt-luxury"
           >
             {/* Grid Layout inside the Felt */}
-            <div className="flex-1 w-full h-full relative z-10 flex flex-col justify-center items-center py-4 sm:py-8 md:py-12">
+            <div className="flex-1 w-full h-full relative z-10 flex flex-col justify-center items-center py-2 sm:py-8 md:py-12">
 
               {/* Ambiance Props */}
               <div className="absolute inset-0 z-30 pointer-events-none">
@@ -99,10 +99,10 @@ export function GameTable() {
               </div>
 
               {/* Captured Stacks */}
-              <div className="absolute bottom-4 left-4">
+              <div className="absolute bottom-2 left-2 sm:bottom-4 sm:left-4">
                 <CapturedStack count={myTeamCaptured} label="Our Cards" variant="ally" />
               </div>
-              <div className="absolute top-4 right-4">
+              <div className="absolute top-2 right-2 sm:top-4 sm:right-4">
                 <CapturedStack count={oppTeamCaptured} label="Their Cards" variant="opponent" />
               </div>
 
@@ -113,7 +113,7 @@ export function GameTable() {
         </div>
 
         {/* Player Zones (positioned around the table) */}
-        <div className="absolute top-[-10px] sm:top-[-20px] left-1/2 -translate-x-1/2 z-30">
+        <div className="absolute top-[-5px] sm:top-[-20px] left-1/2 -translate-x-1/2 z-30">
           {topPlayer && (
             <PlayerZone
               player={topPlayer}
@@ -125,7 +125,7 @@ export function GameTable() {
         </div>
 
         {is4Player && leftPlayer && (
-          <div className="absolute left-[-20px] sm:left-[-30px] md:left-[-40px] top-1/2 -translate-y-1/2 z-30">
+          <div className="absolute left-[-5px] sm:left-[-30px] md:left-[-40px] top-1/2 -translate-y-1/2 z-30">
             <PlayerZone
               player={leftPlayer}
               position="left"
@@ -136,7 +136,7 @@ export function GameTable() {
         )}
 
         {is4Player && rightPlayer && (
-          <div className="absolute right-[-20px] sm:right-[-30px] md:right-[-40px] top-1/2 -translate-y-1/2 z-30">
+          <div className="absolute right-[-5px] sm:right-[-30px] md:right-[-40px] top-1/2 -translate-y-1/2 z-30">
             <PlayerZone
               player={rightPlayer}
               position="right"

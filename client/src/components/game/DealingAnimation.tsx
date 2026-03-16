@@ -111,23 +111,26 @@ function getPlayerPosition(playerIndex: number, players: any[], myId: string | n
   const targetPlayer = players[playerIndex];
   
   if (!me || !targetPlayer) return { x: 0, y: 0 };
-  if (me.id === targetPlayer.id) return { x: 0, y: 300 }; // Bottom (Me)
+
+  const isSmallScreen = window.innerWidth < 640;
+  const offset = isSmallScreen ? 150 : 300;
+
+  if (me.id === targetPlayer.id) return { x: 0, y: offset }; // Bottom (Me)
 
   if (players.length >= 4) {
-    if (targetPlayer.team === me.team) return { x: 0, y: -300 }; // Top (Teammate)
+    if (targetPlayer.team === me.team) return { x: 0, y: -offset }; // Top (Teammate)
     
-    // Opponents: right or left based on turn order logic.
     const turnOrder = players.map(p => p.id);
     const myIdx = turnOrder.indexOf(me.id);
     const nextIdx = (myIdx + 1) % turnOrder.length;
     
     if (targetPlayer.id === turnOrder[nextIdx]) {
-      return { x: 300, y: 0 }; // Right
+      return { x: offset, y: 0 }; // Right
     } else {
-      return { x: -300, y: 0 }; // Left
+      return { x: -offset, y: 0 }; // Left
     }
   } else {
     // 2 players
-    return { x: 0, y: -300 }; // Top
+    return { x: 0, y: -offset }; // Top
   }
 }

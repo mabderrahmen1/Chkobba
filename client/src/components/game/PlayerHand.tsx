@@ -159,7 +159,7 @@ export function PlayerHand() {
         }}
         onClick={handleConfirmPlay}
         disabled={!canConfirm}
-        className={`absolute -right-4 sm:-right-8 bottom-10 px-4 sm:px-6 py-2 rounded-lg font-ancient font-bold tracking-widest uppercase text-xs sm:text-sm transition-all duration-300 ${
+        className={`absolute right-0 sm:-right-8 bottom-10 px-3 sm:px-6 py-2 rounded-lg font-ancient font-bold tracking-widest uppercase text-[10px] sm:text-sm transition-all duration-300 ${
           canConfirm
             ? 'bg-emerald-600 border-2 border-emerald-400/60 text-white shadow-[0_0_16px_rgba(16,185,129,0.4)] cursor-pointer hover:bg-emerald-500 hover:shadow-[0_0_24px_rgba(16,185,129,0.5)]'
             : 'bg-wood-dark border-2 border-wood-light text-foreground-muted opacity-40 cursor-not-allowed'

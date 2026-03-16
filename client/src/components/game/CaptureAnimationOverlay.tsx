@@ -46,8 +46,8 @@ export function CaptureAnimationOverlay() {
           {!isMe && (
             <motion.div
               initial={{ y: 20, opacity: 0, scale: 0.8 }}
-              animate={{ y: -180, opacity: 1, scale: 1 }}
-              className={`absolute font-ancient text-3xl sm:text-5xl uppercase tracking-[0.4em] font-bold drop-shadow-glow-gold ${
+              animate={{ y: window.innerWidth < 640 ? -120 : -180, opacity: 1, scale: 1 }}
+              className={`absolute font-ancient text-2xl sm:text-5xl uppercase tracking-[0.4em] font-bold drop-shadow-glow-gold ${
                 isChkobba ? 'text-accent' : isHayya ? 'text-pink-400' : 'text-brass'
               }`}
             >
@@ -55,11 +55,16 @@ export function CaptureAnimationOverlay() {
             </motion.div>
           )}
 
-          <div className="relative flex items-center justify-center gap-6 sm:gap-16">
+          <div className="relative flex items-center justify-center gap-4 sm:gap-16">
             {/* The Played Card */}
             <motion.div
-              initial={{ scale: 0.3, x: isMe ? 0 : -300, y: isMe ? 400 : -400, rotate: -20 }}
-              animate={{ scale: isMe ? 1 : 1.4, x: -100, y: 0, rotate: -5 }}
+              initial={{ 
+                scale: 0.3, 
+                x: isMe ? 0 : (window.innerWidth < 640 ? -150 : -300), 
+                y: isMe ? 400 : (window.innerWidth < 640 ? -200 : -400), 
+                rotate: -20 
+              }}
+              animate={{ scale: isMe ? 1 : (window.innerWidth < 640 ? 1.1 : 1.4), x: window.innerWidth < 640 ? -60 : -100, y: 0, rotate: -5 }}
               transition={{ type: 'spring', damping: 18, stiffness: 80 }}
               className="z-20 relative"
             >
@@ -74,21 +79,21 @@ export function CaptureAnimationOverlay() {
             {/* Collision Arrow */}
             <motion.div 
               initial={{ scale: 0, rotate: -90 }}
-              animate={{ scale: isMe ? 1 : 1.5, rotate: 0 }}
+              animate={{ scale: isMe ? 1 : (window.innerWidth < 640 ? 1.1 : 1.5), rotate: 0 }}
               transition={{ delay: 0.3, type: 'spring' }}
-              className="text-brass/80 text-3xl sm:text-5xl font-bold"
+              className="text-brass/80 text-2xl sm:text-5xl font-bold"
             >
               ➝
             </motion.div>
 
             {/* The Captured Cards */}
-            <div className="flex -space-x-16 sm:-space-x-24">
+            <div className="flex -space-x-12 sm:-space-x-24">
               {capturedCards?.map((c, i) => (
                 <motion.div
                   key={`${c.rank}-${c.suit}-${i}`}
                   initial={{ scale: 0.3, opacity: 0, x: 200, y: 50 }}
                   animate={{ 
-                    scale: isMe ? 1 : 1.3, 
+                    scale: isMe ? 1 : (window.innerWidth < 640 ? 1.05 : 1.3), 
                     opacity: 1, 
                     x: 0, 
                     y: 0,
@@ -113,8 +118,8 @@ export function CaptureAnimationOverlay() {
              <motion.div
                animate={{ 
                  scale: [1, 1.1, 0],
-                 x: isMe ? -500 : 500,
-                 y: isMe ? 600 : -600,
+                 x: isMe ? (window.innerWidth < 640 ? -250 : -500) : (window.innerWidth < 640 ? 250 : 500),
+                 y: isMe ? (window.innerWidth < 640 ? 300 : 600) : (window.innerWidth < 640 ? -300 : -600),
                  rotate: isMe ? -120 : 120,
                  opacity: [1, 1, 0]
                }}
