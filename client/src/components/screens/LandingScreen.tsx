@@ -62,10 +62,8 @@ export function LandingScreen() {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="h-full relative overflow-hidden bg-transparent flex flex-col items-center justify-center p-4 sm:p-6"
+      className="min-h-full relative overflow-y-auto overflow-x-hidden bg-transparent flex flex-col items-center p-4 sm:p-6 pb-20"
     >
-      {/* Cinematic Background (Provided by App.tsx) */}
-      
       {/* Decorative Coffee Steam Particles */}
       <div className="absolute bottom-0 left-1/4 z-10 pointer-events-none opacity-20">
         {[1, 2, 3, 4, 5].map((i) => (
@@ -83,7 +81,7 @@ export function LandingScreen() {
         ))}
       </div>
 
-      <div className="relative z-10 w-full max-w-md flex flex-col items-center">
+      <div className="relative z-10 w-full max-w-md flex flex-col items-center mt-12 sm:mt-20">
         {/* Logo / Title Area */}
         <motion.div
           initial={{ y: -30, opacity: 0 }}
@@ -177,6 +175,112 @@ export function LandingScreen() {
         >
           Mediterranean Card Games • Est. 2024
         </motion.p>
+      </div>
+
+      {/* --- SEO CONTENT SECTIONS --- */}
+      <div className="w-full max-w-4xl mt-24 space-y-20 relative z-10 px-4">
+        
+        {/* Comment jouer à la Chkobba */}
+        <section className="space-y-6">
+          <h2 className="text-3xl sm:text-4xl font-ancient text-brass text-center">Comment jouer à la Chkobba ?</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="glass-panel-heavy p-6 rounded-2xl border-brass/10">
+              <div className="text-brass font-ancient text-2xl mb-3">01.</div>
+              <h3 className="text-xl text-cream font-bold mb-2">La Distribution</h3>
+              <p className="text-cream/60 text-sm leading-relaxed">Chaque joueur reçoit 3 cartes, et 4 cartes sont posées face visible sur la table. Le jeu se joue avec un jeu de 40 cartes traditionnel.</p>
+            </div>
+            <div className="glass-panel-heavy p-6 rounded-2xl border-brass/10">
+              <div className="text-brass font-ancient text-2xl mb-3">02.</div>
+              <h3 className="text-xl text-cream font-bold mb-2">La Capture</h3>
+              <p className="text-cream/60 text-sm leading-relaxed">À votre tour, jouez une carte. Si sa valeur correspond à une carte sur la table ou à la somme de plusieurs cartes, vous les capturez.</p>
+            </div>
+            <div className="glass-panel-heavy p-6 rounded-2xl border-brass/10">
+              <div className="text-brass font-ancient text-2xl mb-3">03.</div>
+              <h3 className="text-xl text-cream font-bold mb-2">La Chkobba</h3>
+              <p className="text-cream/60 text-sm leading-relaxed">Si vous capturez la dernière carte de la table, vous faites une "Chkobba" et gagnez un point supplémentaire immédiat.</p>
+            </div>
+          </div>
+        </section>
+
+        {/* Règles de la Chkobba */}
+        <section className="glass-panel-heavy p-8 sm:p-12 rounded-[3rem] border-brass/10 space-y-8">
+          <h2 className="text-3xl font-ancient text-brass">Règles de la Chkobba : Le Décompte des Points</h2>
+          <p className="text-cream/70 leading-relaxed">Pour gagner à la Chkobba en ligne sur chkobba.app, vous devez atteindre 21 points. Voici comment les points sont calculés à la fin de chaque manche :</p>
+          
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            <div className="flex gap-4">
+              <div className="w-10 h-10 rounded-full bg-brass/20 flex items-center justify-center flex-shrink-0 text-brass font-bold">1</div>
+              <div>
+                <h4 className="text-cream font-bold">Carta (Les Cartes)</h4>
+                <p className="text-cream/50 text-sm">L'équipe qui a capturé plus de 20 cartes gagne 1 point.</p>
+              </div>
+            </div>
+            <div className="flex gap-4">
+              <div className="w-10 h-10 rounded-full bg-brass/20 flex items-center justify-center flex-shrink-0 text-brass font-bold">1</div>
+              <div>
+                <h4 className="text-cream font-bold">Dinari (Les Carreaux)</h4>
+                <p className="text-cream/50 text-sm">L'équipe qui a plus de 5 cartes de carreau gagne 1 point.</p>
+              </div>
+            </div>
+            <div className="flex gap-4">
+              <div className="w-10 h-10 rounded-full bg-brass/20 flex items-center justify-center flex-shrink-0 text-brass font-bold">1</div>
+              <div>
+                <h4 className="text-cream font-bold">Bermila (Les Sept)</h4>
+                <p className="text-cream/50 text-sm">L'équipe qui a le plus de 7 (ou de 6 en cas d'égalité) gagne 1 point.</p>
+              </div>
+            </div>
+            <div className="flex gap-4">
+              <div className="w-10 h-10 rounded-full bg-brass/20 flex items-center justify-center flex-shrink-0 text-brass font-bold">1</div>
+              <div>
+                <h4 className="text-cream font-bold">Sabaa El Haya (7 de Carreau)</h4>
+                <p className="text-cream/50 text-sm">Le joueur qui capture le 7 de carreau gagne automatiquement 1 point.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* FAQ Section */}
+        <section className="space-y-8">
+          <h2 className="text-3xl font-ancient text-brass text-center">Foire Aux Questions (FAQ)</h2>
+          <div className="space-y-4">
+            <details className="glass-panel-heavy p-6 rounded-2xl border-brass/10 group cursor-pointer">
+              <summary className="text-cream font-bold list-none flex justify-between items-center">
+                Peut-on jouer à la Chkobba en ligne gratuitement ?
+                <span className="text-brass group-open:rotate-180 transition-transform">↓</span>
+              </summary>
+              <p className="mt-4 text-cream/60 text-sm">Oui, sur chkobba.app, vous pouvez jouer gratuitement sans inscription et sans téléchargement.</p>
+            </details>
+            <details className="glass-panel-heavy p-6 rounded-2xl border-brass/10 group cursor-pointer">
+              <summary className="text-cream font-bold list-none flex justify-between items-center">
+                Comment jouer avec des amis à distance ?
+                <span className="text-brass group-open:rotate-180 transition-transform">↓</span>
+              </summary>
+              <p className="mt-4 text-cream/60 text-sm">Il suffit de créer une table, de copier le code de la chambre et de l'envoyer à vos amis pour qu'ils rejoignent votre partie en temps réel.</p>
+            </details>
+            <details className="glass-panel-heavy p-6 rounded-2xl border-brass/10 group cursor-pointer">
+              <summary className="text-cream font-bold list-none flex justify-between items-center">
+                Le jeu est-il disponible sur mobile ?
+                <span className="text-brass group-open:rotate-180 transition-transform">↓</span>
+              </summary>
+              <p className="mt-4 text-cream/60 text-sm">Absolument. Chkobba.app est une Web App optimisée pour tous les navigateurs mobiles, iPhone et Android.</p>
+            </details>
+            <details className="glass-panel-heavy p-6 rounded-2xl border-brass/10 group cursor-pointer">
+              <summary className="text-cream font-bold list-none flex justify-between items-center">
+                Quelles sont les différences entre Chkobba et Scopa ?
+                <span className="text-brass group-open:rotate-180 transition-transform">↓</span>
+              </summary>
+              <p className="mt-4 text-cream/60 text-sm">La Chkobba est la variante tunisienne de la Scopa italienne. Les règles de base sont identiques, mais le décompte des points (Carta, Dinari, Bermila) est spécifique à la tradition tunisienne.</p>
+            </details>
+            <details className="glass-panel-heavy p-6 rounded-2xl border-brass/10 group cursor-pointer">
+              <summary className="text-cream font-bold list-none flex justify-between items-center">
+                Peut-on jouer contre l'ordinateur (Bot) ?
+                <span className="text-brass group-open:rotate-180 transition-transform">↓</span>
+              </summary>
+              <p className="mt-4 text-cream/60 text-sm">Oui, vous pouvez ajouter des bots à votre table pour vous entraîner ou compléter une partie si vous êtes seul.</p>
+            </details>
+          </div>
+        </section>
+
       </div>
     </motion.section>
   );
