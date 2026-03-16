@@ -37,12 +37,23 @@ const io = new Server(server, {
 
 // Serve static files from client build (for Render deployment)
 const clientDistPath = path.join(__dirname, '..', '..', 'client', 'dist');
-app.use(express.static(clientDistPath));
 
 // Health check route
 app.get("/health", (req, res) => {
   res.status(200).send("OK");
 });
+
+// Explicit routes for SEO/Static files to ensure they are NOT caught by the SPA fallback
+app.get('/sitemap.xml', (req, res) => {
+  res.sendFile(path.join(clientDistPath, 'sitemap.xml'));
+});
+
+app.get('/robots.txt', (req, res) => {
+  res.sendFile(path.join(clientDistPath, 'robots.txt'));
+});
+
+// Serve static files from client build
+app.use(express.static(clientDistPath));
 
 // Game instances stored by room ID
 const chkobbaGames = new Map<string, Game>();
