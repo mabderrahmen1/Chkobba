@@ -59,7 +59,7 @@ export function MoveLog() {
       <div className="flex items-center gap-2 mb-2 ml-1">
         <div className="w-1.5 h-1.5 bg-brass rounded-full shadow-glow-brass animate-pulse" />
         <h3 className="text-[9px] text-brass/70 font-ancient font-bold uppercase tracking-[0.3em] drop-shadow-md">
-          Combat Log
+          Move History
         </h3>
       </div>
       

@@ -27,14 +27,16 @@ export default function App() {
       </video>
       <div className="fixed inset-0 z-0 bg-dark-gradient opacity-60" />
 
-      <AnimatePresence mode="wait">
-        {screen === 'landing' && <LandingScreen key="landing" />}
-        {screen === 'createRoom' && <CreateRoomScreen key="createRoom" />}
-        {screen === 'joinRoom' && <JoinRoomScreen key="joinRoom" />}
-        {screen === 'lobby' && <LobbyScreen key="lobby" />}
-        {screen === 'game' && <GameScreen key="game" />}
-      </AnimatePresence>
-      {screen === 'game' && <ChatPanel />}
+      <main className="relative z-10 h-full">
+        <AnimatePresence mode="wait">
+          {screen === 'landing' && <LandingScreen key="landing" />}
+          {screen === 'createRoom' && <CreateRoomScreen key="createRoom" />}
+          {screen === 'joinRoom' && <JoinRoomScreen key="joinRoom" />}
+          {screen === 'lobby' && <LobbyScreen key="lobby" />}
+          {screen === 'game' && <GameScreen key="game" />}
+        </AnimatePresence>
+        {screen === 'game' && <ChatPanel />}
+      </main>
       <Toast />
     </div>
   );

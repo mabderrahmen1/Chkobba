@@ -123,6 +123,14 @@ export function Scoreboard() {
   const storeIsHost = useGameStore((s) => s.isHost);
   const [expanded, setExpanded] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [confirmLeave, setConfirmLeave] = useState(false);
+
+  // Auto-reset confirmLeave after 3 seconds (with cleanup to prevent memory leak)
+  useEffect(() => {
+    if (!confirmLeave) return;
+    const timer = setTimeout(() => setConfirmLeave(false), 3000);
+    return () => clearTimeout(timer);
+  }, [confirmLeave]);
 
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 768);
@@ -239,27 +247,28 @@ export function Scoreboard() {
           whileHover={{ scale: 1.02, backgroundColor: 'rgba(255, 0, 0, 0.1)' }}
           whileTap={{ scale: 0.96 }}
           onClick={() => {
-            // 1. Notify server
+            if (!confirmLeave) {
+              setConfirmLeave(true);
+              return;
+            }
             socket.emit('leave_room');
-            
-            // 2. Clear submitting state so landing buttons are ready
             useUIStore.getState().setIsSubmitting(false);
-            
-            // 3. Move to landing first while data still exists for the exit animation
             useUIStore.getState().setScreen('landing');
-            
-            // 4. Clear local session storage
             sessionStorage.removeItem('chkobba-storage');
-            
-            // 5. Wipe internal state after a tiny delay to allow navigation to start
             setTimeout(() => {
               useGameStore.getState().reset();
             }, 100);
           }}
-          className="w-full flex flex-col items-center justify-center py-4 rounded-xl border border-red-500/20 bg-red-500/5 group transition-all"
+          className={`w-full flex flex-col items-center justify-center py-4 rounded-xl border group transition-all min-h-[44px] ${
+            confirmLeave
+              ? 'border-red-500/50 bg-red-500/15 animate-pulse'
+              : 'border-red-500/20 bg-red-500/5'
+          }`}
         >
-          <span className="text-[11px] text-red-400 group-hover:text-red-300 font-ancient uppercase tracking-[0.3em] font-black">
-            Leave Game
+          <span className={`text-[11px] group-hover:text-red-300 font-ancient uppercase tracking-[0.3em] font-black ${
+            confirmLeave ? 'text-red-300' : 'text-red-400'
+          }`}>
+            {confirmLeave ? 'Tap Again to Confirm' : 'Leave Game'}
           </span>
         </motion.button>
       </div>

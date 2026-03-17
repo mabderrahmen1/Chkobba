@@ -102,9 +102,10 @@ export function ChatPanel() {
 
             {/* Quick Chat Bar with Arrows */}
             <div className="relative bg-black/60 border-t border-white/5 flex items-center group/qc">
-              <button 
+              <button
                 onClick={() => scrollQuickChat('left')}
-                className="absolute left-0 z-10 h-full px-1 bg-gradient-to-r from-black/80 to-transparent text-brass-light opacity-0 group-hover/qc:opacity-100 transition-opacity"
+                className="absolute left-0 z-10 h-full min-w-[44px] px-2 bg-gradient-to-r from-black/80 to-transparent text-brass-light opacity-0 group-hover/qc:opacity-100 transition-opacity flex items-center justify-center"
+                aria-label="Scroll quick chats left"
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
               </button>
@@ -124,9 +125,10 @@ export function ChatPanel() {
                 ))}
               </div>
 
-              <button 
+              <button
                 onClick={() => scrollQuickChat('right')}
-                className="absolute right-0 z-10 h-full px-1 bg-gradient-to-l from-black/80 to-transparent text-brass-light opacity-0 group-hover/qc:opacity-100 transition-opacity"
+                className="absolute right-0 z-10 h-full min-w-[44px] px-2 bg-gradient-to-l from-black/80 to-transparent text-brass-light opacity-0 group-hover/qc:opacity-100 transition-opacity flex items-center justify-center"
+                aria-label="Scroll quick chats right"
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
               </button>

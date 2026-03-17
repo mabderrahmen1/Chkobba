@@ -69,8 +69,9 @@ export function GameTable() {
       <div className="absolute top-4 left-4 z-[60]">
         <button
           onClick={toggleSoundEffects}
-          className="p-2 rounded-full bg-black/40 border border-brass/30 text-brass hover:bg-black/60 transition-all shadow-lg"
+          className="p-2.5 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full bg-black/40 border border-brass/30 text-brass hover:bg-black/60 transition-all shadow-lg"
           title={soundEffectsMuted ? "Unmute SFX" : "Mute SFX"}
+          aria-label={soundEffectsMuted ? "Unmute sound effects" : "Mute sound effects"}
         >
           {soundEffectsMuted ? (
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -102,7 +103,10 @@ export function GameTable() {
           }}
         >
           {/* Subtle wood grain texture */}
-          <div className="absolute inset-0 opacity-30 pointer-events-none mix-blend-overlay bg-[url('https://www.transparenttextures.com/patterns/wood-pattern.png')]" />
+          <div className="absolute inset-0 opacity-30 pointer-events-none mix-blend-overlay" style={{
+            backgroundImage: `url("data:image/svg+xml,%3Csvg width='200' height='200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='w'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.02 0.15' numOctaves='5' seed='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23w)' opacity='0.5'/%3E%3C/svg%3E")`,
+            backgroundSize: '200px 200px'
+          }} />
 
           {/* The Felt Center */}
           <motion.div

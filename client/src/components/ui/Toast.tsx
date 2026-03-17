@@ -75,7 +75,8 @@ function ToastItem({ id, message, type }: { id: string; message: string; type: s
 
       <button
         onClick={handleRemove}
-        className="ml-2 p-1 hover:bg-white/10 rounded-full transition-colors opacity-40 hover:opacity-100"
+        className="ml-2 p-1 min-w-[44px] min-h-[44px] flex items-center justify-center hover:bg-white/10 rounded-full transition-colors opacity-40 hover:opacity-100"
+        aria-label="Dismiss notification"
       >
         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />

@@ -100,6 +100,14 @@ This starts the server with auto-reload. For frontend development, run the Vite 
 cd client && npm run dev
 ```
 
+### Running Tests
+
+```bash
+cd client && npm test
+```
+
+Tests cover card accessibility (ARIA, keyboard), capture sum logic, modal focus trapping, and SEO compliance of the HTML output.
+
 ### Access the Game
 
 ```
@@ -145,10 +153,11 @@ chkobba/
 │   │   ├── components/     # React components
 │   │   │   ├── screens/    # LandingScreen, CreateRoomScreen, LobbyScreen, GameScreen
 │   │   │   ├── game/       # GameTable, Scoreboard, Card, RummyGameScreen, effects
-│   │   │   └── ui/         # Button, Badge, Toast
+│   │   │   └── ui/         # Button, Input, Modal, Toast
 │   │   ├── stores/         # Zustand state management
 │   │   ├── hooks/          # useSocket, useAmbianceSound
-│   │   └── lib/            # socket.ts, cardUtils.ts (SVG card generation)
+│   │   ├── lib/            # socket.ts, cardUtils.ts (SVG card generation)
+│   │   └── test/           # Vitest tests (a11y, capture logic, SEO, modal)
 │   └── public/             # Static assets (images, sounds)
 │
 ├── server/                 # Backend (Node.js + Express + TypeScript)
@@ -180,8 +189,13 @@ chkobba/
 - **Configurable**: Target score, player count, game mode — all adjustable in-lobby
 - **Special Effects**: Chkobba sweep animation, Hayya (7 of diamonds) capture effect
 - **Ambient Sound**: Vintage radio with cafe ambiance
-- **In-game Chat**
-- **Responsive Design**: Desktop, tablet, and mobile
+- **In-game Chat** with Tunisian quick-chat phrases
+- **Capture Sum Display**: Real-time sum indicator shows valid/invalid captures
+- **Contextual Play Button**: Shows "Drop", "Capture N", or "Invalid" based on selection
+- **Accessible**: WCAG-friendly cards with keyboard navigation, ARIA roles, focus traps
+- **Reduced Motion Support**: Respects `prefers-reduced-motion` OS setting
+- **Responsive Design**: Desktop, tablet, and mobile with 44px minimum touch targets
+- **SEO Optimized**: Structured data, Open Graph, noscript fallback, semantic HTML landmarks
 - **Session Persistence**: Rejoin after disconnect (5-minute window)
 - **No Accounts Required**: Just pick a nickname and play
 
