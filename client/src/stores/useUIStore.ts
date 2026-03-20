@@ -2,7 +2,6 @@ import { create } from 'zustand';
 
 export type Screen = 'landing' | 'createRoom' | 'joinRoom' | 'lobby' | 'game';
 export type ToastType = 'info' | 'success' | 'error';
-export type WaitressStatus = 'idle' | 'serving';
 
 interface ToastMessage {
   id: string;
@@ -12,19 +11,13 @@ interface ToastMessage {
 
 interface UIStore {
   screen: Screen;
-  showAmbiance: boolean;
   soundEffectsMuted: boolean;
   toasts: ToastMessage[];
-  waitressStatus: WaitressStatus;
-  isWaitressVisible: boolean;
   isSubmitting: boolean;
   setScreen: (screen: Screen) => void;
-  toggleAmbiance: () => void;
   toggleSoundEffects: () => void;
   addToast: (message: string, type?: ToastType) => void;
   removeToast: (id: string) => void;
-  setWaitressStatus: (status: WaitressStatus) => void;
-  setWaitressVisible: (visible: boolean) => void;
   setIsSubmitting: (isSubmitting: boolean) => void;
 }
 
@@ -37,7 +30,7 @@ const getInitialScreen = (): Screen => {
       const data = JSON.parse(raw);
       if (data.state && data.state.roomId && data.state.playerId) {
         // If we have a session, start in 'lobby' as a loading state
-        return 'lobby'; 
+        return 'lobby';
       }
     }
   } catch (e) {}
@@ -46,15 +39,11 @@ const getInitialScreen = (): Screen => {
 
 export const useUIStore = create<UIStore>((set) => ({
   screen: getInitialScreen(),
-  showAmbiance: true,
   soundEffectsMuted: false,
   toasts: [],
-  waitressStatus: 'idle',
-  isWaitressVisible: false,
   isSubmitting: false,
 
   setScreen: (screen) => set({ screen }),
-  toggleAmbiance: () => set((state) => ({ showAmbiance: !state.showAmbiance })),
   toggleSoundEffects: () => set((state) => ({ soundEffectsMuted: !state.soundEffectsMuted })),
 
   addToast: (message, type = 'info') => {
@@ -75,7 +64,5 @@ export const useUIStore = create<UIStore>((set) => ({
       toasts: state.toasts.filter((t) => t.id !== id),
     })),
 
-  setWaitressStatus: (waitressStatus) => set({ waitressStatus }),
-  setWaitressVisible: (isWaitressVisible) => set({ isWaitressVisible }),
   setIsSubmitting: (isSubmitting) => set({ isSubmitting }),
 }));

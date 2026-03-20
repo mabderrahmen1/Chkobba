@@ -45,57 +45,57 @@ export function RoundEndModal() {
 
   return (
     <Modal isOpen={!!roundResult}>
-      <h3 className="text-xl sm:text-2xl font-ancient font-bold text-brass mb-4 sm:mb-6">
+      <h3 className="text-xl sm:text-2xl font-bold text-text-primary mb-4 sm:mb-6">
         {isRummy ? 'Round Won!' : 'Round Over!'}
       </h3>
-      
+
       {isRummy ? (
         <div className="flex flex-col gap-4 text-center">
-          <div className="bg-emerald-900/20 border border-emerald-500/30 p-4 rounded-xl">
-            <span className="text-emerald-400 font-ancient text-lg uppercase tracking-widest block mb-1">Winner</span>
-            <span className="text-white font-bold text-2xl">{rummyResult?.winnerNickname}</span>
+          <div className="bg-success/10 border border-success/30 p-4 rounded-xl">
+            <span className="text-success font-semibold text-sm uppercase tracking-wider block mb-1">Winner</span>
+            <span className="text-text-primary font-bold text-2xl">{rummyResult?.winnerNickname}</span>
           </div>
-          
+
           <div className="flex flex-col gap-2">
-            <span className="text-cream/40 text-[10px] uppercase tracking-[0.2em] font-bold">Penalty Points</span>
+            <span className="text-text-tertiary text-xs uppercase tracking-wider font-semibold">Penalty Points</span>
             <div className="grid grid-cols-2 gap-2">
               {rummyGameState?.players.map(p => (
-                <div key={p.id} className="bg-black/40 p-2 rounded-lg border border-white/5 flex justify-between items-center px-4">
-                  <span className="text-cream-dark text-xs truncate max-w-[80px]">{p.nickname}</span>
-                  <span className="text-red-400 font-bold">{rummyResult?.penalties?.[p.id] || 0}</span>
+                <div key={p.id} className="bg-surface-2 p-2 rounded-lg border border-border flex justify-between items-center px-4">
+                  <span className="text-text-secondary text-xs truncate max-w-[80px]">{p.nickname}</span>
+                  <span className="text-danger font-bold">{rummyResult?.penalties?.[p.id] || 0}</span>
                 </div>
               ))}
             </div>
           </div>
         </div>
       ) : (
-        <div className="flex flex-col gap-2 text-left">
+        <div className="flex flex-col gap-2.5 text-left">
           {/* Header row */}
           <div className="flex justify-between px-4 py-1">
-            <span className="text-foreground-muted text-xs font-ancient uppercase tracking-wider">Category</span>
+            <span className="text-text-tertiary text-xs uppercase tracking-wider">Category</span>
             <div className="flex gap-4">
-              <span className="text-accent text-xs font-ancient font-semibold w-8 text-center">T1</span>
-              <span className="text-turquoise text-xs font-ancient font-semibold w-8 text-center">T2</span>
+              <span className="text-team1 text-xs font-semibold w-8 text-center">T1</span>
+              <span className="text-team2 text-xs font-semibold w-8 text-center">T2</span>
             </div>
           </div>
           {chkobbaCategories.map((cat) => (
             <div
               key={cat.name}
-              className="flex justify-between px-4 py-2.5 bg-surface-card rounded-lg border border-brass/10"
+              className="flex justify-between px-4 py-2.5 bg-surface-2 rounded-lg border border-border"
             >
-              <span className="text-cream-dark text-xs sm:text-sm font-body">{cat.name}</span>
+              <span className="text-text-secondary text-xs sm:text-sm">{cat.name}</span>
               <div className="flex gap-4">
-                <span className="font-bold text-accent w-8 text-center">{cat.scores.team0}</span>
-                <span className="font-bold text-turquoise w-8 text-center">{cat.scores.team1}</span>
+                <span className="font-bold text-team1 w-8 text-center">{cat.scores.team0}</span>
+                <span className="font-bold text-team2 w-8 text-center">{cat.scores.team1}</span>
               </div>
             </div>
           ))}
           {chkobbaResult && (
-            <div className="flex justify-between px-4 py-3 mt-2 border-t border-brass/20 pt-4">
-              <span className="font-ancient font-bold text-brass">Total</span>
+            <div className="flex justify-between px-4 py-3 mt-2 border-t border-border pt-4">
+              <span className="font-semibold text-text-primary">Total</span>
               <div className="flex gap-4">
-                <span className="font-bold text-accent w-8 text-center">{chkobbaResult.totals.team0}</span>
-                <span className="font-bold text-turquoise w-8 text-center">{chkobbaResult.totals.team1}</span>
+                <span className="font-bold text-team1 w-8 text-center">{chkobbaResult.totals.team0}</span>
+                <span className="font-bold text-team2 w-8 text-center">{chkobbaResult.totals.team1}</span>
               </div>
             </div>
           )}
@@ -103,18 +103,18 @@ export function RoundEndModal() {
       )}
 
       {gameState && !isRummy && (
-        <div className="flex justify-between px-4 py-3 mt-4 bg-surface-card rounded-lg border border-brass/20">
-          <span className="font-ancient font-bold text-brass">Overall</span>
+        <div className="flex justify-between px-4 py-3 mt-4 bg-surface-2 rounded-lg border border-border">
+          <span className="font-semibold text-text-primary">Overall</span>
           <div className="flex gap-4">
-            <span className="font-bold text-accent w-8 text-center">{gameState.scores.team0}</span>
-            <span className="font-bold text-turquoise w-8 text-center">{gameState.scores.team1}</span>
+            <span className="font-bold text-team1 w-8 text-center">{gameState.scores.team0}</span>
+            <span className="font-bold text-team2 w-8 text-center">{gameState.scores.team1}</span>
           </div>
         </div>
       )}
 
       <div className="mt-8 flex justify-center">
         {waiting ? (
-          <p className="text-cream-dark/60 font-ancient text-sm italic text-center animate-pulse">
+          <p className="text-text-tertiary text-sm italic text-center animate-pulse">
             Waiting for other players...
           </p>
         ) : (

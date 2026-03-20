@@ -7,7 +7,7 @@ import { socket } from '../../lib/socket';
 import { Card } from './Card';
 import { Button } from '../ui/Button';
 import { GameOverModal } from './GameOverModal';
-import { VintageRadio } from './ambiance/VintageRadio';
+import { MusicControl } from './MusicControl';
 import { useAmbianceSound } from '../../hooks/useAmbianceSound';
 import { DealingAnimation } from './DealingAnimation';
 import type { RummyPlayer, Meld, MeldType, Card as CardType } from '@shared/types';
@@ -23,7 +23,7 @@ export function RummyGameScreen() {
   const [draggedCard, setDraggedCard] = useState<DragCard | null>(null);
   const [meldPreview, setMeldPreview] = useState<Meld | null>(null);
   const [sortMode, setSortMode] = useState<'suit' | 'rank' | 'none'>('none');
-  
+
   const gameState = useGameStore((s) => s.rummyGameState);
   const playerId = useGameStore((s) => s.playerId);
   const gameOverData = useGameStore((s) => s.gameOverData);
@@ -34,7 +34,6 @@ export function RummyGameScreen() {
   const [isOverMeldZone, setIsOverMeldZone] = useState(false);
   const prevDiscardCount = useRef(gameState.discardPile.length);
 
-  // Sound when any player (you or opponent) "eats" from discard pile
   useEffect(() => {
     if (gameState.discardPile.length < prevDiscardCount.current) {
       playCardCapture();
@@ -42,7 +41,6 @@ export function RummyGameScreen() {
     prevDiscardCount.current = gameState.discardPile.length;
   }, [gameState.discardPile.length, playCardCapture]);
 
-  // Ensure shuffle plays when distributing state turns on
   useEffect(() => {
     if (isDistributing) {
       playCardShuffle();
@@ -51,9 +49,9 @@ export function RummyGameScreen() {
 
   if (!gameState) {
     return (
-      <div className="h-full flex flex-col items-center justify-center bg-[#1a120e]">
-        <div className="w-12 h-12 border-4 border-brass border-t-transparent rounded-full animate-spin mb-4" />
-        <p className="text-brass font-ancient animate-pulse uppercase tracking-widest">Preparing Table...</p>
+      <div className="h-full flex flex-col items-center justify-center bg-bg">
+        <div className="w-12 h-12 border-4 border-accent border-t-transparent rounded-full animate-spin mb-4" />
+        <p className="text-text-secondary animate-pulse text-sm">Preparing Table...</p>
       </div>
     );
   }
@@ -62,16 +60,15 @@ export function RummyGameScreen() {
   const isCurrentTurn = gameState.currentTurn === playerId;
   const topDiscard = gameState.discardPile[gameState.discardPile.length - 1];
 
-  // Sort hand based on sort mode
   const getSortedHand = () => {
     if (!currentPlayer?.hand) return [];
     if (sortMode === 'none') return currentPlayer.hand.map((_, i) => ({ card: _, index: i }));
-    
+
     const suitOrder = { spades: 0, hearts: 1, diamonds: 2, clubs: 3 };
     const rankOrder = { A: 1, '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9': 9, '10': 10, J: 11, Q: 12, K: 13, Joker: 0 };
-    
+
     const indexed = currentPlayer.hand.map((card, i) => ({ card, index: i }));
-    
+
     if (sortMode === 'suit') {
       return indexed.sort((a, b) => {
         const suitDiff = suitOrder[a.card.suit as keyof typeof suitOrder] - suitOrder[b.card.suit as keyof typeof suitOrder];
@@ -79,13 +76,13 @@ export function RummyGameScreen() {
         return rankOrder[a.card.rank as keyof typeof rankOrder] - rankOrder[b.card.rank as keyof typeof rankOrder];
       });
     }
-    
+
     if (sortMode === 'rank') {
       return indexed.sort((a, b) => {
         return rankOrder[b.card.rank as keyof typeof rankOrder] - rankOrder[a.card.rank as keyof typeof rankOrder];
       });
     }
-    
+
     return indexed;
   };
 
@@ -100,7 +97,6 @@ export function RummyGameScreen() {
 
   const handleDrawDiscard = () => {
     if (!isCurrentTurn || !isConnected) return;
-    // Sound is handled by the useEffect watching discardPile length
     socket.emit('rummy_draw_discard');
   };
 
@@ -141,14 +137,12 @@ export function RummyGameScreen() {
   const toggleCardSelection = (index: number) => {
     setSelectedCards((prev) => {
       const next = prev.includes(index) ? prev.filter((i) => i !== index) : [...prev, index];
-      // Auto-enter lay-off mode when exactly 1 card selected (and has drawn)
       if (next.length === 1 && hasDrawn) setLayOffMode(true);
       else setLayOffMode(false);
       return next;
     });
   };
 
-  // Drag handlers
   const handleDragStart = (cardIndex: number) => {
     if (!isCurrentTurn) return;
     setDraggedCard({ cardIndex, playerId: playerId! });
@@ -161,52 +155,30 @@ export function RummyGameScreen() {
 
   const handleDropOnMeldZone = () => {
     if (!draggedCard || !isCurrentTurn) return;
-    
-    // Auto-detect meld type based on selected cards
+
     const indices = selectedCards.includes(draggedCard.cardIndex)
       ? selectedCards
       : [...selectedCards, draggedCard.cardIndex];
-    
+
     if (indices.length >= 3 && currentPlayer?.hand) {
       const cards = indices.map(i => currentPlayer.hand[i]);
       const nonJokers = cards.filter(c => !c.isJoker);
-      
-      let type: 'set' | 'sequence' = 'sequence'; // Default
-      
+
+      let type: 'set' | 'sequence' = 'sequence';
+
       if (nonJokers.length >= 2) {
-        // If at least two non-jokers have the same rank, it's definitely meant to be a set
         if (nonJokers[0].rank === nonJokers[1].rank) {
           type = 'set';
         }
       } else if (nonJokers.length === 1) {
-        // Only one non-joker, technically valid for both if enough jokers, guess set
         type = 'set';
       }
 
       handleCreateMeld(type);
     }
-    
+
     setDraggedCard(null);
     setIsOverMeldZone(false);
-  };
-
-  // Get player position for horizontal layout
-  const getPlayerPosition = (index: number, total: number) => {
-    if (total === 2) {
-      return index === 0 ? 'opponent' : 'self';
-    }
-    if (total === 3) {
-      if (gameState.players[index].id === playerId) return 'self';
-      return index < total / 2 ? 'left' : 'right';
-    }
-    // 4+ players
-    if (gameState.players[index].id === playerId) return 'self';
-    const playerIndex = gameState.players.findIndex(p => p.id === playerId);
-    const relativeIndex = (index - playerIndex + total) % total;
-    if (relativeIndex === 0) return 'self';
-    if (relativeIndex === total / 2) return 'opponent';
-    if (relativeIndex < total / 2) return 'right';
-    return 'left';
   };
 
   const handleLeave = () => {
@@ -228,45 +200,41 @@ export function RummyGameScreen() {
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.5 }}
-      className="h-full w-full flex flex-col bg-transparent overflow-hidden relative"
+      className="h-full w-full flex flex-col bg-bg overflow-hidden relative"
     >
+      <h1 className="sr-only">Rummy Game</h1>
       <DealingAnimation />
-      
-      {/* Ambient lighting */}
-      <div className="absolute inset-0 pointer-events-none z-0" style={{
-        background: 'radial-gradient(ellipse at 50% 30%, rgba(212,175,55,0.06) 0%, transparent 50%), radial-gradient(ellipse at 50% 100%, rgba(90,53,32,0.15) 0%, transparent 40%)'
-      }} />
-      
-      {/* Top bar - Turn indicator and Leave Button */}
+
+      {/* Top bar */}
       <div className="flex-none h-12 flex items-center justify-between px-4 sm:px-6 relative z-20 w-full mt-2">
-        <div className="w-[100px]"></div> {/* Spacer */}
+        <div className="w-[100px]"></div>
         <AnimatePresence mode="wait">
           <motion.div
             key={gameState.currentTurn}
             initial={{ opacity: 0, y: -12, scale: 0.9 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -12, scale: 0.9 }}
-            className={`px-4 sm:px-6 py-1.5 sm:py-2 rounded-full backdrop-blur-md ${
+            className={`px-4 sm:px-6 py-1.5 sm:py-2 rounded-full ${
               isCurrentTurn
-                ? 'bg-brass/20 border border-brass/50'
-                : 'bg-black/25 border border-white/10'
+                ? 'bg-accent/15 border border-accent/40'
+                : 'bg-surface-2 border border-border'
             }`}
           >
             <motion.span
               animate={isCurrentTurn ? { opacity: [1, 0.6, 1] } : { opacity: 0.7 }}
-              className={`font-ancient text-[10px] sm:text-sm uppercase tracking-[0.2em] font-bold ${
-                isCurrentTurn ? 'text-brass' : 'text-cream-dark/60'
+              className={`text-[10px] sm:text-sm uppercase tracking-wider font-semibold ${
+                isCurrentTurn ? 'text-accent' : 'text-text-tertiary'
               }`}
             >
               {isCurrentTurn ? 'Your Turn' : `${gameState.players.find(p => p.id === gameState.currentTurn)?.nickname || 'Player'}'s Turn`}
             </motion.span>
           </motion.div>
         </AnimatePresence>
-        
+
         <div className="w-[100px] flex justify-end">
           <button
             onClick={handleLeave}
-            className="px-3 py-1.5 rounded-lg bg-red-900/40 border border-red-500/30 text-red-300 font-ancient text-xs uppercase tracking-widest hover:bg-red-800/60 hover:border-red-400/50 transition-all shadow-md"
+            className="px-3 py-1.5 rounded-lg bg-danger/10 border border-danger/30 text-danger text-xs uppercase tracking-wider hover:bg-danger/20 transition-all"
           >
             Leave
           </button>
@@ -280,20 +248,20 @@ export function RummyGameScreen() {
             key={player.id}
             animate={gameState.currentTurn === player.id ? { scale: [1, 1.05, 1] } : {}}
             transition={{ duration: 1.5, repeat: Infinity }}
-            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg bg-black/30 ${
-              gameState.currentTurn === player.id ? 'ring-1 ring-yellow-400/50' : ''
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg bg-surface-2 ${
+              gameState.currentTurn === player.id ? 'ring-1 ring-accent/50' : ''
             }`}
           >
             <div className="flex -space-x-2">
               {player.hand.slice(0, 3).map((_, i) => (
                 <div
                   key={i}
-                  className="w-5 h-7 sm:w-6 sm:h-8 bg-gradient-to-br from-[#8B4513] to-[#5D2906] rounded border border-[#A0522D]"
+                  className="w-5 h-7 sm:w-6 sm:h-8 bg-surface-3 rounded border border-border"
                 />
               ))}
             </div>
-            <span className="text-cream/80 text-[10px] sm:text-xs font-medium">{player.nickname}</span>
-            <span className="text-cream/50 text-[9px] sm:text-xs">{player.hand.length}</span>
+            <span className="text-text-secondary text-[10px] sm:text-xs font-medium">{player.nickname}</span>
+            <span className="text-text-tertiary text-[9px] sm:text-xs">{player.hand.length}</span>
           </motion.div>
         ))}
       </div>
@@ -302,7 +270,7 @@ export function RummyGameScreen() {
       <div className="flex-1 flex items-center justify-center relative w-full overflow-hidden">
         {/* Left opponent */}
         {gameState.players.filter(p => p.id !== playerId).filter((_, i, arr) => arr.length > 1).slice(0, 1).map((player) => (
-          <PlayerZone
+          <RummyPlayerZone
             key={player.id}
             player={player}
             position="left"
@@ -334,7 +302,7 @@ export function RummyGameScreen() {
 
         {/* Right opponent */}
         {gameState.players.filter(p => p.id !== playerId).filter((_, i, arr) => arr.length > 1).slice(1).map((player) => (
-          <PlayerZone
+          <RummyPlayerZone
             key={player.id}
             player={player}
             position="right"
@@ -346,7 +314,7 @@ export function RummyGameScreen() {
 
       {/* Player hand area */}
       <div className="flex-none p-2 sm:p-4 pb-4 sm:pb-6 relative z-20 w-full">
-        <PlayerHand
+        <RummyPlayerHand
           sortedHand={sortedHand}
           selectedCards={selectedCards}
           isCurrentTurn={isCurrentTurn}
@@ -362,8 +330,8 @@ export function RummyGameScreen() {
         />
       </div>
 
-      {/* Vintage Radio */}
-      <VintageRadio />
+      {/* Music Control */}
+      <MusicControl />
 
       {/* Game Over Modal */}
       {gameOverData && <GameOverModal />}
@@ -373,23 +341,23 @@ export function RummyGameScreen() {
 
 // ── Sub-components ──────────────────────────────────────────────────────────
 
-interface PlayerZoneProps {
+interface RummyPlayerZoneProps {
   player: RummyPlayer;
   position: 'left' | 'right' | 'opponent' | 'self';
   isCurrentTurn: boolean;
   isDistributing: boolean;
 }
 
-function PlayerZone({ player, position, isCurrentTurn, isDistributing }: PlayerZoneProps) {
+function RummyPlayerZone({ player, position, isCurrentTurn, isDistributing }: RummyPlayerZoneProps) {
   return (
     <motion.div
       animate={isCurrentTurn ? { scale: [1, 1.02, 1] } : {}}
       transition={{ duration: 1.5, repeat: Infinity }}
-      className={`hidden lg:flex flex-col items-center p-3 sm:p-4 rounded-xl bg-black/30 backdrop-blur-sm min-w-[120px] sm:min-w-[140px] mx-1 sm:mx-2 ${
-        isCurrentTurn ? 'ring-2 ring-yellow-400/50' : ''
+      className={`hidden lg:flex flex-col items-center p-3 sm:p-4 rounded-xl bg-surface-1 border border-border min-w-[120px] sm:min-w-[140px] mx-1 sm:mx-2 ${
+        isCurrentTurn ? 'ring-2 ring-accent/40' : ''
       }`}
     >
-      <div className={`text-cream text-xs sm:text-sm font-bold mb-2 ${isCurrentTurn ? 'text-brass' : ''}`}>
+      <div className={`text-xs sm:text-sm font-semibold mb-2 ${isCurrentTurn ? 'text-accent' : 'text-text-primary'}`}>
         {player.nickname}
       </div>
       <div className="flex -space-x-4 sm:-space-x-6">
@@ -399,23 +367,23 @@ function PlayerZone({ player, position, isCurrentTurn, isDistributing }: PlayerZ
             initial={{ x: i * 20 }}
             animate={{ x: 0 }}
             transition={{ delay: i * 0.05 }}
-            className="w-8 h-11 sm:w-10 sm:h-14 bg-gradient-to-br from-[#8B4513] to-[#5D2906] rounded border border-[#A0522D] shadow-lg"
+            className="w-8 h-11 sm:w-10 sm:h-14 bg-surface-3 rounded border border-border shadow-sm"
           />
         ))}
         {!isDistributing && player.hand.length > 5 && (
-          <div className="w-8 h-11 sm:w-10 sm:h-14 flex items-center justify-center text-cream/60 text-xs font-bold">
+          <div className="w-8 h-11 sm:w-10 sm:h-14 flex items-center justify-center text-text-tertiary text-xs font-bold">
             +{player.hand.length - 5}
           </div>
         )}
       </div>
-      <div className="text-cream/60 text-[10px] sm:text-xs mt-2">{!isDistributing ? player.hand.length : 0} cards</div>
+      <div className="text-text-tertiary text-[10px] sm:text-xs mt-2">{!isDistributing ? player.hand.length : 0} cards</div>
       {!isDistributing && player.melds.length > 0 && (
         <div className="flex gap-1 mt-2">
           {player.melds.slice(0, 3).map((meld, idx) => (
-            <div key={idx} className="w-5 h-7 sm:w-6 sm:h-8 bg-amber-900/40 rounded border border-amber-700/30" />
+            <div key={idx} className="w-5 h-7 sm:w-6 sm:h-8 bg-surface-3 rounded border border-border" />
           ))}
           {player.melds.length > 3 && (
-            <span className="text-cream/40 text-[10px]">+{player.melds.length - 3}</span>
+            <span className="text-text-tertiary text-[10px]">+{player.melds.length - 3}</span>
           )}
         </div>
       )}
@@ -461,36 +429,35 @@ function TableArea({
   const currentPlayer = gameState.players.find((p: RummyPlayer) => p.id === playerId);
 
   return (
-    <div className="flex flex-col items-center gap-6 py-8">
+    <div className="flex flex-col items-center gap-3 sm:gap-6 py-4 sm:py-8">
       {/* Draw and Discard piles */}
-      <div className="flex gap-4 sm:gap-8 md:gap-12 items-center">
+      <div className="flex gap-3 sm:gap-6 md:gap-10 items-center">
         {/* Draw pile */}
         <motion.div
           className="flex flex-col items-center gap-2"
           whileHover={isCurrentTurn ? { scale: 1.05 } : {}}
         >
-          <div className="text-cream/80 text-[10px] sm:text-xs uppercase tracking-wider">Draw</div>
+          <div className="text-text-secondary text-[10px] sm:text-xs uppercase tracking-wider">Draw</div>
           <button
             onClick={onDraw}
             disabled={!isCurrentTurn || isDistributing}
             className={`relative w-16 h-24 sm:w-20 sm:h-28 md:w-24 md:h-32 rounded-lg border-2 transition-all duration-300 ${
               isCurrentTurn && !isDistributing
-                ? 'border-yellow-400/60 cursor-pointer hover:shadow-[0_0_30px_rgba(212,175,55,0.3)]'
-                : 'border-[#5D2906] cursor-not-allowed opacity-40'
-            } bg-gradient-to-br from-[#8B4513] to-[#5D2906]`}
+                ? 'border-accent/50 cursor-pointer hover:border-accent'
+                : 'border-border cursor-not-allowed opacity-40'
+            } bg-surface-3`}
           >
-            {/* Card back pattern */}
             {!isDistributing && (
               <>
-                <div className="absolute inset-2 rounded border border-[#A0522D]/30" />
-                <div className="absolute inset-4 rounded border border-[#A0522D]/20" />
+                <div className="absolute inset-2 rounded border border-border" />
+                <div className="absolute inset-4 rounded border border-border/50" />
               </>
             )}
           </button>
-          <div className="text-cream/50 text-[10px] sm:text-xs">{!isDistributing ? gameState.drawPile.length : 0} cards</div>
+          <div className="text-text-tertiary text-[10px] sm:text-xs">{!isDistributing ? gameState.drawPile.length : 0} cards</div>
         </motion.div>
 
-        {/* Meld zone - center */}
+        {/* Meld zone */}
         <div
           onDragOver={(e) => {
             e.preventDefault();
@@ -501,15 +468,14 @@ function TableArea({
             e.preventDefault();
             onDrop();
           }}
-          className={`relative flex-1 min-w-[200px] sm:min-w-[300px] min-h-[100px] sm:min-h-[140px] rounded-xl border-2 border-dashed transition-all duration-300 p-2 sm:p-4 ${
+          className={`relative flex-1 min-w-[140px] sm:min-w-[240px] min-h-[100px] sm:min-h-[140px] rounded-xl border-2 border-dashed transition-all duration-300 p-2 sm:p-4 ${
             layOffMode
-              ? 'border-emerald-400/70 bg-emerald-400/10 shadow-[0_0_20px_rgba(52,211,153,0.2)]'
+              ? 'border-success/70 bg-success/10'
               : isOverMeldZone
-              ? 'border-yellow-400/60 bg-yellow-400/10 shadow-[0_0_30px_rgba(212,175,55,0.2)]'
-              : 'border-[#5D2906]/40 bg-black/20'
+              ? 'border-accent/50 bg-accent/5'
+              : 'border-border bg-surface-2/50'
           }`}
         >
-          {/* All players' melds */}
           {(() => {
             if (isDistributing) return null;
             const allMelds = gameState.players.flatMap((p: RummyPlayer) => p.melds);
@@ -517,8 +483,8 @@ function TableArea({
               return (
                 <div className="flex items-center justify-center w-full h-full min-h-[80px]">
                   <div className="text-center">
-                    <div className="text-cream/40 text-[9px] sm:text-xs uppercase tracking-widest mb-1">Meld Zone</div>
-                    <div className="text-cream/30 text-[9px] sm:text-xs">
+                    <div className="text-text-tertiary text-xs uppercase tracking-wider mb-1">Meld Zone</div>
+                    <div className="text-text-tertiary/60 text-xs">
                       {layOffMode ? 'No melds to lay off on' : 'Select 3+ cards to meld'}
                     </div>
                   </div>
@@ -537,7 +503,7 @@ function TableArea({
                     onDragOver={(e) => {
                       if (draggedCard) {
                         e.preventDefault();
-                        e.stopPropagation(); // Prevent main dropzone from overriding
+                        e.stopPropagation();
                       }
                     }}
                     onDrop={(e) => {
@@ -547,10 +513,10 @@ function TableArea({
                         onLayOffDrop(meld.id);
                       }
                     }}
-                    className={`flex gap-0.5 sm:gap-1 p-1 rounded-lg backdrop-blur-sm transition-all duration-200 ${
+                    className={`flex gap-0.5 sm:gap-1 p-1 rounded-lg transition-all duration-200 ${
                       layOffMode
-                        ? 'bg-emerald-900/50 border border-emerald-400/50 cursor-pointer hover:border-emerald-300 hover:shadow-[0_0_12px_rgba(52,211,153,0.4)]'
-                        : 'bg-black/30 border border-transparent hover:border-emerald-500/50'
+                        ? 'bg-success/10 border border-success/40 cursor-pointer hover:border-success'
+                        : 'bg-surface-3 border border-transparent hover:border-success/40'
                     }`}
                   >
                     {meld.cards.map((card: CardType, cardIdx: number) => (
@@ -564,7 +530,7 @@ function TableArea({
             );
           })()}
           {layOffMode && !isDistributing && (
-            <div className="absolute top-1 right-2 text-emerald-300/80 text-[9px] font-ancient uppercase tracking-widest">
+            <div className="absolute top-1 right-2 text-success/80 text-[9px] uppercase tracking-wider">
               Click meld to lay off
             </div>
           )}
@@ -575,21 +541,21 @@ function TableArea({
           className="flex flex-col items-center gap-2"
           whileHover={isCurrentTurn ? { scale: 1.05 } : {}}
         >
-          <div className="text-cream/80 text-[10px] sm:text-xs uppercase tracking-wider">Discard</div>
+          <div className="text-text-secondary text-[10px] sm:text-xs uppercase tracking-wider">Discard</div>
           {topDiscard && !isDistributing ? (
             <button
               onClick={onDrawDiscard}
               disabled={!isCurrentTurn}
               className={`w-16 h-24 sm:w-20 sm:h-28 md:w-24 md:h-32 rounded-lg transition-all duration-300 ${
                 isCurrentTurn
-                  ? 'cursor-pointer hover:shadow-[0_0_30px_rgba(212,175,55,0.3)]'
+                  ? 'cursor-pointer hover:ring-2 hover:ring-accent/30'
                   : 'cursor-not-allowed opacity-40'
               }`}
             >
               <Card card={topDiscard} small />
             </button>
           ) : (
-            <div className="w-16 h-24 sm:w-20 sm:h-28 md:w-24 md:h-32 rounded-lg border-2 border-dashed border-[#5D2906]/40 bg-black/20" />
+            <div className="w-16 h-24 sm:w-20 sm:h-28 md:w-24 md:h-32 rounded-lg border-2 border-dashed border-border bg-surface-2/50" />
           )}
         </motion.div>
       </div>
@@ -602,7 +568,7 @@ interface SortedCard {
   index: number;
 }
 
-interface PlayerHandProps {
+interface RummyPlayerHandProps {
   sortedHand: SortedCard[];
   selectedCards: number[];
   isCurrentTurn: boolean;
@@ -617,7 +583,7 @@ interface PlayerHandProps {
   isDistributing: boolean;
 }
 
-function PlayerHand({
+function RummyPlayerHand({
   sortedHand,
   selectedCards,
   isCurrentTurn,
@@ -630,8 +596,7 @@ function PlayerHand({
   sortMode,
   onSortChange,
   isDistributing,
-}: PlayerHandProps) {
-  // Get the original indices from sorted hand
+}: RummyPlayerHandProps) {
   const originalIndices = sortedHand.map(h => h.index);
   const mappedSelectedCards = selectedCards.filter(i => originalIndices.includes(i));
 
@@ -640,20 +605,23 @@ function PlayerHand({
       {/* Sort buttons */}
       <div className="flex gap-2 flex-wrap justify-center">
         <Button
+          variant={sortMode === 'none' ? 'primary' : 'secondary'}
           onClick={() => onSortChange('none')}
-          className={`px-3 py-1 text-xs ${sortMode === 'none' ? 'bg-amber-700' : 'bg-gray-700 hover:bg-gray-600'}`}
+          className="px-3 py-1 text-xs"
         >
           Original
         </Button>
         <Button
+          variant={sortMode === 'suit' ? 'primary' : 'secondary'}
           onClick={() => onSortChange('suit')}
-          className={`px-3 py-1 text-xs ${sortMode === 'suit' ? 'bg-amber-700' : 'bg-gray-700 hover:bg-gray-600'}`}
+          className="px-3 py-1 text-xs"
         >
           Sort by Suit
         </Button>
         <Button
+          variant={sortMode === 'rank' ? 'primary' : 'secondary'}
           onClick={() => onSortChange('rank')}
-          className={`px-3 py-1 text-xs ${sortMode === 'rank' ? 'bg-amber-700' : 'bg-gray-700 hover:bg-gray-600'}`}
+          className="px-3 py-1 text-xs"
         >
           Sort by Rank
         </Button>
@@ -669,14 +637,15 @@ function PlayerHand({
             className="flex gap-2 flex-wrap justify-center"
           >
             <Button
+              variant="secondary"
               onClick={() => onCreateMeld('set')}
-              className="px-4 py-1.5 text-xs sm:text-sm bg-amber-700 hover:bg-amber-600"
+              className="px-4 py-1.5 text-xs sm:text-sm"
             >
               Create Set
             </Button>
             <Button
               onClick={() => onCreateMeld('sequence')}
-              className="px-4 py-1.5 text-xs sm:text-sm bg-emerald-700 hover:bg-emerald-600"
+              className="px-4 py-1.5 text-xs sm:text-sm"
             >
               Create Sequence
             </Button>
@@ -691,8 +660,7 @@ function PlayerHand({
           const card = item.card;
           const isSelected = selectedCards.includes(originalIndex);
           const totalCards = sortedHand.length;
-          
-          // Calculate position based on display index
+
           const centerOffset = (displayIndex - (totalCards - 1) / 2);
           const rotation = centerOffset * 0.4;
 
@@ -714,7 +682,7 @@ function PlayerHand({
               onClick={() => onToggleCard(originalIndex)}
               className={`relative flex-shrink-0 transition-all duration-200 ${
                 isCurrentTurn ? 'cursor-pointer hover:-translate-y-4' : 'cursor-not-allowed'
-              } ${isSelected ? 'ring-2 ring-green-400/80 ring-offset-1 ring-offset-[#1a120e]' : ''}`}
+              } ${isSelected ? 'ring-2 ring-accent/80 ring-offset-1 ring-offset-bg' : ''}`}
               style={{
                 width: 'clamp(50px, 9vw, 70px)',
                 marginLeft: displayIndex > 0 ? 'clamp(-25px, -5vw, -40px)' : '0',
@@ -722,8 +690,7 @@ function PlayerHand({
               }}
             >
               <Card card={card} />
-              
-              {/* Discard hint */}
+
               {isCurrentTurn && isSelected && mappedSelectedCards.length === 1 && (
                 <motion.div
                   initial={{ opacity: 0 }}
@@ -731,8 +698,9 @@ function PlayerHand({
                   className="absolute -bottom-8 left-1/2 -translate-x-1/2 whitespace-nowrap z-10"
                 >
                   <Button
+                    variant="danger"
                     onClick={() => onDiscard(originalIndex)}
-                    className="text-xs px-2 py-0.5 bg-red-600 hover:bg-red-700"
+                    className="text-xs px-2 py-0.5"
                   >
                     Discard
                   </Button>

@@ -11,13 +11,10 @@ export function GameOverModal() {
   const playerId = useGameStore((s) => s.playerId);
   const gameState = useGameStore((s) => s.gameState);
   const rummyGameState = useGameStore((s) => s.rummyGameState);
-  const room = useGameStore((s) => s.room);
   const { playChkobbaSound } = useAmbianceSound();
-  
-  // Use reactive selector for isHost
-  // If we have room data, check hostId. Fallback to store's isHost.
+
   const isHost = useGameStore((s) => s.room ? s.room.hostId === s.playerId : s.isHost);
-  
+
   const reset = useGameStore((s) => s.reset);
   const setGameOverData = useGameStore((s) => s.setGameOverData);
   const setScreen = useUIStore((s) => s.setScreen);
@@ -33,15 +30,7 @@ export function GameOverModal() {
 
   useEffect(() => {
     if (gameOverData && didWin && !isForfeit) {
-      playChkobbaSound(); // Hype sound for victory!
-      
-      // Trigger screen shake
-      const el = document.getElementById('game-screen');
-      if (el) {
-        el.classList.add('chkobba-shake-intense');
-        const onEnd = () => el.classList.remove('chkobba-shake-intense');
-        el.addEventListener('animationend', onEnd, { once: true });
-      }
+      playChkobbaSound();
     }
   }, [gameOverData, didWin, isForfeit, playChkobbaSound]);
 
@@ -59,19 +48,10 @@ export function GameOverModal() {
   };
 
   const handleLeaveRoom = () => {
-    // 1. Notify server
     socket.emit('leave_room');
-
-    // 2. Clear submitting state so landing buttons are ready
     useUIStore.getState().setIsSubmitting(false);
-
-    // 3. Move to landing first while data still exists for the exit animation
     useUIStore.getState().setScreen('landing');
-    
-    // 4. Clear local session storage
     sessionStorage.removeItem('chkobba-storage');
-    
-    // 5. Wipe internal state after a tiny delay to allow navigation to start
     setTimeout(() => {
       setGameOverData(null);
       useGameStore.getState().reset();
@@ -85,32 +65,32 @@ export function GameOverModal() {
 
   return (
     <Modal isOpen={!!gameOverData}>
-      <h3 className="text-2xl font-ancient font-bold text-brass mb-4 uppercase tracking-wider">Match Results</h3>
-      <p className={`text-xl font-ancient font-bold mb-6 ${didWin ? 'text-accent-success' : 'text-accent'}`}>
+      <h3 className="text-2xl font-bold text-text-primary mb-4">Match Results</h3>
+      <p className={`text-xl font-bold mb-6 ${didWin ? 'text-success' : 'text-danger'}`}>
         {isForfeit
           ? `${winner.players.join(' & ')} won by forfeit!`
           : didWin
             ? 'Victory!'
             : 'Defeat'}
       </p>
-      
+
       <div className="flex flex-col gap-4 mb-8">
-        <div className="text-[10px] text-brass/40 uppercase font-ancient tracking-[0.2em] text-center mb-1">Final Score</div>
-        <div className="flex justify-center items-center gap-8 bg-surface-card p-6 rounded-xl border border-brass/10 shadow-inner">
+        <div className="text-xs text-text-tertiary uppercase tracking-wider text-center mb-1">Final Score</div>
+        <div className="flex justify-center items-center gap-8 bg-surface-2 p-6 rounded-xl border border-border">
           <div className="flex flex-col items-center">
-            <span className="text-xs text-accent font-ancient uppercase mb-1">{myNickname}</span>
-            <span className="text-4xl font-ancient font-bold text-accent">{scores.team0}</span>
-            <span className="text-[9px] text-accent/40 font-ancient font-bold mt-2 tracking-widest uppercase">
+            <span className="text-xs text-team1 font-medium uppercase mb-1">{myNickname}</span>
+            <span className="text-4xl font-bold text-team1">{scores.team0}</span>
+            <span className="text-xs text-text-tertiary font-medium mt-2 tracking-wider uppercase">
               SESSION: {myPlayer?.wins || 0} - {myPlayer?.losses || 0}
             </span>
           </div>
-          
-          <div className="text-brass/20 font-ancient text-xl">VS</div>
+
+          <div className="text-text-tertiary text-xl">VS</div>
 
           <div className="flex flex-col items-center">
-            <span className="text-xs text-turquoise font-ancient uppercase mb-1">{oppNickname}</span>
-            <span className="text-4xl font-ancient font-bold text-turquoise">{scores.team1}</span>
-            <span className="text-[9px] text-turquoise/40 font-ancient font-bold mt-2 tracking-widest uppercase">
+            <span className="text-xs text-team2 font-medium uppercase mb-1">{oppNickname}</span>
+            <span className="text-4xl font-bold text-team2">{scores.team1}</span>
+            <span className="text-xs text-text-tertiary font-medium mt-2 tracking-wider uppercase">
               SESSION: {oppPlayer?.wins || 0} - {oppPlayer?.losses || 0}
             </span>
           </div>
@@ -124,8 +104,8 @@ export function GameOverModal() {
         </div>
       ) : (
         <div className="flex flex-col gap-3">
-          <div className="p-4 bg-brass/5 border border-brass/10 rounded-lg text-center">
-            <p className="text-brass font-ancient animate-pulse uppercase tracking-widest text-sm">
+          <div className="p-4 bg-surface-2 border border-border rounded-lg text-center">
+            <p className="text-text-secondary animate-pulse text-sm">
               Waiting for host to replay...
             </p>
           </div>

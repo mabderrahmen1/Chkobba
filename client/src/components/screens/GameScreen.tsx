@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGameStore } from '../../stores/useGameStore';
 import { GameTable } from '../game/GameTable';
@@ -8,7 +8,7 @@ import { ChkobbaEffect } from '../game/ChkobbaEffect';
 import { HayyaEffect } from '../game/HayyaEffect';
 import { RoundEndModal } from '../game/RoundEndModal';
 import { GameOverModal } from '../game/GameOverModal';
-import { VintageRadio } from '../game/ambiance/VintageRadio';
+import { MusicControl } from '../game/MusicControl';
 import { useAmbianceSound } from '../../hooks/useAmbianceSound';
 import { RummyGameScreen } from '../game/RummyGameScreen';
 import { useUIStore } from '../../stores/useUIStore';
@@ -27,62 +27,32 @@ export function GameScreen() {
   const [countdown, setCountdown] = useState<number | null>(null);
 
   const isDistributing = useGameStore((s) => s.isDistributing);
-
-  const { playClink, playLighter, playCardShuffle } = useAmbianceSound();
-  const lighterPlayed = useRef(false);
+  const { playCardShuffle } = useAmbianceSound();
   const prevRound = useRef(gameState?.roundNumber ?? 0);
   const [copied, setCopied] = useState(false);
 
-  // Play lighter flick once on first mount
   useEffect(() => {
-    if (!lighterPlayed.current) {
-      lighterPlayed.current = true;
-      const t = setTimeout(() => playLighter(), 600);
-      return () => clearTimeout(t);
-    }
-  }, [playLighter]);
-
-  // Ensure shuffle plays when distributing state turns on (failsafe for first round)
-  useEffect(() => {
-    if (isDistributing) {
-      playCardShuffle();
-    }
+    if (isDistributing) playCardShuffle();
   }, [isDistributing, playCardShuffle]);
 
-  // Countdown timer when it's our turn
   useEffect(() => {
-    if (!turnStartedAt || !turnTimeoutSec) {
-      setCountdown(null);
-      return;
-    }
+    if (!turnStartedAt || !turnTimeoutSec) { setCountdown(null); return; }
     const tick = () => {
       const elapsed = (Date.now() - turnStartedAt) / 1000;
-      const remaining = Math.max(0, turnTimeoutSec - elapsed);
-      setCountdown(Math.ceil(remaining));
+      setCountdown(Math.ceil(Math.max(0, turnTimeoutSec - elapsed)));
     };
     tick();
     const interval = setInterval(tick, 250);
     return () => clearInterval(interval);
   }, [turnStartedAt, turnTimeoutSec]);
 
-  // Play clink on round start (Chkobba only)
-  useEffect(() => {
-    if (gameState && gameState.roundNumber !== prevRound.current) {
-      prevRound.current = gameState.roundNumber;
-      playClink();
-    }
-  }, [gameState?.roundNumber, playClink, gameState]);
+  if (gameType === 'rummy' || rummyGameState) return <RummyGameScreen />;
 
-  if (gameType === 'rummy' || rummyGameState) {
-    return <RummyGameScreen />;
-  }
-
-  // Handle loading state
   if (!gameState || !playerId || !gameState.players) {
     return (
-      <div className="h-full flex flex-col items-center justify-center bg-[#1a120e]">
-        <div className="w-12 h-12 border-4 border-brass border-t-transparent rounded-full animate-spin mb-4" />
-        <p className="text-brass font-ancient animate-pulse uppercase tracking-widest">Preparing Table...</p>
+      <div className="h-full flex flex-col items-center justify-center bg-bg">
+        <div className="w-10 h-10 border-2 border-accent border-t-transparent rounded-full animate-spin mb-3" />
+        <p className="text-text-secondary text-sm animate-pulse">Preparing table...</p>
       </div>
     );
   }
@@ -90,16 +60,13 @@ export function GameScreen() {
   const isMyTurn = gameState.currentTurn === playerId;
   const turnPlayer = gameState.players.find((p) => p.id === gameState.currentTurn);
   const turnName = turnPlayer
-    ? turnPlayer.id === playerId
-      ? "It's Your Turn!"
-      : `${turnPlayer.nickname} is thinking...`
+    ? turnPlayer.id === playerId ? "Your Turn" : `${turnPlayer.nickname} is thinking...`
     : '';
 
   const handleCopyCode = () => {
-    navigator.clipboard.writeText(gameState.roomId);
-    setCopied(true);
-    useUIStore.getState().addToast('Room code copied!', 'success');
-    setTimeout(() => setCopied(false), 2000);
+    navigator.clipboard.writeText(gameState.roomId)
+      .then(() => { setCopied(true); useUIStore.getState().addToast('Room code copied!', 'success'); setTimeout(() => setCopied(false), 2000); })
+      .catch(() => useUIStore.getState().addToast('Failed to copy', 'error'));
   };
 
   return (
@@ -108,118 +75,62 @@ export function GameScreen() {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      transition={{ duration: 0.5 }}
-      className="h-full flex flex-col p-1 sm:p-2 relative overflow-hidden bg-transparent"
+      transition={{ duration: 0.3 }}
+      className="h-full flex flex-col p-1 sm:p-2 relative overflow-hidden bg-bg"
     >
-      {/* Cinematic Background (Provided by App.tsx) */}
-      
-      {/* Ambient cafe lighting */}
-      <div className="absolute inset-0 pointer-events-none" style={{
-        background: 'radial-gradient(ellipse at 50% 30%, rgba(212,175,55,0.06) 0%, transparent 50%), radial-gradient(ellipse at 50% 100%, rgba(90,53,32,0.15) 0%, transparent 40%)'
-      }} />
-      <div className="absolute top-0 right-10 w-40 h-40 bg-amber-900/8 rounded-full blur-[80px] pointer-events-none" />
-      <div className="absolute bottom-10 left-10 w-32 h-32 bg-turquoise/3 rounded-full blur-[100px] pointer-events-none" />
+      <h1 className="sr-only">Chkobba Game</h1>
+      <MusicControl />
 
-      {/* Vintage Radio - Hidden on mobile or moved to absolute corner */}
-      <div className="hidden md:block">
-        <VintageRadio />
-      </div>
-
-      {/* Turn Indicator — floating above hand */}
+      {/* Turn Indicator */}
       <AnimatePresence mode="wait">
         <motion.div
           key={gameState.currentTurn}
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: 20 }}
-          transition={{ duration: 0.4, type: 'spring', stiffness: 200 }}
-          className="fixed bottom-[180px] sm:bottom-[220px] md:bottom-[240px] left-0 right-0 z-[60] flex items-center justify-center pointer-events-none"
+          exit={{ opacity: 0, y: 10 }}
+          transition={{ duration: 0.2 }}
+          className="fixed left-0 right-0 z-[60] flex items-center justify-center pointer-events-none"
+          style={{ bottom: 'calc(11.25rem + env(safe-area-inset-bottom, 0px))' }}
         >
-          <div className="relative w-full max-w-sm flex items-center justify-center px-4">
-             <motion.div 
-               animate={isMyTurn ? { opacity: [0.3, 0.7, 0.3] } : { opacity: 0.2 }}
-               transition={{ duration: 2, repeat: Infinity }}
-               className={`absolute inset-0 blur-2xl ${isMyTurn ? 'bg-brass' : 'bg-black'}`}
-             />
-             
-             <div className={`relative px-6 py-2 rounded-full border backdrop-blur-xl shadow-2xl flex items-center gap-3 transition-colors duration-500 ${
-                isMyTurn 
-                  ? 'bg-brass/20 border-brass/50' 
-                  : 'bg-black/60 border-white/10'
-             }`}>
-                {/* Active Indicator Pulse */}
-                <div className="relative flex items-center justify-center w-2 h-2">
-                  <motion.div
-                    animate={isMyTurn ? { scale: [1, 2.5, 1], opacity: [0.8, 0, 0.8] } : { scale: 1, opacity: 0.5 }}
-                    transition={{ duration: 2, repeat: Infinity }}
-                    className={`absolute w-full h-full rounded-full ${isMyTurn ? 'bg-brass' : 'bg-cream/40'}`}
+          <div className={`px-5 py-2 rounded-full border backdrop-blur-sm flex items-center gap-2.5 transition-colors duration-300 ${
+            isMyTurn ? 'bg-accent/10 border-accent/30' : 'bg-surface-1/80 border-border'
+          }`}>
+            <div className={`w-2 h-2 rounded-full ${isMyTurn ? 'bg-accent' : 'bg-text-tertiary'}`} />
+            <span className={`text-sm font-medium ${isMyTurn ? 'text-accent' : 'text-text-secondary'}`}>
+              {turnName}
+            </span>
+            {isMyTurn && countdown !== null && turnTimeoutSec !== null && (
+              <div className="relative w-7 h-7 flex-shrink-0">
+                <svg className="w-7 h-7 -rotate-90" viewBox="0 0 32 32">
+                  <circle cx="16" cy="16" r="13" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="2.5" />
+                  <circle cx="16" cy="16" r="13" fill="none"
+                    stroke={countdown <= 10 ? '#FF4757' : '#10B981'}
+                    strokeWidth="2.5" strokeLinecap="round"
+                    strokeDasharray={`${2 * Math.PI * 13}`}
+                    strokeDashoffset={`${2 * Math.PI * 13 * (1 - countdown / turnTimeoutSec)}`}
+                    style={{ transition: 'stroke-dashoffset 0.25s linear, stroke 0.5s' }}
                   />
-                  <div className={`w-2 h-2 rounded-full ${isMyTurn ? 'bg-brass' : 'bg-cream/40'}`} />
-                </div>
-
-                <span className={`font-ancient text-sm sm:text-base uppercase tracking-[0.2em] font-bold ${
-                  isMyTurn ? 'text-brass drop-shadow-[0_0_8px_rgba(212,175,55,0.4)]' : 'text-cream-dark/60'
-                }`}>
-                  {turnName}
+                </svg>
+                <span className={`absolute inset-0 flex items-center justify-center font-mono font-semibold text-[9px] ${countdown <= 10 ? 'text-danger' : 'text-accent'}`}>
+                  {countdown}
                 </span>
-
-                {/* Countdown ring — only visible when it's your turn */}
-                {isMyTurn && countdown !== null && turnTimeoutSec !== null && (
-                  <div className="relative w-8 h-8 flex-shrink-0" title={`${countdown}s remaining`}>
-                    <svg className="w-8 h-8 -rotate-90" viewBox="0 0 32 32">
-                      <circle cx="16" cy="16" r="13" fill="none" stroke="rgba(212,175,55,0.15)" strokeWidth="3" />
-                      <circle
-                        cx="16" cy="16" r="13"
-                        fill="none"
-                        stroke={countdown <= 10 ? '#ef4444' : 'rgba(212,175,55,0.8)'}
-                        strokeWidth="3"
-                        strokeLinecap="round"
-                        strokeDasharray={`${2 * Math.PI * 13}`}
-                        strokeDashoffset={`${2 * Math.PI * 13 * (1 - countdown / turnTimeoutSec)}`}
-                        style={{ transition: 'stroke-dashoffset 0.25s linear, stroke 0.5s' }}
-                      />
-                    </svg>
-                    <span className={`absolute inset-0 flex items-center justify-center font-mono font-bold text-[10px] ${countdown <= 10 ? 'text-red-400' : 'text-brass'}`}>
-                      {countdown}
-                    </span>
-                  </div>
-                )}
-             </div>
+              </div>
+            )}
           </div>
         </motion.div>
       </AnimatePresence>
 
-      {/* Scoreboard */}
       <Scoreboard />
-      
-      {/* Action Log — Desktop only */}
       <MoveLog />
 
-      {/* Room Info — Bottom Left (Above Chat) */}
-      <div className="fixed bottom-3 left-3 z-[45] hidden sm:flex flex-col gap-1">
-        <motion.div 
-          whileTap={{ scale: 0.95 }}
-          className="flex items-center gap-2 bg-black/40 backdrop-blur-md border border-brass/20 rounded-lg px-3 py-1.5 cursor-pointer hover:bg-black/60 transition-colors group relative shadow-inner-dark"
-          onClick={handleCopyCode}
+      {/* Room code */}
+      <div className="fixed bottom-3 left-3 z-[45] hidden sm:flex">
+        <motion.button whileTap={{ scale: 0.95 }} aria-label="Copy room code" onClick={handleCopyCode}
+          className="flex items-center gap-2 bg-surface-1 border border-border rounded-lg px-3 py-1.5 cursor-pointer hover:border-accent/30 transition-colors text-xs focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
         >
-          <AnimatePresence>
-            {copied && (
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: -25 }}
-                exit={{ opacity: 0 }}
-                className="absolute left-0 right-0 text-center pointer-events-none"
-              >
-                <span className="bg-brass text-black text-[9px] font-bold px-2 py-0.5 rounded uppercase tracking-tighter shadow-glow-gold">Copied!</span>
-              </motion.div>
-            )}
-          </AnimatePresence>
-          <span className="text-[10px] text-brass/60 font-ancient uppercase tracking-widest">Room:</span>
-          <span className="text-xs text-brass font-mono font-bold tracking-wider">{gameState.roomId}</span>
-          <svg className="w-3 h-3 text-brass/40 group-hover:text-brass transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" />
-          </svg>
-        </motion.div>
+          <span className="text-text-tertiary">Room:</span>
+          <span className="text-accent font-mono font-semibold tracking-wider">{gameState.roomId}</span>
+        </motion.button>
       </div>
 
       <div className="relative z-10 h-full flex flex-col">
@@ -227,27 +138,17 @@ export function GameScreen() {
       </div>
 
       {autoWinWarning && (
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="fixed top-16 left-1/2 -translate-x-1/2 z-40 copper-plate text-cream px-6 py-4 rounded-xl text-center shadow-2xl border border-brass/30 backdrop-blur-lg bg-black/60"
+        <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}
+          className="fixed top-16 left-1/2 -translate-x-1/2 z-40 bg-surface-1 border border-border text-text-primary px-6 py-4 rounded-xl text-center shadow-lg"
         >
-          <p className="font-ancient text-sm text-brass/80 tracking-widest uppercase mb-1">{autoWinWarning.playerNickname} disconnected</p>
-          <p className="text-xl font-ancient font-bold text-cream mb-4">
-            Auto-win in {Math.round(autoWinWarning.timeRemaining / 1000)}s
-          </p>
-          <Button size="sm" variant="secondary" onClick={() => {
-            if (window.confirm('End match and return to lobby?')) {
-              socket.emit('reset_game');
-            }
-          }} className="w-full">Return to Lobby</Button>
+          <p className="text-sm text-text-secondary mb-1">{autoWinWarning.playerNickname} disconnected</p>
+          <p className="text-lg font-bold mb-3">Auto-win in {Math.round(autoWinWarning.timeRemaining / 1000)}s</p>
+          <Button size="sm" variant="secondary" onClick={() => { if (window.confirm('End match and return to lobby?')) socket.emit('reset_game'); }} className="w-full">Return to Lobby</Button>
         </motion.div>
       )}
 
-      {/* Special effects overlays */}
       <ChkobbaEffect />
       <HayyaEffect />
-
       <RoundEndModal />
       <GameOverModal />
     </motion.section>

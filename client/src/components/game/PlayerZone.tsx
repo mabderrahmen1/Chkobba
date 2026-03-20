@@ -12,101 +12,53 @@ interface PlayerZoneProps {
 export function PlayerZone({ player, position, isCurrentTurn = false, isTeammate = false }: PlayerZoneProps) {
   const isVertical = position === 'left' || position === 'right';
 
-  // Team colors
-  const teamColors = {
-    0: 'border-amber-500/60 bg-amber-900/20',
-    1: 'border-teal-500/60 bg-teal-900/20'
-  };
-
-  // Card fan spread based on position
   const getCardTransform = (index: number, total: number) => {
     const mid = (total - 1) / 2;
     const offset = index - mid;
-
-    if (isVertical) {
-      return {
-        rotate: position === 'left' ? 90 + offset * 5 : -90 + offset * 5,
-        x: offset * 3,
-        y: offset * 12,
-      };
-    }
-    // Top position: cards fan horizontally
-    return {
-      rotate: offset * 5,
-      x: 0,
-      y: Math.abs(offset) * 3,
-    };
+    if (isVertical) return { rotate: position === 'left' ? 90 + offset * 5 : -90 + offset * 5, x: offset * 3, y: offset * 12 };
+    return { rotate: offset * 5, x: 0, y: Math.abs(offset) * 3 };
   };
 
   return (
-    <div className={`flex ${isVertical ? 'flex-row' : 'flex-col'} items-center gap-2`}>
-      {/* Nameplate with team indicator */}
+    <div className={`flex ${isVertical ? 'flex-row' : 'flex-col'} items-center gap-3`}>
       <motion.div
-        animate={isCurrentTurn ? {
-          boxShadow: ['0 0 0px #d4af37', '0 0 14px #d4af37', '0 0 0px #d4af37'],
-        } : { boxShadow: '0 0 0px transparent' }}
+        animate={isCurrentTurn ? { boxShadow: ['0 0 0px transparent', '0 0 12px rgba(16,185,129,0.4)', '0 0 0px transparent'] } : { boxShadow: '0 0 0px transparent' }}
         transition={{ duration: 2, repeat: isCurrentTurn ? Infinity : 0 }}
-        className={`wood-nameplate px-2 sm:px-3 py-0.5 sm:py-1 rounded-lg flex items-center gap-1 sm:gap-2 border-t-2 ${
-          teamColors[player.team as keyof typeof teamColors] || 'border-cream-dark/25'
-        } ${!player.isConnected ? 'opacity-40 grayscale' : ''}`}
+        className={`px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg flex items-center gap-1.5 sm:gap-2 bg-surface-2 border border-border ${
+          !player.isConnected ? 'opacity-40 grayscale' : ''
+        }`}
       >
-        {/* Turn dot: gold when active, green when connected, red when disconnected */}
         <motion.div
           animate={isCurrentTurn ? { scale: [1, 1.4, 1] } : { scale: 1 }}
           transition={{ duration: 1.5, repeat: isCurrentTurn ? Infinity : 0 }}
-          className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full ${
-            isCurrentTurn
-              ? 'bg-brass shadow-[0_0_6px_rgba(212,175,55,0.8)]'
-              : player.isConnected
-                ? 'bg-green-400'
-                : 'bg-red-400/50'
+          className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full shrink-0 ${
+            isCurrentTurn ? 'bg-accent' : player.isConnected ? 'bg-success' : 'bg-danger/50'
           }`}
         />
-        <span className="font-ancient text-[8px] sm:text-[10px] md:text-xs text-brass font-bold truncate max-w-[50px] sm:max-w-[80px]">
+        <span className="text-[10px] sm:text-xs text-text-primary font-medium truncate max-w-[60px] sm:max-w-[90px]">
           {player.nickname}
         </span>
-        {/* Team indicator badge */}
-        <span className={`text-[6px] sm:text-[7px] font-ancient font-bold uppercase tracking-wider px-1 py-0.5 rounded ${
-          player.team === 0
-            ? 'bg-amber-600/80 text-black'
-            : 'bg-teal-600/80 text-black'
-        }`}>
-          T{player.team + 1}
-        </span>
+        <span className={`text-[9px] sm:text-[10px] font-semibold px-1.5 py-0.5 rounded shrink-0 ${
+          player.team === 0 ? 'bg-team1/10 text-team1' : 'bg-team2/10 text-team2'
+        }`}>T{player.team + 1}</span>
         {isCurrentTurn && (
-          <motion.span
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="text-[7px] sm:text-[8px] font-ancient text-brass/70 uppercase tracking-wider"
-          >
-            playing
-          </motion.span>
+          <motion.span initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }}
+            className="text-[9px] sm:text-[10px] text-accent/70 shrink-0">▶</motion.span>
         )}
         {player.capturedCount > 0 && (
-          <span className="text-[9px] font-ancient text-cream-dark/50 bg-black/20 px-1 rounded">
-            {player.capturedCount}
-          </span>
+          <span className="text-[10px] sm:text-xs text-text-tertiary bg-surface-3 px-1.5 rounded shrink-0">{player.capturedCount}</span>
         )}
       </motion.div>
 
-      {/* Face-down cards */}
       {player.handCount > 0 && (
         <div className={`flex ${isVertical ? 'flex-col' : 'flex-row'} justify-center items-center pointer-events-none ${
           isVertical ? '-space-y-10' : '-space-x-6 sm:-space-x-8'
-        } h-16 sm:h-20`}>
+        } h-16 sm:h-24`}>
           {Array.from({ length: player.handCount }).map((_, i) => {
             const transform = getCardTransform(i, player.handCount);
             return (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: i * 0.1 }}
-                style={{
-                  transform: `rotate(${transform.rotate}deg) translateX(${transform.x}px)`,
-                  zIndex: i,
-                }}
-              >
+              <motion.div key={i} initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: i * 0.1 }}
+                style={{ transform: `rotate(${transform.rotate}deg) translateX(${transform.x}px)`, zIndex: i }}>
                 <Card faceDown small />
               </motion.div>
             );

@@ -5,9 +5,10 @@ interface ModalProps {
   isOpen: boolean;
   onClose?: () => void;
   children: React.ReactNode;
+  ariaLabel?: string;
 }
 
-export function Modal({ isOpen, onClose, children }: ModalProps) {
+export function Modal({ isOpen, onClose, children, ariaLabel }: ModalProps) {
   const modalRef = useRef<HTMLDivElement>(null);
   const previousFocus = useRef<HTMLElement | null>(null);
 
@@ -17,7 +18,6 @@ export function Modal({ isOpen, onClose, children }: ModalProps) {
       ? document.activeElement
       : null;
 
-    // Use rAF to ensure the DOM is fully painted before focusing
     let rafId = requestAnimationFrame(() => {
       modalRef.current?.focus();
     });
@@ -61,28 +61,29 @@ export function Modal({ isOpen, onClose, children }: ModalProps) {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 bg-black/85 z-[100] flex items-center justify-center p-2 sm:p-4 backdrop-blur-sm"
+          className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-2 sm:p-4 backdrop-blur-sm"
           onClick={onClose}
         >
           <motion.div
             ref={modalRef}
             role="dialog"
             aria-modal="true"
+            aria-label={ariaLabel}
             tabIndex={-1}
-            initial={{ opacity: 0, scale: 0.92, y: -20 }}
+            initial={{ opacity: 0, scale: 0.95, y: -10 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.92, y: -20 }}
-            transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-            className="bg-surface-alt rounded-xl p-4 sm:p-6 md:p-8 max-w-lg w-full text-center shadow-2xl max-h-[85vh] sm:max-h-[90vh] overflow-y-auto border border-brass/15 relative outline-none"
+            exit={{ opacity: 0, scale: 0.95, y: -10 }}
+            transition={{ duration: 0.2 }}
+            className="bg-surface-1 rounded-2xl p-5 sm:p-7 max-w-lg w-full text-center shadow-lg max-h-[85vh] sm:max-h-[90vh] overflow-y-auto border border-border relative outline-none"
             onClick={(e) => e.stopPropagation()}
           >
             {onClose && (
               <button
                 onClick={onClose}
-                className="absolute top-4 right-4 text-brass/40 hover:text-brass transition-colors p-1 min-w-[44px] min-h-[44px] flex items-center justify-center"
+                className="absolute top-4 right-4 text-text-tertiary hover:text-text-primary transition-colors p-1 min-w-[44px] min-h-[44px] flex items-center justify-center"
                 aria-label="Close modal"
               >
-                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>

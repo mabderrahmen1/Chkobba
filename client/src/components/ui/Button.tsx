@@ -1,8 +1,8 @@
 import { motion } from 'framer-motion';
 
 interface ButtonProps {
-  variant?: 'primary' | 'secondary' | 'success' | 'danger' | 'ghost' | 'brass';
-  size?: 'sm' | 'md' | 'lg' | 'xl';
+  variant?: 'primary' | 'secondary' | 'ghost' | 'danger' | 'success';
+  size?: 'sm' | 'md' | 'lg';
   children: React.ReactNode;
   className?: string;
   disabled?: boolean;
@@ -20,41 +20,35 @@ export function Button({
   type = 'button',
 }: ButtonProps) {
   const variants = {
-    primary: 'bg-accent text-white shadow-glow-red hover:bg-accent/90 border border-white/10',
-    secondary: 'bg-gradient-to-b from-amber-800 to-amber-950 text-amber-100 border border-amber-700/50 hover:brightness-110 shadow-lg',
-    success: 'bg-emerald-600 text-white shadow-glow-green hover:bg-emerald-500 border border-white/10',
-    danger: 'bg-red-700 text-white shadow-glow-red hover:bg-red-600 border border-white/10',
-    ghost: 'bg-transparent text-cream/60 hover:text-cream hover:bg-white/5 border border-white/5',
-    brass: 'bg-gradient-to-b from-brass-light via-brass to-brass-dark text-black font-black shadow-glow-gold hover:brightness-110 border border-brass-light/50',
+    primary: 'bg-accent text-white hover:bg-accent/90',
+    secondary: 'bg-surface-2 text-text-primary border border-border hover:bg-surface-3',
+    ghost: 'bg-transparent text-text-secondary hover:text-text-primary hover:bg-white/5',
+    danger: 'bg-danger/10 text-danger border border-danger/20 hover:bg-danger/20',
+    success: 'bg-success text-white hover:bg-success/90',
   };
 
   const sizes = {
-    sm: 'px-3 py-1.5 text-xs',
-    md: 'px-6 py-3 text-sm',
-    lg: 'px-8 py-4 text-base tracking-widest',
-    xl: 'px-10 py-5 text-lg tracking-[0.2em]',
+    sm: 'px-3 py-1.5 text-xs min-h-[36px]',
+    md: 'px-5 py-2.5 text-sm min-h-[44px]',
+    lg: 'px-6 py-3.5 text-base min-h-[52px]',
   };
 
   return (
     <motion.button
-      whileHover={disabled ? {} : { scale: 1.02, translateY: -1 }}
-      whileTap={disabled ? {} : { scale: 0.96, translateY: 0 }}
+      whileHover={disabled ? {} : { scale: 1.01 }}
+      whileTap={disabled ? {} : { scale: 0.98 }}
       type={type}
       disabled={disabled}
       onClick={onClick}
       className={`
-        rounded-xl font-ancient font-bold uppercase transition-all duration-300 
-        disabled:opacity-40 disabled:cursor-not-allowed disabled:grayscale
-        flex items-center justify-center relative overflow-hidden group
+        rounded-lg font-semibold transition-colors duration-150
+        disabled:opacity-40 disabled:cursor-not-allowed
+        flex items-center justify-center
+        focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent
         ${variants[variant]} ${sizes[size]} ${className}
       `}
     >
-      {/* Subtle shine effect on hover */}
-      {!disabled && (
-        <div className="absolute inset-0 w-1/2 h-full bg-gradient-to-r from-transparent via-white/10 to-transparent -skew-x-12 -translate-x-full group-hover:animate-shimmer transition-transform" />
-      )}
-      
-      <span className="relative z-10 flex items-center gap-2">{children}</span>
+      {children}
     </motion.button>
   );
 }

@@ -23,16 +23,16 @@ export class ErrorBoundary extends Component<Props, State> {
   render(): ReactNode {
     if (this.state.hasError) {
       return (
-        <div className="h-full w-full flex flex-col items-center justify-center bg-[#1a120e] p-6 text-center">
-          <p className="text-brass font-ancient text-lg uppercase tracking-widest mb-4">
+        <div className="h-full w-full flex flex-col items-center justify-center bg-bg p-6 text-center">
+          <p className="text-text-primary font-bold text-lg mb-4">
             Something went wrong
           </p>
-          <p className="text-cream-dark/70 text-sm max-w-md mb-8">
+          <p className="text-text-secondary text-sm max-w-md mb-8">
             The app hit an error. Reload the page to continue playing.
           </p>
           <button
             onClick={() => window.location.reload()}
-            className="px-6 py-3 rounded-xl bg-brass text-black font-ancient font-bold uppercase tracking-widest hover:opacity-90 transition-opacity"
+            className="px-6 py-3 rounded-xl bg-accent text-white font-semibold hover:opacity-90 transition-opacity"
           >
             Reload page
           </button>

@@ -11,7 +11,7 @@ function CardIcon({ rank, suit, className }: { rank: string; suit: string; class
   const svg = generateCardSVG(rank, suit);
   return (
     <div
-      className={`w-7 h-10 sm:w-9 sm:h-13 rounded-sm overflow-hidden shadow-glow-brass/20 border border-white/10 bg-white/5 transition-transform ${className}`}
+      className={`w-7 h-10 sm:w-9 sm:h-13 rounded-sm overflow-hidden border border-border bg-surface-3 transition-transform ${className}`}
       dangerouslySetInnerHTML={{ __html: svg }}
     />
   );
@@ -35,16 +35,15 @@ function AnimatedNumber({ value, className }: { value: number; className?: strin
       <AnimatePresence mode="popLayout" initial={false}>
         <motion.span
           key={displayValue}
-          initial={{ y: isIncrementing ? 40 : -40, opacity: 0, filter: 'brightness(2)' }}
-          animate={{ y: 0, opacity: 1, filter: 'brightness(1)' }}
-          exit={{ y: isIncrementing ? -40 : 40, opacity: 0, filter: 'brightness(0.5)' }}
+          initial={{ y: isIncrementing ? 40 : -40, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          exit={{ y: isIncrementing ? -40 : 40, opacity: 0 }}
           transition={{ type: "spring", stiffness: 400, damping: 30 }}
           className="absolute inset-0 flex items-center justify-center leading-none"
         >
           {displayValue}
         </motion.span>
       </AnimatePresence>
-      {/* Invisible spacer to maintain layout width based on current digit length */}
       <span className="invisible pointer-events-none flex items-center justify-center leading-none">
         {displayValue}
       </span>
@@ -52,52 +51,35 @@ function AnimatedNumber({ value, className }: { value: number; className?: strin
   );
 }
 
-function PointIndicator({ my, opp, active }: { my: number; opp: number; active?: boolean }) {
-  if (my > opp) return (
-    <motion.div animate={active ? { scale: [1, 1.2, 1] } : {}} className="flex items-center gap-1">
-      <span className="text-accent text-[10px] font-bold font-ancient shadow-glow-accent">+1 PT</span>
-    </motion.div>
-  );
-  if (opp > my) return (
-    <div className="flex items-center gap-1">
-      <span className="text-turquoise text-[10px] font-bold font-ancient shadow-glow-turquoise">+1 PT</span>
-    </div>
-  );
-  return <span className="text-white/10 text-[10px] font-ancient">—</span>;
-}
-
 function StatRow({ label, myVal, oppVal, icon, pointMy, pointOpp }: any) {
   const isLeading = pointMy > pointOpp;
   const isLosing = pointOpp > pointMy;
 
   return (
-    <div className={`flex items-center justify-between py-4 border-b border-white/5 last:border-0 relative transition-all duration-500 px-3 rounded-xl mb-1 ${
-      isLeading ? 'bg-accent/10 shadow-[inset_0_0_20px_rgba(192,57,43,0.1)]' :
-      isLosing ? 'bg-turquoise/10 shadow-[inset_0_0_20px_rgba(64,224,208,0.1)]' :
-      'bg-white/5'
+    <div className={`flex items-center justify-between py-4 border-b border-border last:border-0 relative transition-all duration-300 px-3 rounded-xl mb-1 ${
+      isLeading ? 'bg-team1/10' :
+      isLosing ? 'bg-team2/10' :
+      'bg-surface-3'
     }`}>
       {/* My Team Column */}
       <div className="w-16 flex flex-col items-end">
         <AnimatedNumber
           value={myVal}
-          className={`font-ancient font-extrabold text-2xl sm:text-3xl ${isLeading ? 'text-accent drop-shadow-glow-red' : 'text-cream/40'}`}
+          className={`font-bold text-2xl sm:text-3xl ${isLeading ? 'text-team1' : 'text-text-tertiary'}`}
         />
         {pointMy > pointOpp && (
-          <span className="text-[8px] font-bold text-accent uppercase tracking-tighter">+1 POINT</span>
+          <span className="text-[8px] font-bold text-team1 uppercase tracking-tighter">+1 POINT</span>
         )}
       </div>
 
       {/* Center Label/Icon Column */}
       <div className="flex flex-col items-center flex-1 px-4">
         {icon && (
-          <motion.div
-            whileHover={{ scale: 1.1, rotate: 5 }}
-            className="mb-3 drop-shadow-[0_10px_10px_rgba(0,0,0,0.5)] z-10"
-          >
+          <div className="mb-3 z-10">
             {icon}
-          </motion.div>
+          </div>
         )}
-        <span className="text-[10px] sm:text-[11px] text-cream/60 font-ancient uppercase tracking-[0.3em] font-extrabold text-center leading-none">
+        <span className="text-[10px] sm:text-[11px] text-text-tertiary uppercase tracking-widest font-semibold text-center leading-none">
           {label}
         </span>
       </div>
@@ -106,10 +88,10 @@ function StatRow({ label, myVal, oppVal, icon, pointMy, pointOpp }: any) {
       <div className="w-16 flex flex-col items-start">
         <AnimatedNumber
           value={oppVal}
-          className={`font-ancient font-extrabold text-2xl sm:text-3xl ${isLosing ? 'text-turquoise drop-shadow-glow-turquoise' : 'text-cream/40'}`}
+          className={`font-bold text-2xl sm:text-3xl ${isLosing ? 'text-team2' : 'text-text-tertiary'}`}
         />
         {oppVal > myVal && (
-          <span className="text-[8px] font-bold text-turquoise uppercase tracking-tighter">+1 POINT</span>
+          <span className="text-[8px] font-bold text-team2 uppercase tracking-tighter">+1 POINT</span>
         )}
       </div>
     </div>
@@ -125,7 +107,6 @@ export function Scoreboard() {
   const [isMobile, setIsMobile] = useState(false);
   const [confirmLeave, setConfirmLeave] = useState(false);
 
-  // Auto-reset confirmLeave after 3 seconds (with cleanup to prevent memory leak)
   useEffect(() => {
     if (!confirmLeave) return;
     const timer = setTimeout(() => setConfirmLeave(false), 3000);
@@ -144,7 +125,6 @@ export function Scoreboard() {
   const currentPlayer = gameState.players.find((p) => p.id === playerId);
   if (!currentPlayer) return null;
 
-  // Use either the store flag or the room's direct hostId for robustness
   const isHost = storeIsHost || (room?.hostId === playerId);
 
   const myTeam = currentPlayer.team;
@@ -177,7 +157,7 @@ export function Scoreboard() {
   };
 
   const renderStatsContent = () => (
-    <div className="bg-black/40 rounded-3xl border border-white/5 p-4 sm:p-6 shadow-inner-dark relative overflow-hidden backdrop-blur-md">
+    <div className="bg-surface-2 rounded-2xl border border-border p-4 sm:p-6 relative overflow-hidden">
       <div className="space-y-1">
         <StatRow label="CARTA" myVal={myCards} oppVal={oppCards} pointMy={myCards} pointOpp={oppCards} />
 
@@ -187,7 +167,7 @@ export function Scoreboard() {
           oppVal={oppDinari}
           pointMy={myDinari}
           pointOpp={oppDinari}
-          icon={<CardIcon rank="A" suit="diamonds" className="rotate-[-4deg] scale-110 shadow-glow-gold" />}
+          icon={<CardIcon rank="A" suit="diamonds" className="rotate-[-4deg] scale-110" />}
         />
 
         <StatRow
@@ -210,18 +190,18 @@ export function Scoreboard() {
           oppVal={oppHasHaya ? 1 : 0}
           pointMy={myHasHaya ? 1 : 0}
           pointOpp={oppHasHaya ? 1 : 0}
-          icon={<CardIcon rank="7" suit="diamonds" className="ring-2 ring-accent shadow-[0_0_20px_rgba(192,57,43,0.6)] scale-125 z-20" />}
+          icon={<CardIcon rank="7" suit="diamonds" className="ring-2 ring-team1 scale-125 z-20" />}
         />
 
         <StatRow label="CHKOBBA" myVal={myChkobba} oppVal={oppChkobba} pointMy={myChkobba} pointOpp={oppChkobba} />
       </div>
 
-      <div className="mt-8 pt-6 border-t border-brass/20 flex flex-col gap-3">
+      <div className="mt-8 pt-6 border-t border-border flex flex-col gap-3">
         {isHost && (
-          <Button 
-            variant="primary" 
+          <Button
+            variant="primary"
             onClick={handleReturnToLobby}
-            className="w-full py-4 text-xs tracking-[0.2em] shadow-glow-gold/10"
+            className="w-full py-4 text-xs tracking-wider"
           >
             End Match & Edit Rules
           </Button>
@@ -229,22 +209,22 @@ export function Scoreboard() {
 
         <div className="flex items-center justify-between px-2 py-4">
           <div className="text-center">
-            <div className="text-[9px] text-accent/60 font-ancient font-bold uppercase tracking-widest mb-1">Round</div>
-            <AnimatedNumber value={myRoundScore} className="text-3xl font-ancient font-extrabold text-accent" />
+            <div className="text-[9px] text-team1/60 font-semibold uppercase tracking-wider mb-1">Round</div>
+            <AnimatedNumber value={myRoundScore} className="text-3xl font-bold text-team1" />
           </div>
 
-          <div className="bg-black/60 px-5 py-2 rounded-xl border border-brass/20 shadow-glow-gold/5">
-            <span className="text-[10px] text-brass-light font-ancient font-black uppercase tracking-[0.4em]">TOTAL PTS</span>
+          <div className="bg-surface-3 px-5 py-2 rounded-xl border border-border">
+            <span className="text-[10px] text-text-tertiary font-semibold uppercase tracking-widest">TOTAL PTS</span>
           </div>
 
           <div className="text-center">
-            <div className="text-[9px] text-turquoise/60 font-ancient font-bold uppercase tracking-widest mb-1">Round</div>
-            <AnimatedNumber value={oppRoundScore} className="text-3xl font-ancient font-extrabold text-turquoise" />
+            <div className="text-[9px] text-team2/60 font-semibold uppercase tracking-wider mb-1">Round</div>
+            <AnimatedNumber value={oppRoundScore} className="text-3xl font-bold text-team2" />
           </div>
         </div>
 
         <motion.button
-          whileHover={{ scale: 1.02, backgroundColor: 'rgba(255, 0, 0, 0.1)' }}
+          whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.96 }}
           onClick={() => {
             if (!confirmLeave) {
@@ -261,12 +241,12 @@ export function Scoreboard() {
           }}
           className={`w-full flex flex-col items-center justify-center py-4 rounded-xl border group transition-all min-h-[44px] ${
             confirmLeave
-              ? 'border-red-500/50 bg-red-500/15 animate-pulse'
-              : 'border-red-500/20 bg-red-500/5'
+              ? 'border-danger/50 bg-danger/15 animate-pulse'
+              : 'border-danger/20 bg-danger/5'
           }`}
         >
-          <span className={`text-[11px] group-hover:text-red-300 font-ancient uppercase tracking-[0.3em] font-black ${
-            confirmLeave ? 'text-red-300' : 'text-red-400'
+          <span className={`text-[11px] group-hover:text-danger/70 uppercase tracking-widest font-semibold ${
+            confirmLeave ? 'text-danger/70' : 'text-danger'
           }`}>
             {confirmLeave ? 'Tap Again to Confirm' : 'Leave Game'}
           </span>
@@ -284,51 +264,50 @@ export function Scoreboard() {
       <motion.div
         layout
         transition={{ type: "spring", stiffness: 400, damping: 30 }}
-        className="glass-panel-heavy rounded-3xl shadow-2xl cursor-pointer select-none overflow-hidden premium-border-brass min-w-[220px] sm:min-w-[280px]"
+        role="button"
+        tabIndex={0}
+        aria-expanded={expanded}
+        aria-label={`Scoreboard — ${myNickname} ${myScore} vs ${oppNickname} ${oppScore}. Click to ${expanded ? 'collapse' : 'expand'} stats`}
+        className="bg-surface-1 rounded-2xl border border-border shadow-lg cursor-pointer select-none overflow-hidden min-w-[220px] sm:min-w-[280px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
         onClick={() => setExpanded(e => !e)}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setExpanded(v => !v); } }}
       >
         <div className="px-6 py-5 grid grid-cols-[1fr_auto_1fr] items-center gap-4 sm:gap-6 relative overflow-hidden">
-          {/* Active Lead Glow */}
-          <div className={`absolute inset-0 opacity-10 pointer-events-none ${
-            myScore > oppScore ? 'bg-accent animate-pulse' :
-            oppScore > myScore ? 'bg-turquoise animate-pulse' : ''
-          }`} />
-
           <div className="flex flex-col items-center text-center relative z-10">
-            <span className={`text-[10px] sm:text-[11px] font-ancient uppercase font-black tracking-widest truncate w-full max-w-[80px] mb-1 ${
-              myScore >= oppScore ? 'text-accent' : 'text-cream/40'
+            <span className={`text-[10px] sm:text-[11px] uppercase font-semibold tracking-wider truncate w-full max-w-[80px] mb-1 ${
+              myScore >= oppScore ? 'text-team1' : 'text-text-tertiary'
             }`}>
               {myNickname}
             </span>
             <AnimatedNumber
               value={myScore}
-              className={`text-4xl sm:text-5xl font-ancient font-black ${
-                myScore > oppScore ? 'text-accent drop-shadow-glow-red' :
-                myScore === oppScore ? 'text-brass-light' : 'text-accent/40'
+              className={`text-4xl sm:text-5xl font-bold ${
+                myScore > oppScore ? 'text-team1' :
+                myScore === oppScore ? 'text-text-secondary' : 'text-team1/40'
               }`}
             />
           </div>
 
           <div className="flex flex-col items-center justify-center relative z-10">
-            <div className="text-[10px] text-brass font-black mb-1 opacity-40">VS</div>
-            <div className="px-3 py-1 rounded-lg bg-black/60 border border-brass/30 shadow-inner">
-              <span className="text-[9px] text-brass-light font-ancient font-black uppercase tracking-[0.2em] whitespace-nowrap">
+            <div className="text-[10px] text-text-tertiary font-semibold mb-1">VS</div>
+            <div className="px-3 py-1 rounded-lg bg-surface-3 border border-border">
+              <span className="text-[9px] text-text-secondary font-semibold uppercase tracking-wider whitespace-nowrap">
                 RD {gameState.roundNumber}
               </span>
             </div>
           </div>
 
           <div className="flex flex-col items-center text-center relative z-10">
-            <span className={`text-[10px] sm:text-[11px] font-ancient uppercase font-black tracking-widest truncate w-full max-w-[80px] mb-1 ${
-              oppScore >= myScore ? 'text-turquoise' : 'text-cream/40'
+            <span className={`text-[10px] sm:text-[11px] uppercase font-semibold tracking-wider truncate w-full max-w-[80px] mb-1 ${
+              oppScore >= myScore ? 'text-team2' : 'text-text-tertiary'
             }`}>
               {oppNickname}
             </span>
             <AnimatedNumber
               value={oppScore}
-              className={`text-4xl sm:text-5xl font-ancient font-black ${
-                oppScore > myScore ? 'text-turquoise drop-shadow-glow-turquoise' :
-                oppScore === myScore ? 'text-brass-light' : 'text-turquoise/40'
+              className={`text-4xl sm:text-5xl font-bold ${
+                oppScore > myScore ? 'text-team2' :
+                oppScore === myScore ? 'text-text-secondary' : 'text-team2/40'
               }`}
             />
           </div>
@@ -342,10 +321,10 @@ export function Scoreboard() {
                 animate={{ height: 'auto', opacity: 1 }}
                 exit={{ height: 0, opacity: 0 }}
                 transition={{ duration: 0.4, ease: [0.23, 1, 0.32, 1] }}
-                className="overflow-hidden bg-black/20"
+                className="overflow-hidden"
               >
-                <div className="p-6 border-t border-white/5">
-                  <div className="text-[11px] text-brass font-ancient uppercase tracking-[0.5em] text-center mb-8 font-black opacity-60">
+                <div className="p-6 border-t border-border">
+                  <div className="text-[11px] text-text-tertiary uppercase tracking-widest text-center mb-8 font-semibold">
                     LIVE STATS
                   </div>
                   {renderStatsContent()}
@@ -357,13 +336,13 @@ export function Scoreboard() {
       </motion.div>
 
       {isMobile && (
-        <Modal isOpen={expanded} onClose={() => setExpanded(false)}>
+        <Modal isOpen={expanded} onClose={() => setExpanded(false)} ariaLabel="Match Progress">
           <div className="flex flex-col items-center">
-            <div className="w-full flex flex-col items-center mb-8 border-b border-white/10 pb-6">
-              <h2 className="text-brass-light font-ancient uppercase tracking-[0.4em] text-2xl font-black mb-2">
+            <div className="w-full flex flex-col items-center mb-8 border-b border-border pb-6">
+              <h2 className="text-text-primary uppercase tracking-widest text-2xl font-bold mb-2">
                 Match Progress
               </h2>
-              <div className="w-12 h-1 bg-brass/30 rounded-full" />
+              <div className="w-12 h-1 bg-border rounded-full" />
             </div>
             <div className="w-full px-1 max-h-[70vh] overflow-y-auto custom-scrollbar">
               {renderStatsContent()}

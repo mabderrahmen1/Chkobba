@@ -24,7 +24,16 @@
       "Bash(find . -maxdepth 1 -type f -size +1M | xargs ls -lh)",
       "Bash(cd \"C:\\\\Users\\\\mrabt\\\\OneDrive\\\\Desktop\\\\chkobba\\\\Chkobba\" && find ./client/public -type f | sort && echo \"---\" && find ./client/src -path '*/public/*' -o -name '*.tsx' -o -name '*.ts' | xargs grep -l 'tun1\\\\|tun2\\\\|tunisia\\\\|nv_pics\\\\|sound/\\\\|/pics/' 2>/dev/null | head -20)",
       "Bash(cd \"C:\\\\Users\\\\mrabt\\\\OneDrive\\\\Desktop\\\\chkobba\\\\Chkobba\" && rm -f '$null' T.jpg cap1.png cap2.png picture.png prob.png prototype.png prototype2.png quadrilato.png tun1.jpg tun2.jpg tunisia.png && rm -rf pics/ nv_pics/ sound/ && rm -f client/public/tun2.jpg && echo \"Done\")",
-      "Bash(cd \"C:\\\\Users\\\\mrabt\\\\OneDrive\\\\Desktop\\\\chkobba\\\\Chkobba/client/src\" && rm -f components/layout/ThemeToggle.tsx components/ui/Badge.tsx components/ui/Select.tsx types/socket.ts && echo \"Done\")"
+      "Bash(cd \"C:\\\\Users\\\\mrabt\\\\OneDrive\\\\Desktop\\\\chkobba\\\\Chkobba/client/src\" && rm -f components/layout/ThemeToggle.tsx components/ui/Badge.tsx components/ui/Select.tsx types/socket.ts && echo \"Done\")",
+      "Bash(cd \"C:\\\\Users\\\\mrabt\\\\OneDrive\\\\Desktop\\\\chkobba\\\\Chkobba\\\\client\" && npm install -D vitest @testing-library/react @testing-library/jest-dom jsdom @testing-library/user-event 2>&1 | tail -5)",
+      "Bash(cd \"C:\\\\Users\\\\mrabt\\\\OneDrive\\\\Desktop\\\\chkobba\\\\Chkobba\\\\client\" && npx vitest run 2>&1)",
+      "Bash(find C:/Users/mrabt/OneDrive/Desktop/chkobba/Chkobba/client/src -type f \\\\\\(-name *lobby* -o -name *table* -o -name *game* -o -name *layout* -o -name *.css \\\\\\))",
+      "Bash(find C:/Users/mrabt/OneDrive/Desktop/chkobba/Chkobba/client/src/stores -type f -name *.ts -o -name *.tsx)",
+      "Bash(npm run:*)",
+      "Bash(find C:UsersmrabtOneDriveDesktopchkobbaChkobbaclientsrc -name *.css -o -name *.module.css)",
+      "Bash(find C:UsersmrabtOneDriveDesktopchkobbaChkobbaclient -name tailwind.config.* -o -name postcss.config.*)",
+      "Bash(find C:UsersmrabtOneDriveDesktopchkobbaChkobbaclient -maxdepth 2 -name tailwind.config.*)",
+      "Bash(grep -E \"\\\\.tsx$\")"
     ]
   }
 }

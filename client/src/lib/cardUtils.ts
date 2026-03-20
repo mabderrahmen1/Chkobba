@@ -272,16 +272,24 @@ function jokerSVG(): string {
 
 // ── Card back ───────────────────────────────────────────────────────────────
 
-export function generateCardBackSVG(): string {
-  return `<svg viewBox="0 0 100 140" xmlns="http://www.w3.org/2000/svg" class="card-svg">
+const BACK_SVG = `<svg viewBox="0 0 100 140" xmlns="http://www.w3.org/2000/svg" class="card-svg">
   <rect width="100" height="140" rx="7" ry="7" fill="#ffffff" stroke="#000000" stroke-width="2"/>
   <image href="/card_back.png" x="2" y="2" width="96" height="136" preserveAspectRatio="xMidYMid slice" />
 </svg>`;
+
+export function generateCardBackSVG(): string {
+  return BACK_SVG;
 }
 
 // ── Public API ──────────────────────────────────────────────────────────────
 
+const _svgCache = new Map<string, string>();
+
 export function generateCardSVG(rank: string, suit: string, style: CardStyle = 'chkobba'): string {
-  if (rank === 'Joker') return jokerSVG();
-  return style === 'bicycle' ? bicycleCard(rank, suit) : chkobbaCard(rank, suit);
+  const key = `${rank}|${suit}|${style}`;
+  const cached = _svgCache.get(key);
+  if (cached) return cached;
+  const svg = rank === 'Joker' ? jokerSVG() : style === 'bicycle' ? bicycleCard(rank, suit) : chkobbaCard(rank, suit);
+  _svgCache.set(key, svg);
+  return svg;
 }

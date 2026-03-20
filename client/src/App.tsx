@@ -1,40 +1,32 @@
+import { lazy, Suspense } from 'react';
 import { useSocket } from './hooks/useSocket';
 import { useUIStore } from './stores/useUIStore';
 import { ChatPanel } from './components/layout/ChatPanel';
 import { Toast } from './components/ui/Toast';
 import { LandingScreen } from './components/screens/LandingScreen';
-import { CreateRoomScreen } from './components/screens/CreateRoomScreen';
-import { JoinRoomScreen } from './components/screens/JoinRoomScreen';
-import { LobbyScreen } from './components/screens/LobbyScreen';
-import { GameScreen } from './components/screens/GameScreen';
 import { motion, AnimatePresence } from 'framer-motion';
+
+const CreateRoomScreen = lazy(() => import('./components/screens/CreateRoomScreen').then(m => ({ default: m.CreateRoomScreen })));
+const JoinRoomScreen = lazy(() => import('./components/screens/JoinRoomScreen').then(m => ({ default: m.JoinRoomScreen })));
+const LobbyScreen = lazy(() => import('./components/screens/LobbyScreen').then(m => ({ default: m.LobbyScreen })));
+const GameScreen = lazy(() => import('./components/screens/GameScreen').then(m => ({ default: m.GameScreen })));
 
 export default function App() {
   useSocket();
   const screen = useUIStore((s) => s.screen);
 
   return (
-    <div className="h-full w-full relative overflow-hidden bg-black">
-      {/* Persistent Background Video */}
-      <video
-        autoPlay
-        loop
-        muted
-        playsInline
-        className="fixed inset-0 w-full h-full object-cover z-0 opacity-40 scale-105"
-      >
-        <source src="/cafe.mp4" type="video/mp4" />
-      </video>
-      <div className="fixed inset-0 z-0 bg-dark-gradient opacity-60" />
-
-      <main className="relative z-10 h-full">
-        <AnimatePresence mode="wait">
-          {screen === 'landing' && <LandingScreen key="landing" />}
-          {screen === 'createRoom' && <CreateRoomScreen key="createRoom" />}
-          {screen === 'joinRoom' && <JoinRoomScreen key="joinRoom" />}
-          {screen === 'lobby' && <LobbyScreen key="lobby" />}
-          {screen === 'game' && <GameScreen key="game" />}
-        </AnimatePresence>
+    <div className="h-full w-full relative overflow-hidden bg-bg">
+      <main className="relative h-full">
+        <Suspense fallback={<div className="h-full flex items-center justify-center bg-bg"><div className="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin" /></div>}>
+          <AnimatePresence mode="wait">
+            {screen === 'landing' && <LandingScreen key="landing" />}
+            {screen === 'createRoom' && <CreateRoomScreen key="createRoom" />}
+            {screen === 'joinRoom' && <JoinRoomScreen key="joinRoom" />}
+            {screen === 'lobby' && <LobbyScreen key="lobby" />}
+            {screen === 'game' && <GameScreen key="game" />}
+          </AnimatePresence>
+        </Suspense>
         {screen === 'game' && <ChatPanel />}
       </main>
       <Toast />
