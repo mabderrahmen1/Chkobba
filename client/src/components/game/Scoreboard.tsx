@@ -262,7 +262,7 @@ export function Scoreboard() {
     <motion.div
       initial={{ opacity: 0, x: 20 }}
       animate={{ opacity: 1, x: 0 }}
-      className="fixed top-[max(0.5rem,env(safe-area-inset-top))] right-[max(0.5rem,env(safe-area-inset-right))] z-[45] max-w-[min(calc(100vw-5.5rem),22rem)]"
+      className="fixed top-[max(0.5rem,env(safe-area-inset-top))] right-[max(0.5rem,env(safe-area-inset-right))] z-[45] max-w-[min(calc(100vw-5.5rem),22rem)] max-[height:920px]:origin-top-right max-[height:920px]:scale-[0.92] max-[height:780px]:scale-[0.88]"
     >
       <motion.div
         layout

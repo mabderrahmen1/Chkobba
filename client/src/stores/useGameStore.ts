@@ -28,7 +28,11 @@ interface GameStore {
   gameOverData: GameOverData | null;
   autoWinWarning: AutoWinWarning | null;
   chkobbaPlayer: string | null;
+  /** Increments on every `chkobba` socket event so consecutive same-nickname Chkobbas still trigger UI/audio. */
+  chkobbaSeq: number;
   hayyaPlayer: string | null;
+  /** Same idea as chkobbaSeq for `hayya_captured`. */
+  hayyaSeq: number;
   lastCaptureType: 'capture' | 'chkobba' | 'hayya' | null;
   turnStartedAt: number | null;
   turnTimeoutSec: number | null;
@@ -72,7 +76,9 @@ export const useGameStore = create<GameStore>()(
       gameOverData: null,
       autoWinWarning: null,
       chkobbaPlayer: null,
+      chkobbaSeq: 0,
       hayyaPlayer: null,
+      hayyaSeq: 0,
       lastCaptureType: null,
       turnStartedAt: null,
       turnTimeoutSec: null,
@@ -104,8 +110,22 @@ export const useGameStore = create<GameStore>()(
       setRoundResult: (roundResult) => set({ roundResult }),
       setGameOverData: (gameOverData) => set({ gameOverData }),
       setAutoWinWarning: (autoWinWarning) => set({ autoWinWarning }),
-      setChkobbaPlayer: (chkobbaPlayer) => set({ chkobbaPlayer }),
-      setHayyaPlayer: (hayyaPlayer) => set({ hayyaPlayer }),
+      setChkobbaPlayer: (chkobbaPlayer) =>
+        set((state) => {
+          const seq = state.chkobbaSeq ?? 0;
+          return {
+            chkobbaPlayer,
+            chkobbaSeq: chkobbaPlayer !== null ? seq + 1 : seq,
+          };
+        }),
+      setHayyaPlayer: (hayyaPlayer) =>
+        set((state) => {
+          const seq = state.hayyaSeq ?? 0;
+          return {
+            hayyaPlayer,
+            hayyaSeq: hayyaPlayer !== null ? seq + 1 : seq,
+          };
+        }),
       setLastCaptureType: (lastCaptureType) => set({ lastCaptureType }),
       setTurnTimer: (turnStartedAt, turnTimeoutSec) => set({ turnStartedAt, turnTimeoutSec }),
       setIsDistributing: (isDistributing) => set({ isDistributing }),
@@ -125,7 +145,9 @@ export const useGameStore = create<GameStore>()(
           gameOverData: null,
           autoWinWarning: null,
           chkobbaPlayer: null,
+          chkobbaSeq: 0,
           hayyaPlayer: null,
+          hayyaSeq: 0,
           lastCaptureType: null,
           turnStartedAt: null,
           turnTimeoutSec: null,

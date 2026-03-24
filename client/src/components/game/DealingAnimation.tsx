@@ -2,6 +2,7 @@ import { useGameStore } from '../../stores/useGameStore';
 import { useAmbianceSound } from '../../hooks/useAmbianceSound';
 import { useEffect, useLayoutEffect, useRef } from 'react';
 import gsap from 'gsap';
+import { getDealAnimationParams } from '@shared/timing';
 
 export function DealingAnimation() {
   const isDistributing = useGameStore((s) => s.isDistributing);
@@ -22,6 +23,8 @@ export function DealingAnimation() {
   if (!isDistributing) return null;
 
   const cardsPerPlayer = gameType === 'rummy' ? 13 : 3;
+  const dealType = gameType === 'rummy' ? 'rummy' : 'chkobba';
+  const { startDelay, timePerCard } = getDealAnimationParams(dealType, players.length);
 
   const orderedCards: { playerIndex: number; cardIndex: number }[] = [];
   for (let c = 0; c < cardsPerPlayer; c++) {
@@ -29,9 +32,6 @@ export function DealingAnimation() {
       orderedCards.push({ playerIndex: p, cardIndex: c });
     }
   }
-
-  const totalCards = orderedCards.length;
-  const timePerCard = Math.min(80, Math.floor(1200 / totalCards));
 
   return (
     <div className="fixed inset-0 pointer-events-none z-[80] flex items-center justify-center">
@@ -43,6 +43,7 @@ export function DealingAnimation() {
           players={players}
           myId={myId}
           onAppear={playCardDealShort}
+          startDelay={startDelay}
           timePerCard={timePerCard}
         />
       ))}
@@ -63,6 +64,7 @@ function DealingCard({
   players,
   myId,
   onAppear,
+  startDelay,
   timePerCard,
 }: {
   item: { playerIndex: number; cardIndex: number };
@@ -70,10 +72,10 @@ function DealingCard({
   players: { id: string }[];
   myId: string | null;
   onAppear: () => void;
+  startDelay: number;
   timePerCard: number;
 }) {
   const elRef = useRef<HTMLDivElement>(null);
-  const startDelay = 200;
   const myDelay = startDelay + index * timePerCard;
 
   useEffect(() => {

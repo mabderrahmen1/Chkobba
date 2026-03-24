@@ -226,87 +226,6 @@ export function useAmbianceSound() {
     osc.stop(now + 0.2);
   }, [getCtx]);
 
-  // Dramatic sound for Chkobba!
-  const playChkobbaSound = useCallback(() => {
-    if (getSfxLinear() <= 0) return;
-    const ctx = getCtx();
-    const now = ctx.currentTime;
-
-    fetch('/gooba.mp3')
-      .then((res) => res.arrayBuffer())
-      .then((buffer) => ctx.decodeAudioData(buffer))
-      .then((audioBuffer) => {
-        const source = ctx.createBufferSource();
-        source.buffer = audioBuffer;
-        const gainNode = ctx.createGain();
-
-        gainNode.gain.setValueAtTime(0, now);
-        gainNode.gain.linearRampToValueAtTime(0.8, now + 0.5);
-
-        gainNode.gain.setValueAtTime(0.8, now + 4.5);
-        gainNode.gain.linearRampToValueAtTime(0, now + 5);
-
-        source.connect(gainNode).connect(getSfxOut(ctx));
-        source.start(now);
-        source.stop(now + 5);
-      })
-      .catch((err) => {
-        console.error('Failed to play gooba.mp3:', err);
-        const osc1 = ctx.createOscillator();
-        osc1.type = 'sine';
-        osc1.frequency.setValueAtTime(150, now);
-        osc1.frequency.exponentialRampToValueAtTime(40, now + 1.2);
-        const g1 = ctx.createGain();
-        g1.gain.setValueAtTime(0.5, now);
-        g1.gain.exponentialRampToValueAtTime(0.001, now + 1.2);
-        osc1.connect(g1).connect(getSfxOut(ctx));
-        osc1.start(now);
-        osc1.stop(now + 1.2);
-      });
-  }, [getCtx]);
-
-  // Mystical/Legendary sound for Hayya! (7 of Diamonds)
-  const playHayyaSound = useCallback(() => {
-    if (getSfxLinear() <= 0) return;
-    const ctx = getCtx();
-    const now = ctx.currentTime;
-
-    fetch('/yeah-boiii.mp3')
-      .then((res) => res.arrayBuffer())
-      .then((buffer) => ctx.decodeAudioData(buffer))
-      .then((audioBuffer) => {
-        const source = ctx.createBufferSource();
-        source.buffer = audioBuffer;
-        const gainNode = ctx.createGain();
-
-        gainNode.gain.setValueAtTime(0, now);
-        gainNode.gain.linearRampToValueAtTime(0.8, now + 0.3);
-
-        gainNode.gain.setValueAtTime(0.8, now + 3.5);
-        gainNode.gain.linearRampToValueAtTime(0, now + 4);
-
-        source.connect(gainNode).connect(getSfxOut(ctx));
-        source.start(now);
-        source.stop(now + 4);
-      })
-      .catch((err) => {
-        console.error('Failed to play yeah-boiii.mp3:', err);
-        [0, 4, 7, 12, 16, 19, 24].forEach((semi, i) => {
-          const startTime = now + i * 0.08;
-          const osc = ctx.createOscillator();
-          osc.type = 'sine';
-          osc.frequency.setValueAtTime(440 * Math.pow(2, semi / 12), startTime);
-          const g = ctx.createGain();
-          g.gain.setValueAtTime(0, startTime);
-          g.gain.linearRampToValueAtTime(0.12, startTime + 0.05);
-          g.gain.exponentialRampToValueAtTime(0.001, startTime + 2);
-          osc.connect(g).connect(getSfxOut(ctx));
-          osc.start(startTime);
-          osc.stop(startTime + 2);
-        });
-      });
-  }, [getCtx]);
-
   // Realistic card shuffle sound (Riffle)
   const playCardShuffle = useCallback(() => {
     if (getSfxLinear() <= 0) return;
@@ -459,8 +378,6 @@ export function useAmbianceSound() {
     playCardSlide,
     playCardPlace,
     playCardShuffle,
-    playChkobbaSound,
-    playHayyaSound,
     playCardDealShort,
     playCardCapture,
     playCardHover,

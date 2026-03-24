@@ -1,15 +1,22 @@
 import type { Player } from '@shared/types.js';
 import { Card } from './Card';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface PlayerZoneProps {
   player: Player;
   position: 'top' | 'left' | 'right';
   isCurrentTurn?: boolean;
   isTeammate?: boolean;
+  emoteBubble?: { icon: string; label: string } | null;
 }
 
-export function PlayerZone({ player, position, isCurrentTurn = false, isTeammate = false }: PlayerZoneProps) {
+export function PlayerZone({
+  player,
+  position,
+  isCurrentTurn = false,
+  isTeammate = false,
+  emoteBubble = null,
+}: PlayerZoneProps) {
   const isVertical = position === 'left' || position === 'right';
 
   // Team colors
@@ -39,7 +46,24 @@ export function PlayerZone({ player, position, isCurrentTurn = false, isTeammate
   };
 
   return (
-    <div className={`flex ${isVertical ? 'flex-row' : 'flex-col'} items-center gap-2`}>
+    <div className={`relative flex ${isVertical ? 'flex-row' : 'flex-col'} items-center gap-2`}>
+      <AnimatePresence>
+        {emoteBubble && (
+          <motion.div
+            key={`${emoteBubble.label}-${emoteBubble.icon}`}
+            initial={{ opacity: 0, y: 6, scale: 0.92 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.25 }}
+            className="absolute -top-10 left-1/2 z-40 -translate-x-1/2 whitespace-nowrap rounded-lg border border-brass/40 bg-black/85 px-2 py-1 shadow-lg pointer-events-none flex items-center gap-1.5"
+          >
+            <span className="text-base leading-none">{emoteBubble.icon}</span>
+            <span className="font-ancient text-[9px] sm:text-[10px] text-cream uppercase tracking-wider">
+              {emoteBubble.label}
+            </span>
+          </motion.div>
+        )}
+      </AnimatePresence>
       {/* Nameplate with team indicator */}
       <motion.div
         animate={isCurrentTurn ? {

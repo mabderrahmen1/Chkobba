@@ -4,6 +4,33 @@ import { useGameStore } from '../stores/useGameStore';
 import { useUIStore } from '../stores/useUIStore';
 import { useChatStore } from '../stores/useChatStore';
 import { useSocketStore } from '../stores/useSocketStore';
+import { useEmoteStore } from '../stores/useEmoteStore';
+import { getEmoteById } from '../lib/emoteCatalog';
+import { playAssetSoundMp3, stopCelebrationPlayback } from '../lib/playAssetSound';
+import { dealAnimationDurationMs } from '@shared/timing';
+
+/** Detect real moves vs duplicate `game_state` echoes — stops Chkobba/Hayya celebration audio on any card play. */
+let prevChkobbaGameStateSnapshot: string | null = null;
+
+/** Skip stopping celebration when the next `game_state` is the companion update for the same capture (ordering varies). */
+let lastChkobbaHayyaSocketAt = 0;
+
+/** One active clear timer each — new Chkobba/Hayya cancels the previous so rapid repeats don’t reset the name early. */
+let chkobbaClearTimer: ReturnType<typeof setTimeout> | null = null;
+let hayyaClearTimer: ReturnType<typeof setTimeout> | null = null;
+
+function chkobbaGameStateSnapshot(data: Record<string, unknown>): string {
+  const tableCards = (data.tableCards as { rank?: string; suit?: string }[] | undefined) ?? [];
+  const tc = tableCards.map((c) => `${c.rank}-${c.suit}`).join('|');
+  const players = (data.players as { hand?: unknown[] }[] | undefined) ?? [];
+  const hl = players.map((p) => p.hand?.length ?? 0).join(',');
+  return JSON.stringify({
+    tc,
+    hl,
+    turn: data.currentTurn,
+    round: data.roundNumber,
+  });
+}
 
 export function useSocket() {
   const initialized = useRef(false);
@@ -87,18 +114,22 @@ export function useSocket() {
     });
 
     socket.on('game_started', () => {
+      prevChkobbaGameStateSnapshot = null;
       if (useUIStore.getState().screen === 'landing') return;
       const g = useGameStore.getState();
       g.setGameOverData(null);
       // Sync gameType from the room so the right game screen renders
       if (g.room?.gameType) g.setGameType(g.room.gameType);
       
-      // Trigger dealing animation for the very first round
+      const gt = (g.room?.gameType || g.gameType || 'chkobba') as 'chkobba' | 'rummy';
+      const n = g.room?.players?.length ?? 2;
+      const dealMs = dealAnimationDurationMs(gt, n);
+
       g.setIsDistributing(true);
       setTimeout(() => {
         g.setIsDistributing(false);
-      }, 1600);
-      
+      }, dealMs);
+
       useUIStore.getState().setScreen('game');
     });
 
@@ -109,9 +140,17 @@ export function useSocket() {
       if (ui.screen === 'landing') return;
 
       if ('drawPile' in data) {
+        prevChkobbaGameStateSnapshot = null;
         g.setRummyGameState(data);
         g.setGameType('rummy');
       } else {
+        const snap = chkobbaGameStateSnapshot(data as Record<string, unknown>);
+        if (prevChkobbaGameStateSnapshot !== null && snap !== prevChkobbaGameStateSnapshot) {
+          if (Date.now() - lastChkobbaHayyaSocketAt > 220) {
+            stopCelebrationPlayback();
+          }
+        }
+        prevChkobbaGameStateSnapshot = snap;
         g.setGameState(data);
         g.setGameType('chkobba');
         // Reset countdown — turn_started will re-arm it if it's still our turn
@@ -124,25 +163,47 @@ export function useSocket() {
     });
 
     socket.on('chkobba', (data: { playerNickname: string }) => {
+      lastChkobbaHayyaSocketAt = Date.now();
+      if (chkobbaClearTimer) {
+        clearTimeout(chkobbaClearTimer);
+        chkobbaClearTimer = null;
+      }
       useGameStore.getState().setChkobbaPlayer(data.playerNickname);
-      setTimeout(() => useGameStore.getState().setChkobbaPlayer(null), 5000);
+      chkobbaClearTimer = setTimeout(() => {
+        useGameStore.getState().setChkobbaPlayer(null);
+        chkobbaClearTimer = null;
+      }, 5000);
     });
 
     socket.on('new_round', () => {
+      prevChkobbaGameStateSnapshot = null;
       const g = useGameStore.getState();
-      
+
       g.setRoundResult(null);
+      const gt = g.gameType === 'rummy' ? 'rummy' : 'chkobba';
+      const n =
+        gt === 'rummy'
+          ? (g.rummyGameState?.players?.length ?? g.room?.players?.length ?? 2)
+          : (g.gameState?.players?.length ?? g.room?.players?.length ?? 2);
+      const dealMs = dealAnimationDurationMs(gt, n);
+
       g.setIsDistributing(true);
-      
-      // Auto-end distribution after animation time (extended to match shuffle + deal)
       setTimeout(() => {
         g.setIsDistributing(false);
-      }, 1600);
+      }, dealMs);
     });
 
     socket.on('hayya_captured', (data: { playerNickname: string }) => {
+      lastChkobbaHayyaSocketAt = Date.now();
+      if (hayyaClearTimer) {
+        clearTimeout(hayyaClearTimer);
+        hayyaClearTimer = null;
+      }
       useGameStore.getState().setHayyaPlayer(data.playerNickname);
-      setTimeout(() => useGameStore.getState().setHayyaPlayer(null), 5000);
+      hayyaClearTimer = setTimeout(() => {
+        useGameStore.getState().setHayyaPlayer(null);
+        hayyaClearTimer = null;
+      }, 5000);
     });
 
     socket.on('round_end', (data: any) => useGameStore.getState().setRoundResult(data));
@@ -158,6 +219,7 @@ export function useSocket() {
     });
 
     socket.on('lobby_reset', () => {
+      prevChkobbaGameStateSnapshot = null;
       const ui = useUIStore.getState();
       if (ui.screen === 'landing') return;
 
@@ -169,6 +231,17 @@ export function useSocket() {
         g.setRummyGameState(null as any);
         g.setRoundResult(null);
       }, 50);
+    });
+
+    socket.on('game_emote', (data: { playerId: string; emoteId: string }) => {
+      const meta = getEmoteById(data.emoteId);
+      if (!meta) return;
+      const myId = useGameStore.getState().playerId;
+      // Local click already plays once; avoid double audio when the room echoes back.
+      if (data.playerId !== myId) {
+        playAssetSoundMp3(meta.file, `emote:${data.emoteId}`);
+      }
+      useEmoteStore.getState().flashForPlayer(data.playerId, meta.icon, meta.label, 2000);
     });
 
     socket.on('chat_message', (data: any) => {

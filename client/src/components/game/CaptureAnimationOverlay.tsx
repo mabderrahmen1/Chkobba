@@ -27,10 +27,10 @@ export function CaptureAnimationOverlay() {
     if (actionPlayerId === playerId) return;
 
     const isMobile = window.innerWidth < 640;
-    const playedFromX = isMobile ? -150 : -300;
-    const playedFromY = isMobile ? -200 : -400;
-    const scoreX = isMobile ? 250 : 500;
-    const scoreY = isMobile ? -300 : -600;
+    const playedFromX = isMobile ? -120 : -220;
+    const playedFromY = isMobile ? -160 : -320;
+    const scoreX = isMobile ? 180 : 280;
+    const scoreY = isMobile ? -220 : -400;
     const titleToY = isMobile ? -120 : -180;
 
     const caps = capturedRefs.current.filter(Boolean) as HTMLDivElement[];
@@ -47,8 +47,8 @@ export function CaptureAnimationOverlay() {
       if (titleRef.current) {
         tl.fromTo(
           titleRef.current,
-          { y: 20, opacity: 0, scale: 0.8 },
-          { y: titleToY, opacity: 1, scale: 1, duration: 0.45, ease: 'back.out(1.7)' },
+          { y: 16, opacity: 0, scale: 0.92 },
+          { y: titleToY, opacity: 1, scale: 1, duration: 0.36, ease: 'back.out(1.2)' },
           '-=0.1',
         );
       }
@@ -56,11 +56,11 @@ export function CaptureAnimationOverlay() {
         tl.from(
           playedRef.current,
           {
-            scale: 0.3,
+            scale: 0.45,
             x: playedFromX,
             y: playedFromY,
-            rotation: -20,
-            duration: 0.5,
+            rotation: -12,
+            duration: 0.38,
             ease: 'power2.out',
           },
           '-=0.2',
@@ -73,13 +73,13 @@ export function CaptureAnimationOverlay() {
         tl.from(
           caps,
           {
-            scale: 0.3,
-            x: 200,
-            y: 50,
+            scale: 0.5,
+            x: 120,
+            y: 36,
             opacity: 0,
-            duration: 0.35,
-            stagger: 0.08,
-            ease: 'power2.in',
+            duration: 0.28,
+            stagger: 0.06,
+            ease: 'power2.out',
           },
           '-=0.1',
         );
@@ -92,12 +92,12 @@ export function CaptureAnimationOverlay() {
           {
             x: scoreX,
             y: scoreY,
-            rotation: 120,
+            rotation: 72,
             opacity: 0,
-            duration: 0.6,
-            stagger: 0.08,
-            ease: 'power2.in',
-            delay: 0.35,
+            duration: 0.45,
+            stagger: 0.06,
+            ease: 'power1.in',
+            delay: 0.28,
           },
         );
       }
@@ -115,7 +115,7 @@ export function CaptureAnimationOverlay() {
   return (
     <div
       ref={rootRef}
-      className="fixed inset-0 z-[100] pointer-events-none flex items-center justify-center opacity-100"
+      className="fixed inset-0 z-[240] pointer-events-none flex items-center justify-center opacity-100"
     >
       <div className="relative w-full h-full flex items-center justify-center">
         <div

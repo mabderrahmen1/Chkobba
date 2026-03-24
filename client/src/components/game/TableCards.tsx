@@ -60,14 +60,11 @@ export function TableCards({ cards }: TableCardsProps) {
       gsap.killTweensOf(targets);
 
       gsap.from(targets, {
-        y: -64,
-        scale: 0.88,
+        y: -6,
         opacity: 0,
-        rotation: () => gsap.utils.random(-14, 14),
-        transformOrigin: '50% 100%',
-        duration: 0.5,
-        stagger: 0.085,
-        ease: 'back.out(1.28)',
+        duration: 0.14,
+        stagger: 0.02,
+        ease: 'power2.out',
       });
     });
   }, [keySig, cards.length, isDistributing]);
@@ -81,7 +78,7 @@ export function TableCards({ cards }: TableCardsProps) {
   }
 
   return (
-    <div className="w-full min-w-0 max-w-full min-h-[min(200px,28vh)] sm:min-h-[200px] px-2 sm:px-4 py-3 sm:py-4 box-border">
+    <div className="relative z-40 w-full min-w-0 max-w-full min-h-[min(200px,28vh)] sm:min-h-[200px] px-2 sm:px-4 py-3 sm:py-4 box-border pointer-events-auto">
       <div className="flex flex-wrap justify-center items-center gap-2 sm:gap-3 w-full max-w-full min-w-0 mx-auto [contain:layout_style]">
         {cards.map((card, index) => {
           const isSelected = selectedTableIndices.includes(index);

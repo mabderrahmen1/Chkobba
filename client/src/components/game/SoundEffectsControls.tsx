@@ -17,9 +17,6 @@ export function SoundEffectsControls() {
       role="group"
       aria-label="Game sound effects"
     >
-      <span className="text-[10px] font-ancient uppercase tracking-wider text-brass/80 whitespace-nowrap shrink-0">
-        SFX
-      </span>
       <label htmlFor="sfx-volume" className="sr-only">
         Game sound effects volume
       </label>

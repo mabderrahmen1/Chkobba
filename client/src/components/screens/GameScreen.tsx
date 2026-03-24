@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type RefObject } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGameStore } from '../../stores/useGameStore';
 import { GameTable } from '../game/GameTable';
@@ -29,6 +30,7 @@ export function GameScreen() {
   const lighterPlayed = useRef(false);
   const prevRound = useRef(gameState?.roundNumber ?? 0);
   const [copied, setCopied] = useState(false);
+  const tableShakeRef = useRef<HTMLDivElement | null>(null);
 
   // Play lighter flick once on first mount
   useEffect(() => {
@@ -82,7 +84,7 @@ export function GameScreen() {
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.5 }}
-      className="h-[100dvh] max-h-[100dvh] min-h-0 flex flex-col p-1 sm:p-2 relative overflow-hidden bg-transparent"
+      className="game-laptop-density h-[100dvh] max-h-[100dvh] min-h-0 flex flex-col px-1 pt-1 sm:px-2 sm:pt-2 pb-0 relative overflow-hidden bg-transparent"
     >
       {/* Cinematic Background (Provided by App.tsx) */}
       
@@ -135,8 +137,8 @@ export function GameScreen() {
         </motion.button>
       </div>
 
-      <div className="relative z-10 flex-1 min-h-0 flex flex-col">
-        <GameTable />
+      <div className="relative z-10 flex-1 min-h-0 flex flex-col overflow-hidden min-w-0">
+        <GameTable tableShakeRef={tableShakeRef} />
       </div>
 
       {autoWinWarning && (
@@ -157,9 +159,15 @@ export function GameScreen() {
         </motion.div>
       )}
 
-      {/* Special effects overlays */}
-      <ChkobbaEffect />
-      <HayyaEffect />
+      {/* Chkobba / Hayya must render above Chat (z-200) + other UI — portal to body */}
+      {typeof document !== 'undefined' &&
+        createPortal(
+          <>
+            <ChkobbaEffect tableShakeRef={tableShakeRef as RefObject<HTMLElement | null>} />
+            <HayyaEffect tableShakeRef={tableShakeRef as RefObject<HTMLElement | null>} />
+          </>,
+          document.body,
+        )}
 
       <RoundEndModal />
       <GameOverModal />

@@ -18,6 +18,11 @@ import { getBotMove, executeRummyBotTurn, getRandomBotName } from './game/Bot.js
 import { generatePlayerId } from './game/Room.js';
 import { Player } from '../shared/types.js';
 import { GameType } from '../shared/rules.js';
+import { isValidGameEmoteId, GAME_EMOTE_COOLDOWN_MS } from '../shared/emotes.js';
+import { dealAnimationDurationMs, SPECIAL_CAPTURE_PAUSE_MS } from '../shared/timing.js';
+
+/** Per-room per-player emote spam guard */
+const lastGameEmoteAt = new Map<string, number>();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -71,6 +76,23 @@ const turnTimers = new Map<string, NodeJS.Timeout>();
 function clearTurnTimer(roomId: string): void {
   const t = turnTimers.get(roomId);
   if (t) { clearTimeout(t); turnTimers.delete(roomId); }
+}
+
+/** Wait before starting AFK/bot turn timer (dealing overlay or special capture). */
+function scheduleTurnTimer(roomId: string, delayMs: number): void {
+  clearTurnTimer(roomId);
+  const t = setTimeout(() => {
+    turnTimers.delete(roomId);
+    startTurnTimer(roomId);
+  }, delayMs);
+  turnTimers.set(roomId, t);
+}
+
+function scheduleTurnAfterDeal(roomId: string): void {
+  const room = store.getRoom(roomId);
+  if (!room) return;
+  const gt = room.gameType === 'rummy' ? 'rummy' : 'chkobba';
+  scheduleTurnTimer(roomId, dealAnimationDurationMs(gt, room.players.length));
 }
 
 /**
@@ -274,7 +296,11 @@ function executeBotMove(roomId: string, botPlayerId: string): void {
         return;
       }
 
-      startTurnTimer(roomId);
+      if (result.capture?.isChkobba || result.capture?.isHayya) {
+        scheduleTurnTimer(roomId, SPECIAL_CAPTURE_PAUSE_MS);
+      } else {
+        startTurnTimer(roomId);
+      }
     }
   } catch (err) {
     console.error(`[Bot] Error executing move in room ${roomId}:`, err);
@@ -435,7 +461,7 @@ function handleDisconnect(socket: Socket, room: Room, player: Player): void {
           io.to(room.id).emit('new_round');
         }
         broadcastGameState(room.id);
-        startTurnTimer(room.id);
+        scheduleTurnAfterDeal(room.id);
       }
     }
   }
@@ -1020,11 +1046,13 @@ io.on('connection', (socket: Socket) => {
       } else {
         const game = getOrCreateChkobbaGame(currentRoom.id, currentRoom);
         game.start();
-        startTurnTimer(currentRoom.id);
       }
       io.to(currentRoom.id).emit('game_started');
       broadcastGameState(currentRoom.id);
       broadcastRoomUpdate(currentRoom.id);
+      if (currentRoom.gameType === 'chkobba') {
+        scheduleTurnAfterDeal(currentRoom.id);
+      }
       console.log(`[Server] Auto-started ${currentRoom.gameType} game in room ${currentRoom.id} (room full and all ready)`);
     }
   });
@@ -1063,7 +1091,7 @@ io.on('connection', (socket: Socket) => {
     broadcastRoomUpdate(currentRoom.id);
 
     if (currentRoom.gameType === 'chkobba') {
-      startTurnTimer(currentRoom.id);
+      scheduleTurnAfterDeal(currentRoom.id);
     }
 
     console.log(`[Server] ${currentRoom.gameType} game started in room ${currentRoom.id}`);
@@ -1133,7 +1161,11 @@ io.on('connection', (socket: Socket) => {
       return; // Wait for humans to click Continue
     }
 
-    startTurnTimer(currentRoom.id);
+    if (result.capture?.isChkobba || result.capture?.isHayya) {
+      scheduleTurnTimer(currentRoom.id, SPECIAL_CAPTURE_PAUSE_MS);
+    } else {
+      startTurnTimer(currentRoom.id);
+    }
   });
 
   /**
@@ -1350,7 +1382,7 @@ io.on('connection', (socket: Socket) => {
       (game as any).startNewRound();
       io.to(currentRoom.id).emit('new_round');
       broadcastGameState(currentRoom.id);
-      startTurnTimer(currentRoom.id);
+      scheduleTurnAfterDeal(currentRoom.id);
     }
   });
 
@@ -1412,11 +1444,13 @@ io.on('connection', (socket: Socket) => {
     } else {
       const newGame = getOrCreateChkobbaGame(currentRoom.id, currentRoom);
       newGame.start();
-      startTurnTimer(currentRoom.id);
     }
 
     io.to(currentRoom.id).emit('game_started');
     broadcastGameState(currentRoom.id);
+    if (currentRoom.gameType === 'chkobba') {
+      scheduleTurnAfterDeal(currentRoom.id);
+    }
     console.log(`[Server] Room ${currentRoom.id} started a new ${currentRoom.gameType} match (Play Again)`);
   });
 
@@ -1484,6 +1518,25 @@ io.on('connection', (socket: Socket) => {
       playerNickname: currentPlayer.nickname,
       message: sanitizedMessage,
       timestamp: Date.now()
+    });
+  });
+
+  /**
+   * Sound emote — broadcast to room (cooldown per player)
+   */
+  socket.on('game_emote', ({ emoteId }: { emoteId: string }) => {
+    if (!currentRoom || !currentPlayer) return;
+    if (!isValidGameEmoteId(emoteId)) return;
+
+    const key = `${currentRoom.id}:${currentPlayer.id}`;
+    const now = Date.now();
+    const prev = lastGameEmoteAt.get(key) ?? 0;
+    if (now - prev < GAME_EMOTE_COOLDOWN_MS) return;
+    lastGameEmoteAt.set(key, now);
+
+    io.to(currentRoom.id).emit('game_emote', {
+      playerId: currentPlayer.id,
+      emoteId,
     });
   });
 

@@ -3,7 +3,7 @@ import { useUIStore } from '../../stores/useUIStore';
 import { socket } from '../../lib/socket';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
-import { useAmbianceSound } from '../../hooks/useAmbianceSound';
+import { playImpactBoom } from '../../lib/playAssetSound';
 import { useEffect } from 'react';
 
 export function GameOverModal() {
@@ -12,8 +12,6 @@ export function GameOverModal() {
   const gameState = useGameStore((s) => s.gameState);
   const rummyGameState = useGameStore((s) => s.rummyGameState);
   const room = useGameStore((s) => s.room);
-  const { playChkobbaSound } = useAmbianceSound();
-  
   // Use reactive selector for isHost
   // If we have room data, check hostId. Fallback to store's isHost.
   const isHost = useGameStore((s) => s.room ? s.room.hostId === s.playerId : s.isHost);
@@ -33,9 +31,8 @@ export function GameOverModal() {
 
   useEffect(() => {
     if (gameOverData && didWin && !isForfeit) {
-      playChkobbaSound(); // Hype sound for victory!
-      
-      // Trigger screen shake
+      playImpactBoom();
+
       const el = document.getElementById('game-screen');
       if (el) {
         el.classList.add('chkobba-shake-intense');
@@ -43,7 +40,7 @@ export function GameOverModal() {
         el.addEventListener('animationend', onEnd, { once: true });
       }
     }
-  }, [gameOverData, didWin, isForfeit, playChkobbaSound]);
+  }, [gameOverData, didWin, isForfeit]);
 
   if (!gameOverData || (!gameState && !rummyGameState)) return null;
 

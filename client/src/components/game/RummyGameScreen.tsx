@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGameStore } from '../../stores/useGameStore';
+import { useEmoteStore } from '../../stores/useEmoteStore';
 import { useSocketStore } from '../../stores/useSocketStore';
 import { useUIStore } from '../../stores/useUIStore';
 import { socket } from '../../lib/socket';
@@ -30,6 +31,7 @@ export function RummyGameScreen() {
   const gameOverData = useGameStore((s) => s.gameOverData);
   const isConnected = useSocketStore((s) => s.isConnected);
   const isDistributing = useGameStore((s) => s.isDistributing);
+  const emoteFlashes = useEmoteStore((s) => s.flashes);
   const { playCardSlide, playCardPlace, playCardShuffle, playCardCapture, playCardHover } =
     useAmbianceSound();
 
@@ -316,6 +318,7 @@ export function RummyGameScreen() {
             position="left"
             isCurrentTurn={gameState.currentTurn === player.id}
             isDistributing={isDistributing}
+            emoteBubble={emoteFlashes[player.id] ?? null}
           />
         ))}
 
@@ -348,12 +351,29 @@ export function RummyGameScreen() {
             position="right"
             isCurrentTurn={gameState.currentTurn === player.id}
             isDistributing={isDistributing}
+            emoteBubble={emoteFlashes[player.id] ?? null}
           />
         ))}
       </div>
 
       {/* Player hand area */}
       <div className="flex-none p-2 sm:p-4 pb-4 sm:pb-6 relative z-20 w-full">
+        <AnimatePresence>
+          {playerId && emoteFlashes[playerId] && (
+            <motion.div
+              key={`rummy-self-${emoteFlashes[playerId]!.label}`}
+              initial={{ opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              className="absolute left-1/2 -translate-x-1/2 bottom-full mb-1 z-40 flex items-center gap-1.5 rounded-lg border border-brass/40 bg-black/85 px-2 py-1 shadow-lg pointer-events-none"
+            >
+              <span className="text-lg leading-none">{emoteFlashes[playerId]!.icon}</span>
+              <span className="font-ancient text-[9px] sm:text-[10px] text-cream uppercase tracking-wider">
+                {emoteFlashes[playerId]!.label}
+              </span>
+            </motion.div>
+          )}
+        </AnimatePresence>
         <PlayerHand
           sortedHand={sortedHand}
           selectedCards={selectedCards}
@@ -386,17 +406,32 @@ interface PlayerZoneProps {
   position: 'left' | 'right' | 'opponent' | 'self';
   isCurrentTurn: boolean;
   isDistributing: boolean;
+  emoteBubble?: { icon: string; label: string } | null;
 }
 
-function PlayerZone({ player, position, isCurrentTurn, isDistributing }: PlayerZoneProps) {
+function PlayerZone({ player, position, isCurrentTurn, isDistributing, emoteBubble = null }: PlayerZoneProps) {
   return (
     <motion.div
       animate={isCurrentTurn ? { scale: [1, 1.02, 1] } : {}}
       transition={{ duration: 1.5, repeat: Infinity }}
-      className={`hidden lg:flex flex-col items-center p-3 sm:p-4 rounded-xl bg-black/30 backdrop-blur-sm min-w-[120px] sm:min-w-[140px] mx-1 sm:mx-2 ${
+      className={`relative hidden lg:flex flex-col items-center p-3 sm:p-4 rounded-xl bg-black/30 backdrop-blur-sm min-w-[120px] sm:min-w-[140px] mx-1 sm:mx-2 ${
         isCurrentTurn ? 'ring-2 ring-yellow-400/50' : ''
       }`}
     >
+      <AnimatePresence>
+        {emoteBubble && (
+          <motion.div
+            key={`${emoteBubble.label}-${emoteBubble.icon}`}
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            className="absolute -top-2 left-1/2 z-40 -translate-x-1/2 -translate-y-full whitespace-nowrap rounded-lg border border-brass/40 bg-black/85 px-2 py-1 shadow-lg pointer-events-none flex items-center gap-1.5"
+          >
+            <span className="text-base leading-none">{emoteBubble.icon}</span>
+            <span className="font-ancient text-[9px] text-cream uppercase tracking-wider">{emoteBubble.label}</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
       <div className={`text-cream text-xs sm:text-sm font-bold mb-2 ${isCurrentTurn ? 'text-brass' : ''}`}>
         {player.nickname}
       </div>

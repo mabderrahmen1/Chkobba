@@ -75,6 +75,11 @@
   }
 }
 
+/*
+ * Laptop zoom disabled: it left empty space at the bottom on sub–1440×1100 viewports while
+ * full-scale (min-width: 1440px and min-height: 1100px) looked correct. HUD spacing uses padding/Tailwind.
+ */
+
 @layer utilities {
   .cafe-scene {
     background: transparent;
@@ -245,6 +250,109 @@
   }
 }
 
+/* Landing — café video Ken Burns (1 → 1.08 / 20s, ping-pong loop) */
+@keyframes landing-ken-burns {
+  0% {
+    transform: scale(1);
+  }
+  100% {
+    transform: scale(1.08);
+  }
+}
+
+.landing-bg-ken-burns {
+  transform-origin: center center;
+  animation: landing-ken-burns 20s ease-in-out infinite alternate;
+}
+
+/* Landing — diagonal gold highlight sweep on title (~4s) */
+@keyframes landing-title-gold-sweep {
+  0% {
+    transform: translateX(-140%) skewX(-14deg);
+    opacity: 0;
+  }
+  8% {
+    opacity: 1;
+  }
+  92% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(220%) skewX(-14deg);
+    opacity: 0;
+  }
+}
+
+.landing-title-shimmer {
+  position: relative;
+  display: inline-block;
+}
+
+.landing-title-shimmer::after {
+  content: '';
+  position: absolute;
+  top: -15%;
+  bottom: -15%;
+  left: 0;
+  width: 42%;
+  z-index: 2;
+  background: linear-gradient(
+    118deg,
+    transparent 0%,
+    rgba(255, 252, 235, 0) 35%,
+    rgba(255, 248, 220, 0.55) 48%,
+    rgba(255, 230, 160, 0.35) 52%,
+    rgba(255, 248, 220, 0) 65%,
+    transparent 100%
+  );
+  mix-blend-mode: soft-light;
+  pointer-events: none;
+  animation: landing-title-gold-sweep 4s ease-in-out infinite;
+}
+
+/* Landing — gold shimmer pass on primary CTA (hover) */
+@keyframes landing-brass-hover-shimmer {
+  0% {
+    transform: translateX(-130%) skewX(-12deg);
+    opacity: 0;
+  }
+  12% {
+    opacity: 1;
+  }
+  88% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(130%) skewX(-12deg);
+    opacity: 0;
+  }
+}
+
+.landing-btn-brass-shimmer {
+  position: relative;
+}
+
+.landing-btn-brass-shimmer::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  background: linear-gradient(
+    110deg,
+    transparent 0%,
+    transparent 38%,
+    rgba(255, 250, 220, 0.5) 50%,
+    transparent 62%,
+    transparent 100%
+  );
+  opacity: 0;
+  pointer-events: none;
+}
+
+.landing-btn-brass-shimmer:hover:not(:disabled)::before {
+  animation: landing-brass-hover-shimmer 0.85s ease-out;
+}
+
 /* Accessibility: respect reduced motion preferences */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
@@ -252,5 +360,20 @@
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+
+  .landing-bg-ken-burns {
+    animation: none !important;
+    transform: scale(1) !important;
+  }
+
+  .landing-title-shimmer::after {
+    animation: none !important;
+    opacity: 0 !important;
+  }
+
+  .landing-btn-brass-shimmer:hover:not(:disabled)::before {
+    animation: none !important;
+    opacity: 0 !important;
   }
 }

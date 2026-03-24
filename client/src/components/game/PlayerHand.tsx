@@ -3,7 +3,8 @@ import { socket } from '../../lib/socket';
 import { Card } from './Card';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAmbianceSound } from '../../hooks/useAmbianceSound';
-import { useRef, useEffect } from 'react';
+import { stopCelebrationPlayback } from '../../lib/playAssetSound';
+import { useRef, useEffect, useState, useCallback } from 'react';
 import gsap from 'gsap';
 
 export function PlayerHand() {
@@ -11,6 +12,42 @@ export function PlayerHand() {
   const { playCardPlace, playCardHover } = useAmbianceSound();
   const handFlightRefs = useRef<(HTMLDivElement | null)[]>([]);
   const wasDistributing = useRef(isDistributing);
+  /** Must be synchronous — `setState` alone does not block a second click in the same frame */
+  const playSubmitLockedRef = useRef(false);
+  const prevRoundRef = useRef<number | null>(null);
+  /** UI mirror of lock (ref does not re-render) */
+  const [playPending, setPlayPending] = useState(false);
+
+  const releasePlayLock = useCallback(() => {
+    playSubmitLockedRef.current = false;
+    setPlayPending(false);
+  }, []);
+
+  useEffect(() => {
+    if (isDistributing) {
+      releasePlayLock();
+      return;
+    }
+    if (!gameState || !playerId) return;
+
+    const rn = gameState.roundNumber;
+    if (prevRoundRef.current !== null && rn !== prevRoundRef.current) {
+      releasePlayLock();
+    }
+    prevRoundRef.current = rn;
+
+    if (gameState.currentTurn !== playerId) {
+      releasePlayLock();
+    }
+  }, [gameState?.currentTurn, gameState?.roundNumber, isDistributing, playerId, gameState, releasePlayLock]);
+
+  useEffect(() => {
+    const onError = () => releasePlayLock();
+    socket.on('error', onError);
+    return () => {
+      socket.off('error', onError);
+    };
+  }, [releasePlayLock]);
 
   useEffect(() => {
     const len = gameState?.hand?.length ?? 0;
@@ -21,11 +58,10 @@ export function PlayerHand() {
           .filter(Boolean) as HTMLDivElement[];
         if (nodes.length) {
           gsap.from(nodes, {
-            y: -300,
+            y: -48,
             opacity: 0,
-            scale: 0.5,
-            duration: 0.45,
-            stagger: 0.1,
+            duration: 0.22,
+            stagger: 0.05,
             ease: 'power2.out',
           });
         }
@@ -47,9 +83,10 @@ export function PlayerHand() {
   const handCardValue = selectedHandCard?.value ?? 0;
   const isValidCapture = selectedTableIndices.length > 0 && tableSum === handCardValue;
   const isDrop = selectedCardIndex !== null && selectedTableIndices.length === 0;
+  const canPlay = canConfirm && (isDrop || isValidCapture);
 
   const handleCardClick = (index: number) => {
-    if (!isMyTurn || isDistributing) return;
+    if (!isMyTurn || isDistributing || playSubmitLockedRef.current) return;
     if (selectedCardIndex === index) {
       setSelectedCard(null);
     } else {
@@ -59,7 +96,12 @@ export function PlayerHand() {
   };
 
   const handleConfirmPlay = () => {
+    if (playSubmitLockedRef.current) return;
     if (!canConfirm || selectedCardIndex === null) return;
+    if (!canPlay) return;
+
+    playSubmitLockedRef.current = true;
+    setPlayPending(true);
 
     if (selectedTableIndices.length === 0) {
       playCardPlace();
@@ -67,55 +109,13 @@ export function PlayerHand() {
 
     const idx = selectedCardIndex;
     const tableIdx = [...selectedTableIndices];
-    const el = handFlightRefs.current[idx];
 
-    const emit = () => {
-      socket.emit('play_card', {
-        cardIndex: idx,
-        tableIndices: tableIdx,
-      });
-      clearSelections();
-    };
-
-    if (!el) {
-      emit();
-      return;
-    }
-
-    const felt = document.querySelector('[data-table-felt-center]');
-    const rect = el.getBoundingClientRect();
-    let tx = 0;
-    let ty = -220;
-    if (felt) {
-      const fr = felt.getBoundingClientRect();
-      tx = fr.left + fr.width / 2 - rect.left - rect.width / 2;
-      ty = fr.top + fr.height / 2 - rect.top - rect.height / 2;
-    }
-
-    const isDrop = tableIdx.length === 0;
-    const flightRot = isDrop ? (Math.random() - 0.5) * 10 : (Math.random() - 0.5) * 4;
-
-    gsap.timeline({
-      onComplete: () => {
-        gsap.set(el, { clearProps: 'transform' });
-        emit();
-      },
-    })
-      .to(el, {
-        x: tx,
-        y: ty,
-        scale: isDrop ? 1.08 : 1.06,
-        rotation: flightRot,
-        duration: 0.52,
-        ease: 'power3.inOut',
-      })
-      .to(el, { y: '+=14', duration: 0.11, ease: 'power2.out' })
-      .to(el, {
-        y: '-=7',
-        scale: isDrop ? 1.04 : 1.02,
-        duration: 0.16,
-        ease: 'bounce.out',
-      });
+    stopCelebrationPlayback();
+    socket.emit('play_card', {
+      cardIndex: idx,
+      tableIndices: tableIdx,
+    });
+    clearSelections();
   };
 
   const handSize = gameState.hand.length;
@@ -142,17 +142,17 @@ export function PlayerHand() {
     return 'Play';
   };
 
-  const canPlay = canConfirm && (isDrop || isValidCapture);
+  const canClickPlay = canPlay && !playPending;
 
   return (
-    <div className="flex flex-col items-center gap-2 sm:gap-4 w-full relative mt-2 sm:mt-4">
+    <div className="flex flex-col items-center gap-2 sm:gap-4 w-full relative mt-auto">
       <AnimatePresence>
         {isMyTurn && (
           <motion.div
             initial={{ opacity: 0 }}
-            animate={{ opacity: [0.3, 0.6, 0.3] }}
+            animate={{ opacity: 0.22 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
+            transition={{ duration: 0.35 }}
             className="absolute inset-0 -inset-y-4 rounded-2xl pointer-events-none"
             style={{
               background: 'radial-gradient(ellipse at 50% 80%, rgba(212,175,55,0.15) 0%, transparent 70%)',
@@ -197,26 +197,26 @@ export function PlayerHand() {
       </div>
 
       <motion.button
-        initial={{ opacity: 0, y: 20 }}
+        initial={{ opacity: 0, y: 12 }}
         animate={{
           opacity: isMyTurn ? 1 : 0,
-          y: isMyTurn ? 0 : 20,
-          scale: canPlay ? [1, 1.04, 1] : 1,
+          y: isMyTurn ? 0 : 12,
+          scale: 1,
         }}
-        transition={{
-          scale: { repeat: canPlay ? Infinity : 0, duration: 2, ease: 'easeInOut' },
-        }}
+        transition={{ duration: 0.25, ease: 'easeOut' }}
         onClick={handleConfirmPlay}
-        disabled={!canPlay}
+        disabled={!canClickPlay}
         className={`absolute right-0 sm:-right-8 bottom-10 px-3 sm:px-6 py-2 rounded-lg font-ancient font-bold tracking-widest uppercase text-[10px] sm:text-sm transition-all duration-300 min-w-[44px] min-h-[44px] flex items-center justify-center ${
-          canPlay
+          canClickPlay
             ? 'bg-emerald-600 border-2 border-emerald-400/60 text-white shadow-[0_0_16px_rgba(16,185,129,0.4)] cursor-pointer hover:bg-emerald-500 hover:shadow-[0_0_24px_rgba(16,185,129,0.5)]'
-            : selectedTableIndices.length > 0 && !isValidCapture && canConfirm
-              ? 'bg-red-900/60 border-2 border-red-500/40 text-red-300 opacity-70 cursor-not-allowed'
-              : 'bg-wood-dark border-2 border-wood-light text-foreground-muted opacity-40 cursor-not-allowed'
+            : playPending
+              ? 'bg-emerald-800/80 border-2 border-emerald-500/40 text-emerald-100 opacity-90 cursor-wait'
+              : selectedTableIndices.length > 0 && !isValidCapture && canConfirm
+                ? 'bg-red-900/60 border-2 border-red-500/40 text-red-300 opacity-70 cursor-not-allowed'
+                : 'bg-wood-dark border-2 border-wood-light text-foreground-muted opacity-40 cursor-not-allowed'
         }`}
       >
-        {getButtonLabel()}
+        {playPending ? '…' : getButtonLabel()}
       </motion.button>
 
       {!isMyTurn && (

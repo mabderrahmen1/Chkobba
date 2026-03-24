@@ -55,7 +55,7 @@ export function MoveLog() {
   if (logs.length === 0 || !gameState) return null;
 
   return (
-    <div className="fixed top-[clamp(10.5rem,26vh,17rem)] left-[max(0.75rem,env(safe-area-inset-left))] z-40 w-[min(280px,calc(100vw-12rem))] pointer-events-none hidden lg:flex flex-col gap-3">
+    <div className="fixed top-[clamp(10.5rem,26vh,17rem)] left-[max(0.75rem,env(safe-area-inset-left))] z-40 w-[min(280px,calc(100vw-12rem))] pointer-events-none hidden xl:flex max-[height:880px]:!hidden flex-col gap-3">
       <div className="flex items-center gap-2 mb-2 ml-1">
         <div className="w-1.5 h-1.5 bg-brass rounded-full shadow-glow-brass animate-pulse" />
         <h3 className="text-[9px] text-brass/70 font-ancient font-bold uppercase tracking-[0.3em] drop-shadow-md">

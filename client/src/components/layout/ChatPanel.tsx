@@ -4,6 +4,7 @@ import { useChatStore } from '../../stores/useChatStore';
 import { useGameStore } from '../../stores/useGameStore';
 import { socket } from '../../lib/socket';
 import { getAvatarUrl } from '../../utils/avatar';
+import { EmotePanel } from '../game/EmotePanel';
 
 const TUNISIAN_QUICK_CHATS = [
   'Ta7chelek 😂',
@@ -83,7 +84,7 @@ export function ChatPanel() {
     'bg-[#1a3d2b] border-2 border-[#b8942f] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_12px_32px_rgba(0,0,0,0.45)]';
 
   return (
-    <div className="fixed bottom-[max(3.5rem,env(safe-area-inset-bottom)+2.75rem)] left-[max(0.75rem,env(safe-area-inset-left))] z-50 flex flex-col items-start pointer-events-none max-w-[min(380px,calc(100vw-1rem))]">
+    <div className="game-laptop-density fixed bottom-[max(3.5rem,env(safe-area-inset-bottom)+2.75rem)] left-[max(0.75rem,env(safe-area-inset-left))] z-[200] flex flex-col items-start pointer-events-none max-w-[min(380px,calc(100vw-1rem))]">
       <AnimatePresence>
         {isOpen && (
           <motion.div
@@ -213,33 +214,37 @@ export function ChatPanel() {
         )}
       </AnimatePresence>
 
-      <button
-        type="button"
-        onClick={toggleChat}
-        aria-expanded={isOpen}
-        aria-controls="chat-panel-messages"
-        className="pointer-events-auto relative px-5 py-2.5 rounded-t-xl rounded-b-sm bg-[#1a3d2b] border-2 border-[#b8942f] text-cream/90 hover:text-white text-[11px] font-ancient uppercase tracking-[0.2em] cursor-pointer shadow-lg transition-all hover:bg-[#142f22] flex items-center gap-2 group mt-2"
-      >
-        <span className="font-bold">Chat</span>
-        <svg className="w-3.5 h-3.5 opacity-80 group-hover:opacity-100" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2.5}
-            d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-          />
-        </svg>
+      <div className="mt-2 flex flex-row items-center gap-2 pointer-events-auto">
+        <button
+          type="button"
+          onClick={toggleChat}
+          aria-expanded={isOpen}
+          aria-controls="chat-panel-messages"
+          className="relative box-border h-[41px] min-h-[41px] px-5 py-2.5 rounded-t-xl rounded-b-sm bg-[#1a3d2b] border-2 border-[#b8942f] text-cream/90 hover:text-white text-[11px] font-ancient uppercase tracking-[0.2em] cursor-pointer shadow-lg transition-all hover:bg-[#142f22] flex items-center justify-center gap-2 group shrink-0"
+        >
+          <span className="font-bold">Chat</span>
+          <svg className="w-3.5 h-3.5 opacity-80 group-hover:opacity-100" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2.5}
+              d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+            />
+          </svg>
 
-        {unreadCount > 0 && !isOpen && (
-          <motion.span
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] bg-accent text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1 border border-[#1a3d2b] shadow-glow-red"
-          >
-            {unreadCount > 9 ? '9+' : unreadCount}
-          </motion.span>
-        )}
-      </button>
+          {unreadCount > 0 && !isOpen && (
+            <motion.span
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] bg-accent text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1 border border-[#1a3d2b] shadow-glow-red"
+            >
+              {unreadCount > 9 ? '9+' : unreadCount}
+            </motion.span>
+          )}
+        </button>
+
+        <EmotePanel />
+      </div>
     </div>
   );
 }

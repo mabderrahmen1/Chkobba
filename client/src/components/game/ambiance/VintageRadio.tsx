@@ -377,8 +377,8 @@ export function VintageRadio() {
         initial={{ opacity: 0, y: -40, scale: 0.9 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ type: 'spring', stiffness: 200, damping: 20 }}
-        className="fixed top-[max(1rem,env(safe-area-inset-top)+0.5rem)] left-[max(1rem,env(safe-area-inset-left))] z-50 select-none hidden md:block"
-        style={{ width: isMobile ? 208 : 276 }}
+        className="fixed top-[max(1rem,env(safe-area-inset-top)+0.5rem)] left-[max(1rem,env(safe-area-inset-left))] z-50 select-none hidden md:block max-[height:920px]:origin-top-left max-[height:920px]:scale-[0.88] max-[height:780px]:scale-[0.8]"
+        style={{ width: isMobile ? 208 : 276, maxWidth: 'min(276px, calc(100vw - 20rem))' }}
         role="group"
         aria-label="Radio du café — affichage du titre, réglage, lecture et pistes."
       >

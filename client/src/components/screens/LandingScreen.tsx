@@ -17,6 +17,7 @@ export function LandingScreen() {
   const isSubmitting = useUIStore((s) => s.isSubmitting);
   const setIsSubmitting = useUIStore((s) => s.setIsSubmitting);
   const [rulesOpen, setRulesOpen] = useState(false);
+  const [onlinePlayers, setOnlinePlayers] = useState(() => 12 + Math.floor(Math.random() * 36));
 
   const validateAndProceed = (target: Screen) => {
     if (isSubmitting) return;
@@ -60,15 +61,33 @@ export function LandingScreen() {
     };
   }, [setIsSubmitting]);
 
+  useEffect(() => {
+    const id = window.setInterval(() => {
+      setOnlinePlayers(12 + Math.floor(Math.random() * 36));
+    }, 30_000);
+    return () => window.clearInterval(id);
+  }, []);
+
   return (
     <motion.section
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       className="min-h-[100dvh] relative overflow-x-hidden overflow-y-auto bg-transparent flex flex-col"
+      aria-labelledby="landing-title"
     >
-      {/* Decorative Coffee Steam Particles */}
-      <div className="absolute bottom-0 left-1/4 z-10 pointer-events-none opacity-20">
+      <h2 className="sr-only">Chkobba — jeu de cartes tunisien multijoueur en ligne</h2>
+
+      {/* Ambient depth — no copy, pure atmosphere */}
+      <div
+        className="pointer-events-none absolute inset-0 z-0"
+        aria-hidden
+      >
+        <div className="absolute top-[8%] left-1/2 -translate-x-1/2 h-[min(42vh,380px)] w-[min(92vw,520px)] rounded-full bg-[radial-gradient(ellipse_at_50%_40%,rgba(212,175,55,0.09)_0%,transparent_62%)] blur-sm" />
+        <div className="absolute bottom-0 left-0 right-0 h-1/3 bg-gradient-to-t from-black/35 to-transparent" />
+      </div>
+
+      <div className="absolute bottom-0 left-1/4 z-[1] pointer-events-none opacity-[0.14]">
         {[1, 2, 3, 4, 5].map((i) => (
           <div
             key={i}
@@ -84,62 +103,80 @@ export function LandingScreen() {
         ))}
       </div>
 
-      <div className="relative z-10 flex flex-1 flex-col items-center justify-center px-4 sm:px-6 py-10 sm:py-14 w-full max-w-md mx-auto">
-        {/* Logo / Title Area */}
+      <div className="relative z-10 flex flex-1 flex-col items-center justify-center px-5 sm:px-8 py-12 sm:py-16 w-full max-w-[420px] mx-auto">
         <motion.div
-          initial={{ y: -30, opacity: 0 }}
+          initial={{ y: -16, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          transition={{ duration: 0.8, ease: 'easeOut' }}
-          className="mb-10 sm:mb-12 text-center"
+          transition={{ duration: 0.65, ease: [0.22, 1, 0.36, 1] }}
+          className="mb-9 sm:mb-11 text-center w-full"
         >
-          <h1 className="text-5xl sm:text-7xl md:text-8xl font-black text-metallic-gold tracking-tighter mb-2">
-            CHKOBBA
-          </h1>
-          <p className="text-cream/80 text-xs sm:text-sm font-ancient text-center max-w-md mx-auto leading-snug mb-3 px-2">
-            Chkobba en ligne — jeu de cartes <span className="text-brass/90">tunisien</span> gratuit · multijoueur ·
-            chkobba game dans le navigateur (chkobba app web)
+          <p className="mb-3 inline-flex items-center justify-center rounded-full border border-brass/25 bg-black/25 px-3 py-1 text-[10px] font-ancient uppercase tracking-[0.28em] text-brass/80 backdrop-blur-sm">
+            Multijoueur · Navigateur
           </p>
-          <div className="flex items-center justify-center gap-4">
-            <div className="h-[1px] w-12 bg-gradient-to-r from-transparent to-brass/50" />
-            <p className="text-brass font-ancient text-[10px] sm:text-sm tracking-[0.35em] sm:tracking-[0.4em] font-bold uppercase">
-              The Café Experience
-            </p>
-            <div className="h-[1px] w-12 bg-gradient-to-l from-transparent to-brass/50" />
+          <h1
+            id="landing-title"
+            className="landing-title-shimmer text-[clamp(2.75rem,12vw,5.25rem)] font-black leading-[0.92] tracking-tight drop-shadow-[0_2px_24px_rgba(212,175,55,0.18)]"
+          >
+            <span className="relative z-[1] text-transparent bg-clip-text bg-gradient-to-b from-[#f5e6a8] via-brass to-[#a67c1a]">
+              CHKOBBA
+            </span>
+          </h1>
+          <p className="mt-4 text-cream/70 text-sm sm:text-[0.95rem] font-ancient tracking-wide max-w-[20rem] mx-auto leading-relaxed">
+            La table du café, avec vos amis — où que vous soyez.
+          </p>
+          <p
+            className="mt-5 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-lg sm:text-xl text-brass/85 tabular-nums tracking-tight"
+            aria-hidden
+          >
+            <span className="text-brass/90">♠</span>
+            <span className="text-brass/35 text-xs sm:text-sm select-none">·</span>
+            <span className="text-red-400/90">♥</span>
+            <span className="text-brass/35 text-xs sm:text-sm select-none">·</span>
+            <span className="text-brass/90">♦</span>
+            <span className="text-brass/35 text-xs sm:text-sm select-none">·</span>
+            <span className="text-brass/90">♣</span>
+          </p>
+          <div className="mt-5 flex items-center justify-center gap-3 opacity-90">
+            <span className="h-px w-10 bg-gradient-to-r from-transparent to-brass/40" aria-hidden />
+            <span className="text-[10px] sm:text-xs font-ancient tracking-[0.32em] text-brass/75 uppercase">
+              Café & cartes
+            </span>
+            <span className="h-px w-10 bg-gradient-to-l from-transparent to-brass/40" aria-hidden />
           </div>
         </motion.div>
 
-        {/* Action Panel */}
         <motion.div
-          initial={{ scale: 0.95, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ delay: 0.3, duration: 0.6 }}
-          className="w-full glass-panel-heavy p-7 sm:p-10 rounded-[2.5rem] border-brass/20 relative overflow-hidden"
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.12, duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+          className="w-full rounded-[2rem] sm:rounded-[2.25rem] border border-white/[0.08] bg-black/25 backdrop-blur-xl shadow-[0_24px_80px_-12px_rgba(0,0,0,0.65),inset_0_1px_0_0_rgba(255,255,255,0.06)] p-7 sm:p-9 relative overflow-hidden"
         >
-          <div className="absolute top-0 left-0 right-0 h-1/2 bg-gradient-to-b from-white/[0.03] to-transparent pointer-events-none" />
+          <div className="pointer-events-none absolute -top-24 left-1/2 -translate-x-1/2 w-[120%] h-32 bg-gradient-to-b from-amber-900/15 to-transparent rounded-full blur-2xl" />
+          <div className="pointer-events-none absolute inset-0 rounded-[inherit] ring-1 ring-inset ring-white/[0.04]" />
 
-          <div className="space-y-8 relative z-10">
+          <div className="space-y-7 relative z-10">
             <Input
-              label="Player Nickname"
-              placeholder="Enter your name..."
+              label="Pseudo"
+              placeholder="Votre nom à la table…"
               value={nickname}
               onChange={setNicknameLocal}
               maxLength={15}
               icon={
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden>
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                 </svg>
               }
             />
 
-            <div className="flex flex-col gap-4 pt-2">
+            <div className="flex flex-col gap-3 pt-1">
               <Button
                 onClick={() => validateAndProceed('createRoom')}
                 disabled={isSubmitting}
                 variant="brass"
                 size="xl"
-                className="w-full"
+                className="landing-btn-brass-shimmer w-full shadow-lg shadow-black/30"
               >
-                {isSubmitting ? 'Entering...' : 'Create Table'}
+                {isSubmitting ? 'Ouverture…' : 'Créer une table'}
               </Button>
 
               <Button
@@ -147,59 +184,55 @@ export function LandingScreen() {
                 onClick={() => validateAndProceed('joinRoom')}
                 disabled={isSubmitting}
                 size="lg"
-                className="w-full"
+                className="w-full text-cream/90 hover:bg-white/[0.06]"
               >
-                Join Private Room
+                Rejoindre une salle
               </Button>
 
-              <Button
-                variant="ghost"
+              <button
+                type="button"
                 onClick={() => setRulesOpen(true)}
                 disabled={isSubmitting}
-                size="lg"
-                className="w-full border border-white/10 text-cream/85 hover:text-cream hover:bg-white/5"
+                className="w-full py-3 rounded-xl text-sm font-ancient text-cream/55 hover:text-brass/90 border border-transparent hover:border-brass/15 hover:bg-white/[0.03] transition-colors disabled:opacity-40"
               >
                 Règles du jeu
-              </Button>
+              </button>
+
+              <div className="flex items-center justify-center gap-2.5 pt-1 text-[11px] sm:text-xs font-ancient text-cream/45">
+                <span className="relative flex h-2 w-2 shrink-0" aria-hidden>
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400/60 opacity-75" />
+                  <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(52,211,153,0.5)]" />
+                </span>
+                <span>
+                  <span className="tabular-nums text-cream/55">{onlinePlayers}</span>
+                  {' '}
+                  joueurs en ligne
+                </span>
+              </div>
             </div>
 
             {roomId && playerId && (
               <motion.div
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: 'auto' }}
-                className="pt-4 border-t border-white/5"
+                className="pt-5 border-t border-white/[0.06]"
               >
                 <Button
                   variant="secondary"
                   onClick={handleRejoin}
                   disabled={isSubmitting}
-                  className="w-full py-4 rounded-2xl"
+                  className="w-full py-4 rounded-2xl border-brass/25"
                 >
-                  Return to Active Session
+                  Reprendre la partie
                 </Button>
               </motion.div>
             )}
           </div>
         </motion.div>
 
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 1 }}
-          className="mt-8 text-cream/30 text-[10px] uppercase tracking-[0.2em] font-ancient text-center"
-        >
-          Mediterranean Card Games • Est. 2024
-        </motion.p>
-
-        <footer className="mt-10 pb-6 px-4 max-w-lg mx-auto text-center text-cream/40 text-[11px] sm:text-xs leading-relaxed font-ancient">
-          <h2 className="sr-only">Chkobba jeu et chkobba tunisienne en ligne</h2>
-          <p>
-            <strong className="text-cream/55">Chkobba jeu</strong> multijoueur : jouez à la{' '}
-            <strong className="text-cream/55">chkobba tunisienne</strong> avec des règles fidèles au jeu de cartes
-            tunisien. Gratuit, sans téléchargement — le meilleur endroit pour le{' '}
-            <strong className="text-cream/55">chkobba en ligne</strong>.
-          </p>
-        </footer>
+        <p className="mt-10 text-center text-[10px] text-cream/25 font-ancient tracking-[0.2em] uppercase">
+          chkobba.app
+        </p>
       </div>
 
       <Modal
@@ -207,7 +240,7 @@ export function LandingScreen() {
         onClose={() => setRulesOpen(false)}
         panelClassName="max-w-4xl w-full text-left"
       >
-        <h2 className="sr-only">Règles et FAQ — Chkobba</h2>
+        <h2 className="sr-only">Règles du Chkobba</h2>
         <ChkobbaRulesContent />
       </Modal>
     </motion.section>
