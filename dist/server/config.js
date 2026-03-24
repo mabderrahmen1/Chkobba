@@ -11,7 +11,7 @@ export const config = {
     // Disconnect timeout: 5 minutes before auto-win
     DISCONNECT_TIMEOUT_MS: 5 * 60 * 1000,
     // Default turn timeout in seconds (0 = off)
-    DEFAULT_TURN_TIMEOUT: 60,
+    DEFAULT_TURN_TIMEOUT: 0,
     // Warning before auto-win (1 minute before)
     AUTO_WIN_WARNING_MS: 4 * 60 * 1000,
     // Room code configuration

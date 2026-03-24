@@ -1,7 +1,10 @@
 import { motion, AnimatePresence } from 'framer-motion';
+import gsap from 'gsap';
 import { useGameStore } from '../../stores/useGameStore';
-import { useEffect, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useAmbianceSound } from '../../hooks/useAmbianceSound';
+
+const SCATTER_CARD_COUNT = 10;
 
 function Particle({ delay, x, y, size, color }: { delay: number; x: number; y: number; size: number; color: string }) {
   return (
@@ -57,8 +60,29 @@ export function ChkobbaEffect() {
   const chkobbaPlayer = useGameStore((s) => s.chkobbaPlayer);
   const [show, setShow] = useState(false);
   const { playChkobbaSound } = useAmbianceSound();
+  const scatterRootRef = useRef<HTMLDivElement>(null);
+  const scatterRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   const hasChkobba = !!chkobbaPlayer;
+
+  useLayoutEffect(() => {
+    if (!show || !hasChkobba) return;
+    const root = scatterRootRef.current;
+    if (!root) return;
+    const nodes = scatterRefs.current.filter(Boolean) as HTMLDivElement[];
+    const ctx = gsap.context(() => {
+      nodes.forEach((el, i) => {
+        const rx = (Math.random() - 0.5) * 520;
+        const ry = (Math.random() - 0.5) * 380;
+        const rot = gsap.utils.random(-40, 40);
+        gsap
+          .timeline({ delay: i * 0.03 })
+          .to(el, { x: rx, y: ry, rotation: rot, duration: 0.45, ease: 'power2.out' })
+          .to(el, { x: rx * 6, y: ry * 6, opacity: 0, duration: 0.65, ease: 'power2.in' });
+      });
+    }, root);
+    return () => ctx.revert();
+  }, [show, hasChkobba]);
 
   useEffect(() => {
     if (hasChkobba) {
@@ -118,6 +142,32 @@ export function ChkobbaEffect() {
             transition={{ duration: 1.5 }}
             className="absolute inset-0 bg-gradient-to-t from-red-600/30 via-brass/20 to-transparent"
           />
+
+          {/* Table cards scatter (decorative backs) then fly off-screen */}
+          <div
+            ref={scatterRootRef}
+            className="absolute inset-0 flex items-center justify-center overflow-visible pointer-events-none"
+            aria-hidden
+          >
+            {Array.from({ length: SCATTER_CARD_COUNT }).map((_, i) => (
+              <div
+                key={`scatter-${i}`}
+                ref={(el) => {
+                  scatterRefs.current[i] = el;
+                }}
+                className="absolute w-14 h-20 sm:w-16 sm:h-[5.5rem] rounded-md border-2 border-brass/50 shadow-2xl overflow-hidden"
+                style={{
+                  left: '50%',
+                  top: '50%',
+                  marginLeft: '-1.75rem',
+                  marginTop: '-2.5rem',
+                  transformOrigin: 'center center',
+                }}
+              >
+                <img src="/card_back.png" alt="" className="w-full h-full object-cover" draggable={false} />
+              </div>
+            ))}
+          </div>
 
           {/* Particles */}
           <div className="absolute inset-0 flex items-center justify-center overflow-hidden">

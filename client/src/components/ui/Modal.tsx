@@ -5,9 +5,11 @@ interface ModalProps {
   isOpen: boolean;
   onClose?: () => void;
   children: React.ReactNode;
+  /** Additional classes for the inner panel (e.g. max-w-4xl for wide content) */
+  panelClassName?: string;
 }
 
-export function Modal({ isOpen, onClose, children }: ModalProps) {
+export function Modal({ isOpen, onClose, children, panelClassName }: ModalProps) {
   const modalRef = useRef<HTMLDivElement>(null);
   const previousFocus = useRef<HTMLElement | null>(null);
 
@@ -73,7 +75,7 @@ export function Modal({ isOpen, onClose, children }: ModalProps) {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.92, y: -20 }}
             transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-            className="bg-surface-alt rounded-xl p-4 sm:p-6 md:p-8 max-w-lg w-full text-center shadow-2xl max-h-[85vh] sm:max-h-[90vh] overflow-y-auto border border-brass/15 relative outline-none"
+            className={`bg-surface-alt rounded-xl p-4 sm:p-6 md:p-8 max-w-lg w-full text-center shadow-2xl max-h-[85vh] sm:max-h-[90vh] overflow-y-auto border border-brass/15 relative outline-none ${panelClassName ?? ''}`}
             onClick={(e) => e.stopPropagation()}
           >
             {onClose && (

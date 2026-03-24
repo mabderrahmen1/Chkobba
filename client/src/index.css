@@ -52,6 +52,8 @@
 
   html, body, #root {
     height: 100%;
+    min-height: 100dvh;
+    max-height: 100dvh;
     background: #0a0500;
     color: #f5e6d3;
     overflow: hidden;
@@ -231,6 +233,16 @@
 
 .chkobba-shake-intense {
   animation: screen-shake-intense 1.2s cubic-bezier(.36,.07,.19,.97) both;
+}
+
+/* Vintage radio — scrolling track title in frequency display (duplicate text, -50% loop) */
+@keyframes radio-scroll-title {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
 }
 
 /* Accessibility: respect reduced motion preferences */

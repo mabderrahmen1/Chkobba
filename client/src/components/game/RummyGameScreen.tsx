@@ -8,6 +8,7 @@ import { Card } from './Card';
 import { Button } from '../ui/Button';
 import { GameOverModal } from './GameOverModal';
 import { VintageRadio } from './ambiance/VintageRadio';
+import { SoundEffectsControls } from './SoundEffectsControls';
 import { useAmbianceSound } from '../../hooks/useAmbianceSound';
 import { DealingAnimation } from './DealingAnimation';
 import type { RummyPlayer, Meld, MeldType, Card as CardType } from '@shared/types';
@@ -29,7 +30,8 @@ export function RummyGameScreen() {
   const gameOverData = useGameStore((s) => s.gameOverData);
   const isConnected = useSocketStore((s) => s.isConnected);
   const isDistributing = useGameStore((s) => s.isDistributing);
-  const { playCardSlide, playCardPlace, playCardShuffle, playCardCapture } = useAmbianceSound();
+  const { playCardSlide, playCardPlace, playCardShuffle, playCardCapture, playCardHover } =
+    useAmbianceSound();
 
   const [isOverMeldZone, setIsOverMeldZone] = useState(false);
   const prevDiscardCount = useRef(gameState.discardPile.length);
@@ -139,6 +141,10 @@ export function RummyGameScreen() {
   };
 
   const toggleCardSelection = (index: number) => {
+    const willSelect = !selectedCards.includes(index);
+    if (willSelect && isCurrentTurn) {
+      playCardHover();
+    }
     setSelectedCards((prev) => {
       const next = prev.includes(index) ? prev.filter((i) => i !== index) : [...prev, index];
       // Auto-enter lay-off mode when exactly 1 card selected (and has drawn)
@@ -210,15 +216,13 @@ export function RummyGameScreen() {
   };
 
   const handleLeave = () => {
-    if (window.confirm("Are you sure you want to leave the game?")) {
-      socket.emit('leave_room');
-      useUIStore.getState().setIsSubmitting(false);
-      useUIStore.getState().setScreen('landing');
-      sessionStorage.removeItem('chkobba-storage');
-      setTimeout(() => {
-        useGameStore.getState().reset();
-      }, 500);
-    }
+    socket.emit('leave_room');
+    useUIStore.getState().setIsSubmitting(false);
+    useUIStore.getState().setScreen('landing');
+    sessionStorage.removeItem('chkobba-storage');
+    setTimeout(() => {
+      useGameStore.getState().reset();
+    }, 500);
   };
 
   return (
@@ -231,6 +235,10 @@ export function RummyGameScreen() {
       className="h-full w-full flex flex-col bg-transparent overflow-hidden relative"
     >
       <DealingAnimation />
+
+      <div className="fixed bottom-[max(0.75rem,env(safe-area-inset-bottom))] right-[max(0.75rem,env(safe-area-inset-right))] z-[45] w-[min(16rem,calc(100vw-8rem))]">
+        <SoundEffectsControls />
+      </div>
       
       {/* Ambient lighting */}
       <div className="absolute inset-0 pointer-events-none z-0" style={{
@@ -721,7 +729,7 @@ function PlayerHand({
                 zIndex: displayIndex,
               }}
             >
-              <Card card={card} />
+              <Card card={card} selectable={isCurrentTurn} />
               
               {/* Discard hint */}
               {isCurrentTurn && isSelected && mappedSelectedCards.length === 1 && (

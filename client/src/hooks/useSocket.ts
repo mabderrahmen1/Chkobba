@@ -207,5 +207,13 @@ export function useSocket() {
       }
     });
 
+    socket.on('kicked_by_host', () => {
+      sessionStorage.removeItem('chkobba-storage');
+      useGameStore.getState().reset();
+      useUIStore.getState().setIsSubmitting(false);
+      useUIStore.getState().setScreen('landing');
+      useUIStore.getState().addToast('The host removed you from the table.', 'error');
+    });
+
   }, []);
 }

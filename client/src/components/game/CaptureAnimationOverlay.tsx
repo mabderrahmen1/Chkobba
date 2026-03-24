@@ -1,141 +1,174 @@
-import { motion, AnimatePresence } from 'framer-motion';
+import gsap from 'gsap';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useGameStore } from '../../stores/useGameStore';
 import { Card } from './Card';
-import { useEffect, useState } from 'react';
 
 export function CaptureAnimationOverlay() {
   const lastAction = useGameStore((s) => s.gameState?.lastAction);
   const playerId = useGameStore((s) => s.playerId);
   const [activeAction, setActiveAction] = useState<typeof lastAction>(null);
 
+  const rootRef = useRef<HTMLDivElement>(null);
+  const backdropRef = useRef<HTMLDivElement>(null);
+  const titleRef = useRef<HTMLDivElement>(null);
+  const playedRef = useRef<HTMLDivElement>(null);
+  const arrowRef = useRef<HTMLDivElement>(null);
+  const capturedRefs = useRef<(HTMLDivElement | null)[]>([]);
+
   useEffect(() => {
     if (lastAction && lastAction.type === 'capture') {
       setActiveAction(lastAction);
-      const timer = setTimeout(() => setActiveAction(null), 1500); // Faster duration
-      return () => clearTimeout(timer);
     }
   }, [lastAction?.timestamp]);
+
+  useLayoutEffect(() => {
+    if (!activeAction || activeAction.type !== 'capture') return;
+    const actionPlayerId = activeAction.playerId;
+    if (actionPlayerId === playerId) return;
+
+    const isMobile = window.innerWidth < 640;
+    const playedFromX = isMobile ? -150 : -300;
+    const playedFromY = isMobile ? -200 : -400;
+    const scoreX = isMobile ? 250 : 500;
+    const scoreY = isMobile ? -300 : -600;
+    const titleToY = isMobile ? -120 : -180;
+
+    const caps = capturedRefs.current.filter(Boolean) as HTMLDivElement[];
+    const root = rootRef.current;
+
+    const ctx = gsap.context(() => {
+      const tl = gsap.timeline({
+        onComplete: () => setActiveAction(null),
+      });
+
+      if (backdropRef.current) {
+        tl.from(backdropRef.current, { opacity: 0, duration: 0.2 });
+      }
+      if (titleRef.current) {
+        tl.fromTo(
+          titleRef.current,
+          { y: 20, opacity: 0, scale: 0.8 },
+          { y: titleToY, opacity: 1, scale: 1, duration: 0.45, ease: 'back.out(1.7)' },
+          '-=0.1',
+        );
+      }
+      if (playedRef.current) {
+        tl.from(
+          playedRef.current,
+          {
+            scale: 0.3,
+            x: playedFromX,
+            y: playedFromY,
+            rotation: -20,
+            duration: 0.5,
+            ease: 'power2.out',
+          },
+          '-=0.2',
+        );
+      }
+      if (arrowRef.current) {
+        tl.from(arrowRef.current, { scale: 0, rotation: -90, duration: 0.25, ease: 'power2.out' }, '-=0.15');
+      }
+      if (caps.length) {
+        tl.from(
+          caps,
+          {
+            scale: 0.3,
+            x: 200,
+            y: 50,
+            opacity: 0,
+            duration: 0.35,
+            stagger: 0.08,
+            ease: 'power2.in',
+          },
+          '-=0.1',
+        );
+      }
+
+      const flyTargets = [playedRef.current, ...caps].filter(Boolean) as HTMLDivElement[];
+      if (flyTargets.length) {
+        tl.to(
+          flyTargets,
+          {
+            x: scoreX,
+            y: scoreY,
+            rotation: 120,
+            opacity: 0,
+            duration: 0.6,
+            stagger: 0.08,
+            ease: 'power2.in',
+            delay: 0.35,
+          },
+        );
+      }
+    }, root ?? undefined);
+
+    return () => ctx.revert();
+  }, [activeAction, playerId]);
 
   if (!activeAction || activeAction.type !== 'capture') return null;
 
   const { card, capturedCards, playerId: actionPlayerId, isChkobba, isHayya } = activeAction;
   const isMe = actionPlayerId === playerId;
-
-  // Only show animation for the opponent
   if (isMe) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] pointer-events-none flex items-center justify-center">
-      <AnimatePresence>
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="relative w-full h-full flex items-center justify-center"
-        >
-          {/* Backdrop dim - Only for opponent */}
-          {!isMe && (
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 0.6 }}
-              className="absolute inset-0 bg-black/40 backdrop-blur-[2px]"
-            />
-          )}
+    <div
+      ref={rootRef}
+      className="fixed inset-0 z-[100] pointer-events-none flex items-center justify-center opacity-100"
+    >
+      <div className="relative w-full h-full flex items-center justify-center">
+        <div
+          ref={backdropRef}
+          className="absolute inset-0 bg-black/40 backdrop-blur-[2px] opacity-0"
+        />
 
-          {/* Action Title - Only for opponent */}
-          {!isMe && (
-            <motion.div
-              initial={{ y: 20, opacity: 0, scale: 0.8 }}
-              animate={{ y: window.innerWidth < 640 ? -120 : -180, opacity: 1, scale: 1 }}
-              className={`absolute font-ancient text-2xl sm:text-5xl uppercase tracking-[0.4em] font-bold drop-shadow-glow-gold ${
+        <div className="absolute left-1/2 top-[22%] -translate-x-1/2 text-center pointer-events-none">
+          <div
+            ref={titleRef}
+            className="font-ancient text-2xl sm:text-5xl uppercase tracking-[0.4em] font-bold drop-shadow-glow-gold opacity-0"
+            style={{ transformOrigin: 'center center' }}
+          >
+            <span
+              className={
                 isChkobba ? 'text-accent' : isHayya ? 'text-pink-400' : 'text-brass'
-              }`}
+              }
             >
               {isChkobba ? 'CHKOBBA!' : isHayya ? '7 HAYA!' : 'CAPTURE'}
-            </motion.div>
-          )}
+            </span>
+          </div>
+        </div>
 
-          <div className="relative flex items-center justify-center gap-4 sm:gap-16">
-            {/* The Played Card */}
-            <motion.div
-              initial={{ 
-                scale: 0.3, 
-                x: isMe ? 0 : (window.innerWidth < 640 ? -150 : -300), 
-                y: isMe ? 400 : (window.innerWidth < 640 ? -200 : -400), 
-                rotate: -20 
-              }}
-              animate={{ scale: isMe ? 1 : (window.innerWidth < 640 ? 1.1 : 1.4), x: window.innerWidth < 640 ? -60 : -100, y: 0, rotate: -5 }}
-              transition={{ type: 'spring', damping: 18, stiffness: 80 }}
-              className="z-20 relative"
-            >
-              <Card card={card} />
-              <motion.div 
-                animate={{ opacity: [0.1, 0.3, 0.1] }}
-                transition={{ duration: 2, repeat: Infinity }}
-                className="absolute -inset-2 bg-accent/10 blur-xl rounded-full -z-10" 
-              />
-            </motion.div>
-
-            {/* Collision Arrow */}
-            <motion.div 
-              initial={{ scale: 0, rotate: -90 }}
-              animate={{ scale: isMe ? 1 : (window.innerWidth < 640 ? 1.1 : 1.5), rotate: 0 }}
-              transition={{ delay: 0.3, type: 'spring' }}
-              className="text-brass/80 text-2xl sm:text-5xl font-bold"
-            >
-              ➝
-            </motion.div>
-
-            {/* The Captured Cards */}
-            <div className="flex -space-x-12 sm:-space-x-24">
-              {capturedCards?.map((c, i) => (
-                <motion.div
-                  key={`${c.rank}-${c.suit}-${i}`}
-                  initial={{ scale: 0.3, opacity: 0, x: 200, y: 50 }}
-                  animate={{ 
-                    scale: isMe ? 1 : (window.innerWidth < 640 ? 1.05 : 1.3), 
-                    opacity: 1, 
-                    x: 0, 
-                    y: 0,
-                    rotate: (i - (capturedCards.length-1)/2) * 12 
-                  }}
-                  transition={{ delay: 0.4 + (i * 0.1), type: 'spring', damping: 14 }}
-                  className="z-10 shadow-2xl"
-                >
-                  <Card card={c} />
-                </motion.div>
-              ))}
-            </div>
+        <div className="relative flex items-center justify-center gap-4 sm:gap-16">
+          <div ref={playedRef} className="z-20 relative" style={{ transformOrigin: 'center center' }}>
+            <Card card={card} />
+            <div className="absolute -inset-2 bg-accent/10 blur-xl rounded-full -z-10 pointer-events-none" />
           </div>
 
-          {/* Collection Swish - Smooth exit */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 1.0 }}
-            className="absolute inset-0 flex items-center justify-center"
+          <div
+            ref={arrowRef}
+            className="text-brass/80 text-2xl sm:text-5xl font-bold"
+            style={{ transformOrigin: 'center center' }}
           >
-             <motion.div
-               animate={{ 
-                 scale: [1, 1.1, 0],
-                 x: isMe ? (window.innerWidth < 640 ? -250 : -500) : (window.innerWidth < 640 ? 250 : 500),
-                 y: isMe ? (window.innerWidth < 640 ? 300 : 600) : (window.innerWidth < 640 ? -300 : -600),
-                 rotate: isMe ? -120 : 120,
-                 opacity: [1, 1, 0]
-               }}
-               transition={{ delay: 1.1, duration: 0.6, ease: "easeInOut" }}
-               className="flex items-center justify-center"
-             >
-                <div className="relative scale-110">
-                   <div className="shadow-glow-gold rounded-lg ring-1 ring-white/10">
-                      <Card card={card} />
-                   </div>
-                </div>
-             </motion.div>
-          </motion.div>
+            ➝
+          </div>
 
-        </motion.div>
-      </AnimatePresence>
+          <div className="flex -space-x-12 sm:-space-x-24">
+            {capturedCards?.map((c, i) => (
+              <div
+                key={`${c.rank}-${c.suit}-${i}`}
+                ref={(el) => {
+                  capturedRefs.current[i] = el;
+                }}
+                className="z-10 shadow-2xl"
+                style={{ transformOrigin: 'center center' }}
+              >
+                <Card card={c} />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

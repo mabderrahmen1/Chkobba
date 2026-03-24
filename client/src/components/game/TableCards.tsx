@@ -1,9 +1,9 @@
-import { motion, AnimatePresence } from 'framer-motion';
 import type { Card as CardType } from '@shared/types.js';
 import { Card } from './Card';
 import { useGameStore } from '../../stores/useGameStore';
 import { useAmbianceSound } from '../../hooks/useAmbianceSound';
 import { useRef, useEffect } from 'react';
+import gsap from 'gsap';
 
 interface TableCardsProps {
   cards: CardType[];
@@ -11,24 +11,66 @@ interface TableCardsProps {
 
 export function TableCards({ cards }: TableCardsProps) {
   const { toggleTableCard, selectedTableIndices, gameState, playerId, isDistributing } = useGameStore();
-  const { playCardCapture } = useAmbianceSound();
+  const { playCardCapture, playCardHover } = useAmbianceSound();
   const isMyTurn = gameState?.currentTurn === playerId;
   const prevCount = useRef(cards.length);
+  const cardWrapRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const prevLenRef = useRef(0);
 
-  // Track if cards were just captured (count decreased)
-  const wasCapture = useRef(false);
   useEffect(() => {
     if (cards.length < prevCount.current) {
-      wasCapture.current = true;
-      playCardCapture(); // Play sound when someone "eats" cards
-    } else {
-      wasCapture.current = false;
+      playCardCapture();
     }
     prevCount.current = cards.length;
   }, [cards.length, playCardCapture]);
 
-  const lastAction = gameState?.lastAction;
-  const wasMe = lastAction?.playerId === playerId && lastAction.type === 'capture';
+  const handleTableCardClick = (index: number) => {
+    if (!isMyTurn || isDistributing) return;
+    const willSelect = !selectedTableIndices.includes(index);
+    if (willSelect) playCardHover();
+    toggleTableCard(index);
+  };
+
+  const keySig = cards.map((c) => `${c.rank}-${c.suit}`).join('|');
+
+  /** Animate only newly added cards — full table deal + each new play — not the whole grid on every state tick. */
+  useEffect(() => {
+    if (cards.length === 0 || isDistributing) {
+      if (cards.length === 0) prevLenRef.current = 0;
+      return;
+    }
+
+    const prevLen = prevLenRef.current;
+    const len = cards.length;
+
+    requestAnimationFrame(() => {
+      const targets: HTMLDivElement[] = [];
+
+      if (len > prevLen) {
+        for (let i = prevLen; i < len; i++) {
+          const n = cardWrapRefs.current[i];
+          if (n) targets.push(n);
+        }
+      }
+
+      prevLenRef.current = len;
+
+      if (!targets.length) return;
+
+      gsap.killTweensOf(targets);
+
+      gsap.from(targets, {
+        y: -64,
+        scale: 0.88,
+        opacity: 0,
+        rotation: () => gsap.utils.random(-14, 14),
+        transformOrigin: '50% 100%',
+        duration: 0.5,
+        stagger: 0.085,
+        ease: 'back.out(1.28)',
+      });
+    });
+  }, [keySig, cards.length, isDistributing]);
 
   if (cards.length === 0 || isDistributing) {
     return (
@@ -39,48 +81,25 @@ export function TableCards({ cards }: TableCardsProps) {
   }
 
   return (
-    <div className="flex flex-wrap justify-center items-center gap-2 sm:gap-3 w-full min-h-[150px] sm:min-h-[200px] min-w-[300px] p-3 sm:p-4">
-      <AnimatePresence mode="popLayout">
+    <div className="w-full min-w-0 max-w-full min-h-[min(200px,28vh)] sm:min-h-[200px] px-2 sm:px-4 py-3 sm:py-4 box-border">
+      <div className="flex flex-wrap justify-center items-center gap-2 sm:gap-3 w-full max-w-full min-w-0 mx-auto [contain:layout_style]">
         {cards.map((card, index) => {
           const isSelected = selectedTableIndices.includes(index);
           return (
-            <motion.div
-              key={`${card.rank}-${card.suit}`}
-              layout
-              initial={{ opacity: 0, scale: 0.5, y: -30 }}
-              animate={{
-                opacity: 1,
-                scale: isSelected ? 1.06 : 1,
-                y: isSelected ? -8 : 0,
+            <div
+              key={`${card.rank}-${card.suit}-${index}`}
+              ref={(el) => {
+                cardWrapRefs.current[index] = el;
               }}
-              exit={wasMe ? { opacity: 0, scale: 0, transition: { duration: 0 } } : {
-                opacity: 0,
-                scale: 0.3,
-                y: 40,
-                x: 0,
-                rotate: (Math.random() - 0.5) * 20,
-                transition: { duration: 0.4, ease: 'easeIn' },
-              }}
-              transition={{ type: 'spring', stiffness: 260, damping: 22 }}
-              className="relative cursor-pointer"
-              onClick={() => isMyTurn && toggleTableCard(index)}
+              className="relative cursor-pointer shrink-0 [transform:translateZ(0)]"
+              style={{ transformOrigin: 'center bottom' }}
+              onClick={() => handleTableCardClick(index)}
             >
-              <Card
-                card={card}
-                selected={isSelected}
-                selectable={isMyTurn}
-              />
-              {isSelected && (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  className="absolute inset-0 rounded-md border-2 border-brass/70 shadow-glow-gold pointer-events-none"
-                />
-              )}
-            </motion.div>
+              <Card card={card} selected={isSelected} selectable={isMyTurn} />
+            </div>
           );
         })}
-      </AnimatePresence>
+      </div>
     </div>
   );
 }

@@ -62,6 +62,9 @@ const rummyGames = new Map<string, RummyGame>();
 // Player to socket mapping
 const playerSockets = new Map<string, string>();
 
+/** Clear per-socket session refs when a player is kicked (avoids stale currentRoom on server) */
+const socketSessionCleanups = new Map<string, () => void>();
+
 // Turn timers (AFK + bot delay) by room ID
 const turnTimers = new Map<string, NodeJS.Timeout>();
 
@@ -444,9 +447,15 @@ function handleDisconnect(socket: Socket, room: Room, player: Player): void {
   // If game is playing, handle replacement or auto-win
   if ((room.status as string) === config.GAME_STATUS.PLAYING) {
     const opposingTeam = room.getTeam(player.team === 0 ? 1 : 0);
-    const allOpponentsDisconnected = opposingTeam.length > 0 && opposingTeam.every(p => !p.isConnected);
+    // Bots are stored with isConnected: true, so "opponent still connected" must ignore bots.
+    // Otherwise 1v1 human vs bot treats the bot as a connected opponent and wrongly converts
+    // the human to a bot on refresh before rejoin_game runs.
+    const opposingHumans = opposingTeam.filter((p) => !p.isBot);
+    const allHumanOpponentsDisconnected =
+      opposingTeam.length > 0 &&
+      (opposingHumans.length === 0 || opposingHumans.every((p) => !p.isConnected));
 
-    if (allOpponentsDisconnected) {
+    if (allHumanOpponentsDisconnected) {
       // 1v1 or Team Exit: Start timer for auto-win
       if (room.disconnectTimer) clearTimeout(room.disconnectTimer);
       
@@ -483,15 +492,26 @@ function handleDisconnect(socket: Socket, room: Room, player: Player): void {
       return;
     }
 
-    // > 2 players or teammate still connected: Replace with bot immediately
-    console.log(`[Server] Replacing disconnected player ${player.nickname} with bot.`);
-    player.isBot = true;
-    player.isConnected = false;
-    
-    // Auto-continue if round ended
-    const game = chkobbaGames.get(room.id) || rummyGames.get(room.id);
-    if (game && (game as any).continuePlayers) {
-      (game as any).continuePlayers.add(player.id);
+    // Replace with a bot only when another *human* is still in the game (teammate or opponent).
+    // If everyone else is bots, keep this seat as a disconnected human so refresh/rejoin works.
+    const hasOtherConnectedHuman = room.players.some(
+      (p) => p.id !== player.id && p.isConnected && !p.isBot
+    );
+
+    if (hasOtherConnectedHuman) {
+      console.log(`[Server] Replacing disconnected player ${player.nickname} with bot.`);
+      player.isBot = true;
+      player.isConnected = false;
+
+      // Auto-continue if round ended
+      const game = chkobbaGames.get(room.id) || rummyGames.get(room.id);
+      if (game && (game as any).continuePlayers) {
+        (game as any).continuePlayers.add(player.id);
+      }
+    } else {
+      console.log(
+        `[Server] Disconnect for ${player.nickname}: no other humans in room — keeping seat for rejoin (not converting to bot).`
+      );
     }
 
     broadcastRoomUpdate(room.id);
@@ -506,6 +526,12 @@ io.on('connection', (socket: Socket) => {
 
   let currentRoom: Room | null = null;
   let currentPlayer: Player | null = null;
+
+  const clearMySession = () => {
+    currentRoom = null;
+    currentPlayer = null;
+  };
+  socketSessionCleanups.set(socket.id, clearMySession);
 
   /**
    * Create a new room
@@ -751,7 +777,15 @@ io.on('connection', (socket: Socket) => {
     const oldMax = currentRoom.maxPlayers;
     const oldType = currentRoom.gameType;
     console.log(`[Server] Updating settings for room ${currentRoom.id}: ${gameType}, ${maxPlayers} players, ${turnTimeout}s timeout`);
-    
+
+    if (maxPlayers < currentRoom.players.length) {
+      socket.emit('error', {
+        message:
+          'Too many players in the lobby for this table size. Remove players first, or keep 2v2.',
+      });
+      return;
+    }
+
     // updateSettings now returns removed human player IDs
     const removedIds = currentRoom.updateSettings(maxPlayers, gameType, targetScore, turnTimeout ?? currentRoom.turnTimeout);
 
@@ -853,6 +887,73 @@ io.on('connection', (socket: Socket) => {
     currentRoom.lastActivity = Date.now();
     console.log(`[Server] Bot removed from room ${currentRoom.id}`);
     broadcastRoomUpdate(currentRoom.id);
+  });
+
+  /**
+   * Kick a player or bot (host only, lobby only). Humans receive kicked_by_host.
+   */
+  socket.on('kick_player', ({ playerId }: { playerId: string }) => {
+    if (!currentRoom || !currentPlayer) return;
+
+    const hostP = currentRoom.players.find((p) => p.id === currentPlayer!.id);
+    if (!hostP?.isHost) {
+      socket.emit('error', { message: 'Only the host can remove players' });
+      return;
+    }
+
+    if ((currentRoom.status as string) !== config.GAME_STATUS.LOBBY) {
+      socket.emit('error', { message: 'Can only remove players in the lobby' });
+      return;
+    }
+
+    if (playerId === currentPlayer.id) {
+      socket.emit('error', { message: 'You cannot remove yourself' });
+      return;
+    }
+
+    const target = currentRoom.players.find((p) => p.id === playerId);
+    if (!target) return;
+    if (target.isHost) {
+      socket.emit('error', { message: 'Cannot remove the host' });
+      return;
+    }
+
+    const roomId = currentRoom.id;
+
+    if (target.isBot) {
+      const idx = currentRoom.players.findIndex((p) => p.id === playerId && p.isBot);
+      if (idx === -1) return;
+      currentRoom.players.splice(idx, 1);
+      currentRoom.lastActivity = Date.now();
+      console.log(`[Server] Bot removed from room ${roomId} (kick_player)`);
+      broadcastRoomUpdate(roomId);
+      return;
+    }
+
+    const nickname = target.nickname;
+    const targetSocket = getSocketByPlayerId(playerId);
+    currentRoom.removePlayer(playerId, true);
+    playerSockets.delete(playerId);
+
+    if (targetSocket) {
+      targetSocket.leave(roomId);
+      targetSocket.emit('kicked_by_host', { playerNickname: nickname });
+      const clear = socketSessionCleanups.get(targetSocket.id);
+      clear?.();
+    }
+
+    io.to(roomId).emit('player_left', { playerId, nickname });
+    broadcastRoomUpdate(roomId);
+
+    currentRoom.addChatMessage('system', `${nickname} was removed by the host`, true);
+    io.to(roomId).emit('chat_message', {
+      playerId: 'system',
+      playerNickname: 'System',
+      message: `${nickname} was removed by the host`,
+      isSystem: true,
+      timestamp: Date.now()
+    });
+    console.log(`[Server] Player ${nickname} kicked from room ${roomId} by host`);
   });
 
   /**
@@ -1467,6 +1568,7 @@ io.on('connection', (socket: Socket) => {
    */
   socket.on('disconnect', () => {
     console.log(`[Server] Client disconnected: ${socket.id}`);
+    socketSessionCleanups.delete(socket.id);
 
     if (currentPlayer) {
       // ONLY process disconnect if this socket is still the one assigned to the player

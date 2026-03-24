@@ -2,6 +2,7 @@ import { useGameStore } from '../../stores/useGameStore';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useEffect, useRef, useState } from 'react';
 import { generateCardSVG } from '../../lib/cardUtils';
+import { getAvatarUrl } from '../../utils/avatar';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
 import { useUIStore } from '../../stores/useUIStore';
@@ -123,14 +124,6 @@ export function Scoreboard() {
   const storeIsHost = useGameStore((s) => s.isHost);
   const [expanded, setExpanded] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
-  const [confirmLeave, setConfirmLeave] = useState(false);
-
-  // Auto-reset confirmLeave after 3 seconds (with cleanup to prevent memory leak)
-  useEffect(() => {
-    if (!confirmLeave) return;
-    const timer = setTimeout(() => setConfirmLeave(false), 3000);
-    return () => clearTimeout(timer);
-  }, [confirmLeave]);
 
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 768);
@@ -243,14 +236,10 @@ export function Scoreboard() {
           </div>
         </div>
 
-        <motion.button
-          whileHover={{ scale: 1.02, backgroundColor: 'rgba(255, 0, 0, 0.1)' }}
-          whileTap={{ scale: 0.96 }}
-          onClick={() => {
-            if (!confirmLeave) {
-              setConfirmLeave(true);
-              return;
-            }
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
             socket.emit('leave_room');
             useUIStore.getState().setIsSubmitting(false);
             useUIStore.getState().setScreen('landing');
@@ -259,18 +248,12 @@ export function Scoreboard() {
               useGameStore.getState().reset();
             }, 100);
           }}
-          className={`w-full flex flex-col items-center justify-center py-4 rounded-xl border group transition-all min-h-[44px] ${
-            confirmLeave
-              ? 'border-red-500/50 bg-red-500/15 animate-pulse'
-              : 'border-red-500/20 bg-red-500/5'
-          }`}
+          className="w-full flex flex-col items-center justify-center py-4 rounded-xl border min-h-[44px] border-red-500/25 bg-red-500/[0.07] hover:bg-red-500/15 hover:border-red-500/40 transition-colors"
         >
-          <span className={`text-[11px] group-hover:text-red-300 font-ancient uppercase tracking-[0.3em] font-black ${
-            confirmLeave ? 'text-red-300' : 'text-red-400'
-          }`}>
-            {confirmLeave ? 'Tap Again to Confirm' : 'Leave Game'}
+          <span className="text-[11px] font-ancient uppercase tracking-[0.3em] font-black text-red-400/95">
+            Leave Game
           </span>
-        </motion.button>
+        </button>
       </div>
     </div>
   );
@@ -279,7 +262,7 @@ export function Scoreboard() {
     <motion.div
       initial={{ opacity: 0, x: 20 }}
       animate={{ opacity: 1, x: 0 }}
-      className="fixed top-3 right-3 sm:top-4 sm:right-4 z-[45]"
+      className="fixed top-[max(0.5rem,env(safe-area-inset-top))] right-[max(0.5rem,env(safe-area-inset-right))] z-[45] max-w-[min(calc(100vw-5.5rem),22rem)]"
     >
       <motion.div
         layout
@@ -294,8 +277,15 @@ export function Scoreboard() {
             oppScore > myScore ? 'bg-turquoise animate-pulse' : ''
           }`} />
 
-          <div className="flex flex-col items-center text-center relative z-10">
-            <span className={`text-[10px] sm:text-[11px] font-ancient uppercase font-black tracking-widest truncate w-full max-w-[80px] mb-1 ${
+          <div className="flex flex-col items-center text-center relative z-10 gap-1">
+            <img
+              src={getAvatarUrl(myNickname)}
+              alt=""
+              className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full object-cover border-2 shadow-lg shrink-0 ${
+                myScore >= oppScore ? 'border-accent/70 ring-1 ring-accent/30' : 'border-white/15'
+              }`}
+            />
+            <span className={`text-[10px] sm:text-[11px] font-ancient uppercase font-black tracking-widest truncate w-full max-w-[88px] ${
               myScore >= oppScore ? 'text-accent' : 'text-cream/40'
             }`}>
               {myNickname}
@@ -318,8 +308,15 @@ export function Scoreboard() {
             </div>
           </div>
 
-          <div className="flex flex-col items-center text-center relative z-10">
-            <span className={`text-[10px] sm:text-[11px] font-ancient uppercase font-black tracking-widest truncate w-full max-w-[80px] mb-1 ${
+          <div className="flex flex-col items-center text-center relative z-10 gap-1">
+            <img
+              src={getAvatarUrl(oppNickname)}
+              alt=""
+              className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full object-cover border-2 shadow-lg shrink-0 ${
+                oppScore >= myScore ? 'border-turquoise/70 ring-1 ring-turquoise/30' : 'border-white/15'
+              }`}
+            />
+            <span className={`text-[10px] sm:text-[11px] font-ancient uppercase font-black tracking-widest truncate w-full max-w-[88px] ${
               oppScore >= myScore ? 'text-turquoise' : 'text-cream/40'
             }`}>
               {oppNickname}

@@ -8,6 +8,30 @@ vi.mock('../../stores/useGameStore', () => ({
   useGameStore: () => 'chkobba',
 }));
 
+vi.mock('gsap', () => {
+  const revert = vi.fn();
+  const ctx = { revert };
+  return {
+    default: {
+      killTweensOf: vi.fn(),
+      to: vi.fn(),
+      from: vi.fn(),
+      fromTo: vi.fn(),
+      timeline: vi.fn(() => ({
+        to: vi.fn().mockReturnThis(),
+        from: vi.fn().mockReturnThis(),
+        fromTo: vi.fn().mockReturnThis(),
+        kill: vi.fn(),
+      })),
+      context: vi.fn((fn: () => void) => {
+        fn();
+        return ctx;
+      }),
+      utils: { random: (_a: number, b: number) => b * 0.5 },
+    },
+  };
+});
+
 // Mock framer-motion to render plain divs
 vi.mock('framer-motion', () => ({
   motion: {

@@ -153,3 +153,35 @@ chkobba/
 | Bermila | 1 (most 7s, tiebreak: 6s) |
 | Sabaa el Haya | 1 (7 of diamonds) |
 | Chkobba | 1 per sweep |
+
+---
+
+## 10. UI vs. game logic (for AI assistants)
+
+- **Do not change** move validation, scoring, or room/game state transitions in `server/game/` unless the task explicitly requires a rule change. Prefer **client-only** changes for layout, copy, animations, and accessibility.
+- **Server authority** (`server/index.ts`, `Room.ts`, `Game.ts`): any change that affects “what is legal” or “who wins” needs careful review and tests.
+- **Shared contracts**: `shared/types.ts` and `shared/rules.ts` are the source of truth for payloads; keep client and server in sync.
+
+### Safe UI-only areas
+
+- `client/src/components/**/*.tsx` — styling, labels, modals, `framer-motion` (avoid re-mounting components that own socket state).
+- `client/src/stores/**` — only for UI/chat/local flags; do not fake game state.
+- `server/config.ts` — defaults (e.g. timeouts) when product asks for new defaults.
+
+### Manual test checklist (after UI work)
+
+1. Create room → lobby → change target score / players / timeout — **no layout jump** on the felt.
+2. Start game → play a card — **server still accepts** valid moves.
+3. Chat — **receive message** when panel closed (sound + unread badge).
+4. Radio — **power on**, **grille** play/pause, **next track** (desktop).
+
+### Working effectively in Cursor / Claude
+
+- **Project rules**: add or extend `.cursor/rules` or this `AGENTS.md` with stack-specific habits (e.g. “never scale lobby buttons that sit over the felt”).
+- **Skills**: Cursor skills are markdown instructions in `.cursor/skills/` or user skill folders; reference them when the user asks for repeatable workflows (deploy, release checklist, design system).
+- **Small PRs**: one UX theme per change set (lobby vs. radio vs. landing) to keep review and rollback easy.
+
+### Suggested additions to `.cursor/rules` (optional)
+
+- Always run `npm run build` (or the project’s test script) after touching shared types or server code.
+- Keep French UI copy in `ChkobbaRulesContent` / modals consistent with SEO text removed from the landing hero.

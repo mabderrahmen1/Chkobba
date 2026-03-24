@@ -6,7 +6,7 @@ export function Toast() {
   const toasts = useUIStore((s) => s.toasts);
 
   return (
-    <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[200] flex flex-col gap-3 min-w-[280px]">
+    <div className="fixed bottom-[max(6rem,env(safe-area-inset-bottom)+5rem)] left-1/2 -translate-x-1/2 z-[200] flex flex-col gap-3 w-[min(28rem,calc(100vw-2rem))] max-w-[calc(100vw-2rem)] px-2">
       <AnimatePresence mode="popLayout">
         {toasts.map((toast) => (
           <ToastItem key={toast.id} id={toast.id} message={toast.message} type={toast.type} />

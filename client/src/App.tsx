@@ -14,7 +14,7 @@ export default function App() {
   const screen = useUIStore((s) => s.screen);
 
   return (
-    <div className="h-full w-full relative overflow-hidden bg-black">
+    <div className="h-[100dvh] max-h-[100dvh] min-h-0 w-full relative overflow-hidden bg-black">
       {/* Persistent Background Video */}
       <video
         autoPlay
@@ -27,7 +27,7 @@ export default function App() {
       </video>
       <div className="fixed inset-0 z-0 bg-dark-gradient opacity-60" />
 
-      <main className="relative z-10 h-full">
+      <main className="relative z-10 h-full min-h-0">
         <AnimatePresence mode="wait">
           {screen === 'landing' && <LandingScreen key="landing" />}
           {screen === 'createRoom' && <CreateRoomScreen key="createRoom" />}

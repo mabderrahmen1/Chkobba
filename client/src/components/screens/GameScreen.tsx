@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGameStore } from '../../stores/useGameStore';
 import { GameTable } from '../game/GameTable';
@@ -14,6 +14,7 @@ import { RummyGameScreen } from '../game/RummyGameScreen';
 import { useUIStore } from '../../stores/useUIStore';
 import { socket } from '../../lib/socket';
 import { Button } from '../ui/Button';
+import { SoundEffectsControls } from '../game/SoundEffectsControls';
 
 export function GameScreen() {
   const gameState = useGameStore((s) => s.gameState);
@@ -21,10 +22,6 @@ export function GameScreen() {
   const gameType = useGameStore((s) => s.gameType || s.room?.gameType);
   const playerId = useGameStore((s) => s.playerId);
   const autoWinWarning = useGameStore((s) => s.autoWinWarning);
-
-  const turnStartedAt = useGameStore((s) => s.turnStartedAt);
-  const turnTimeoutSec = useGameStore((s) => s.turnTimeoutSec);
-  const [countdown, setCountdown] = useState<number | null>(null);
 
   const isDistributing = useGameStore((s) => s.isDistributing);
 
@@ -49,22 +46,6 @@ export function GameScreen() {
     }
   }, [isDistributing, playCardShuffle]);
 
-  // Countdown timer when it's our turn
-  useEffect(() => {
-    if (!turnStartedAt || !turnTimeoutSec) {
-      setCountdown(null);
-      return;
-    }
-    const tick = () => {
-      const elapsed = (Date.now() - turnStartedAt) / 1000;
-      const remaining = Math.max(0, turnTimeoutSec - elapsed);
-      setCountdown(Math.ceil(remaining));
-    };
-    tick();
-    const interval = setInterval(tick, 250);
-    return () => clearInterval(interval);
-  }, [turnStartedAt, turnTimeoutSec]);
-
   // Play clink on round start (Chkobba only)
   useEffect(() => {
     if (gameState && gameState.roundNumber !== prevRound.current) {
@@ -80,20 +61,12 @@ export function GameScreen() {
   // Handle loading state
   if (!gameState || !playerId || !gameState.players) {
     return (
-      <div className="h-full flex flex-col items-center justify-center bg-[#1a120e]">
+      <div className="min-h-[100dvh] flex flex-col items-center justify-center bg-[#1a120e]">
         <div className="w-12 h-12 border-4 border-brass border-t-transparent rounded-full animate-spin mb-4" />
         <p className="text-brass font-ancient animate-pulse uppercase tracking-widest">Preparing Table...</p>
       </div>
     );
   }
-
-  const isMyTurn = gameState.currentTurn === playerId;
-  const turnPlayer = gameState.players.find((p) => p.id === gameState.currentTurn);
-  const turnName = turnPlayer
-    ? turnPlayer.id === playerId
-      ? "It's Your Turn!"
-      : `${turnPlayer.nickname} is thinking...`
-    : '';
 
   const handleCopyCode = () => {
     navigator.clipboard.writeText(gameState.roomId);
@@ -109,7 +82,7 @@ export function GameScreen() {
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.5 }}
-      className="h-full flex flex-col p-1 sm:p-2 relative overflow-hidden bg-transparent"
+      className="h-[100dvh] max-h-[100dvh] min-h-0 flex flex-col p-1 sm:p-2 relative overflow-hidden bg-transparent"
     >
       {/* Cinematic Background (Provided by App.tsx) */}
       
@@ -125,81 +98,19 @@ export function GameScreen() {
         <VintageRadio />
       </div>
 
-      {/* Turn Indicator — floating above hand */}
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={gameState.currentTurn}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: 20 }}
-          transition={{ duration: 0.4, type: 'spring', stiffness: 200 }}
-          className="fixed bottom-[180px] sm:bottom-[220px] md:bottom-[240px] left-0 right-0 z-[60] flex items-center justify-center pointer-events-none"
-        >
-          <div className="relative w-full max-w-sm flex items-center justify-center px-4">
-             <motion.div 
-               animate={isMyTurn ? { opacity: [0.3, 0.7, 0.3] } : { opacity: 0.2 }}
-               transition={{ duration: 2, repeat: Infinity }}
-               className={`absolute inset-0 blur-2xl ${isMyTurn ? 'bg-brass' : 'bg-black'}`}
-             />
-             
-             <div className={`relative px-6 py-2 rounded-full border backdrop-blur-xl shadow-2xl flex items-center gap-3 transition-colors duration-500 ${
-                isMyTurn 
-                  ? 'bg-brass/20 border-brass/50' 
-                  : 'bg-black/60 border-white/10'
-             }`}>
-                {/* Active Indicator Pulse */}
-                <div className="relative flex items-center justify-center w-2 h-2">
-                  <motion.div
-                    animate={isMyTurn ? { scale: [1, 2.5, 1], opacity: [0.8, 0, 0.8] } : { scale: 1, opacity: 0.5 }}
-                    transition={{ duration: 2, repeat: Infinity }}
-                    className={`absolute w-full h-full rounded-full ${isMyTurn ? 'bg-brass' : 'bg-cream/40'}`}
-                  />
-                  <div className={`w-2 h-2 rounded-full ${isMyTurn ? 'bg-brass' : 'bg-cream/40'}`} />
-                </div>
-
-                <span className={`font-ancient text-sm sm:text-base uppercase tracking-[0.2em] font-bold ${
-                  isMyTurn ? 'text-brass drop-shadow-[0_0_8px_rgba(212,175,55,0.4)]' : 'text-cream-dark/60'
-                }`}>
-                  {turnName}
-                </span>
-
-                {/* Countdown ring — only visible when it's your turn */}
-                {isMyTurn && countdown !== null && turnTimeoutSec !== null && (
-                  <div className="relative w-8 h-8 flex-shrink-0" title={`${countdown}s remaining`}>
-                    <svg className="w-8 h-8 -rotate-90" viewBox="0 0 32 32">
-                      <circle cx="16" cy="16" r="13" fill="none" stroke="rgba(212,175,55,0.15)" strokeWidth="3" />
-                      <circle
-                        cx="16" cy="16" r="13"
-                        fill="none"
-                        stroke={countdown <= 10 ? '#ef4444' : 'rgba(212,175,55,0.8)'}
-                        strokeWidth="3"
-                        strokeLinecap="round"
-                        strokeDasharray={`${2 * Math.PI * 13}`}
-                        strokeDashoffset={`${2 * Math.PI * 13 * (1 - countdown / turnTimeoutSec)}`}
-                        style={{ transition: 'stroke-dashoffset 0.25s linear, stroke 0.5s' }}
-                      />
-                    </svg>
-                    <span className={`absolute inset-0 flex items-center justify-center font-mono font-bold text-[10px] ${countdown <= 10 ? 'text-red-400' : 'text-brass'}`}>
-                      {countdown}
-                    </span>
-                  </div>
-                )}
-             </div>
-          </div>
-        </motion.div>
-      </AnimatePresence>
-
       {/* Scoreboard */}
       <Scoreboard />
       
       {/* Action Log — Desktop only */}
       <MoveLog />
 
-      {/* Room Info — Bottom Left (Above Chat) */}
-      <div className="fixed bottom-3 left-3 z-[45] hidden sm:flex flex-col gap-1">
-        <motion.div 
-          whileTap={{ scale: 0.95 }}
-          className="flex items-center gap-2 bg-black/40 backdrop-blur-md border border-brass/20 rounded-lg px-3 py-1.5 cursor-pointer hover:bg-black/60 transition-colors group relative shadow-inner-dark"
+      {/* SFX + room code — bottom right (chat stays bottom-left; radio is separate) */}
+      <div className="fixed bottom-[max(0.75rem,env(safe-area-inset-bottom))] right-[max(0.75rem,env(safe-area-inset-right))] z-[45] flex flex-col gap-1.5 w-[min(16rem,calc(100vw-8rem))]">
+        <SoundEffectsControls />
+        <motion.button
+          type="button"
+          whileTap={{ scale: 0.98 }}
+          className="hidden sm:inline-flex w-full items-center justify-center gap-2 bg-black/40 backdrop-blur-md border border-brass/20 rounded-lg px-3 py-1.5 cursor-pointer hover:bg-black/60 transition-colors group relative shadow-inner-dark min-h-[36px]"
           onClick={handleCopyCode}
         >
           <AnimatePresence>
@@ -214,15 +125,17 @@ export function GameScreen() {
               </motion.div>
             )}
           </AnimatePresence>
-          <span className="text-[10px] text-brass/60 font-ancient uppercase tracking-widest">Room:</span>
-          <span className="text-xs text-brass font-mono font-bold tracking-wider">{gameState.roomId}</span>
-          <svg className="w-3 h-3 text-brass/40 group-hover:text-brass transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <span className="text-[10px] text-brass/60 font-ancient uppercase tracking-widest shrink-0">Room:</span>
+          <span className="text-xs text-brass font-mono font-bold tracking-wider tabular-nums shrink min-w-0 max-w-[11rem] truncate text-center">
+            {gameState.roomId}
+          </span>
+          <svg className="w-3 h-3 text-brass/40 group-hover:text-brass transition-colors shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden>
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" />
           </svg>
-        </motion.div>
+        </motion.button>
       </div>
 
-      <div className="relative z-10 h-full flex flex-col">
+      <div className="relative z-10 flex-1 min-h-0 flex flex-col">
         <GameTable />
       </div>
 
@@ -230,7 +143,7 @@ export function GameScreen() {
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="fixed top-16 left-1/2 -translate-x-1/2 z-40 copper-plate text-cream px-6 py-4 rounded-xl text-center shadow-2xl border border-brass/30 backdrop-blur-lg bg-black/60"
+          className="fixed left-1/2 -translate-x-1/2 z-40 copper-plate text-cream px-4 sm:px-6 py-3 sm:py-4 rounded-xl text-center shadow-2xl border border-brass/30 backdrop-blur-lg bg-black/60 max-w-[min(24rem,calc(100vw-1rem))] top-[max(4.5rem,env(safe-area-inset-top)+3rem)]"
         >
           <p className="font-ancient text-sm text-brass/80 tracking-widest uppercase mb-1">{autoWinWarning.playerNickname} disconnected</p>
           <p className="text-xl font-ancient font-bold text-cream mb-4">

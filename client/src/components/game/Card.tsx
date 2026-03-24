@@ -1,5 +1,5 @@
-import React from 'react';
-import { motion } from 'framer-motion';
+import React, { forwardRef, useEffect, useRef } from 'react';
+import gsap from 'gsap';
 import type { Card as CardType } from '@shared/types.js';
 import { generateCardSVG, generateCardBackSVG } from '../../lib/cardUtils';
 import { useGameStore } from '../../stores/useGameStore';
@@ -14,9 +14,10 @@ interface CardProps {
   onClick?: () => void;
 }
 
+const SELECT_GLOW =
+  '0 0 20px rgba(212,175,55,0.75), 0 0 6px rgba(253,224,71,0.5), 0 4px 14px rgba(0,0,0,0.35)';
+
 // Sprite sheet: quadrilato.png is a 4-column x 4-row grid
-//   Columns (left->right): J, Q, K, card-back
-//   Rows    (top->bottom): spades, diamonds, clubs, hearts
 const FACE_COL: Record<string, number> = { J: 0, Q: 1, K: 2 };
 const FACE_ROW: Record<string, number> = { spades: 0, diamonds: 1, clubs: 2, hearts: 3 };
 
@@ -38,14 +39,12 @@ function getFaceSpriteStyle(rank: string, suit: string): React.CSSProperties {
 }
 
 const sharedClass = (small: boolean, selectable: boolean, selected: boolean) =>
-  `rounded-md overflow-hidden select-none transition-shadow duration-200 ${
+  `rounded-md overflow-hidden select-none ${
     small
       ? 'w-[30px] h-[42px] sm:w-[40px] sm:h-[56px] md:w-[45px] md:h-[63px]'
       : 'w-[var(--card-width)] h-[var(--card-height)]'
   } ${selectable ? 'cursor-pointer focus-visible:outline-2 focus-visible:outline-brass focus-visible:outline-offset-2' : ''} ${
-    selected
-      ? 'ring-2 ring-green-400/80 ring-offset-1 ring-offset-felt-dark shadow-glow-green'
-      : 'shadow-theme-sm'
+    selected ? '' : 'shadow-theme-sm'
   }`;
 
 function getA11yProps(
@@ -75,14 +74,18 @@ function getA11yProps(
   };
 }
 
-export function Card({
-  card,
-  faceDown = false,
-  selectable = false,
-  selected = false,
-  small = false,
-  onClick,
-}: CardProps) {
+export const Card = forwardRef<HTMLDivElement, CardProps>(function Card(
+  {
+    card,
+    faceDown = false,
+    selectable = false,
+    selected = false,
+    small = false,
+    onClick,
+  },
+  ref,
+) {
+  const rootRef = useRef<HTMLDivElement>(null);
   const gameType = useGameStore((s) => s.gameType || s.room?.gameType);
   const isFaceCard =
     !faceDown &&
@@ -90,16 +93,76 @@ export function Card({
     gameType !== 'rummy' &&
     (card.rank === 'J' || card.rank === 'Q' || card.rank === 'K');
 
+  const setRefs = (el: HTMLDivElement | null) => {
+    (rootRef as React.MutableRefObject<HTMLDivElement | null>).current = el;
+    if (typeof ref === 'function') ref(el);
+    else if (ref) (ref as React.MutableRefObject<HTMLDivElement | null>).current = el;
+  };
+
   const a11y = getA11yProps(card, faceDown, selectable, selected, onClick);
+
+  // Select / deselect (skip heavy GSAP on small thumbnails)
+  useEffect(() => {
+    const el = rootRef.current;
+    if (!el || small) return;
+    gsap.killTweensOf(el);
+    if (selected) {
+      gsap.to(el, {
+        y: -22,
+        scale: 1.08,
+        duration: 0.2,
+        ease: 'back.out(2.5)',
+        boxShadow: SELECT_GLOW,
+      });
+    } else {
+      gsap.to(el, {
+        y: 0,
+        scale: 1,
+        duration: 0.15,
+        ease: 'power2.out',
+        boxShadow: '0 0 0 rgba(0,0,0,0)',
+      });
+    }
+  }, [selected, small]);
+
+  // Hover (hand / table interaction cards only)
+  useEffect(() => {
+    const el = rootRef.current;
+    if (!el || !selectable || small) return;
+
+    const onEnter = () => {
+      if (selected) return;
+      gsap.to(el, { y: -12, scale: 1.05, duration: 0.15, ease: 'back.out(1.7)' });
+    };
+    const onLeave = () => {
+      if (selected) {
+        gsap.to(el, {
+          y: -22,
+          scale: 1.08,
+          duration: 0.12,
+          ease: 'back.out(2.5)',
+          boxShadow: SELECT_GLOW,
+        });
+      } else {
+        gsap.to(el, { y: 0, scale: 1, duration: 0.15, ease: 'power2.out', boxShadow: '0 0 0 rgba(0,0,0,0)' });
+      }
+    };
+
+    el.addEventListener('mouseenter', onEnter);
+    el.addEventListener('mouseleave', onLeave);
+    return () => {
+      el.removeEventListener('mouseenter', onEnter);
+      el.removeEventListener('mouseleave', onLeave);
+    };
+  }, [selectable, selected, small]);
 
   if (isFaceCard) {
     return (
-      <motion.div
-        whileHover={selectable ? { y: -4, scale: 1.02 } : undefined}
-        animate={selected ? { y: -6 } : { y: 0 }}
+      <div
+        ref={setRefs}
         onClick={selectable ? onClick : undefined}
         className={sharedClass(small, selectable, selected)}
-        style={getFaceSpriteStyle(card!.rank as string, card!.suit)}
+        style={{ ...getFaceSpriteStyle(card!.rank as string, card!.suit), transformOrigin: 'bottom center' }}
         {...a11y}
       />
     );
@@ -110,13 +173,13 @@ export function Card({
     faceDown || !card ? generateCardBackSVG() : generateCardSVG(card.rank, card.suit, style);
 
   return (
-    <motion.div
-      whileHover={selectable ? { y: -4, scale: 1.02 } : undefined}
-      animate={selected ? { y: -6 } : { y: 0 }}
+    <div
+      ref={setRefs}
       onClick={selectable ? onClick : undefined}
       className={sharedClass(small, selectable, selected)}
+      style={{ transformOrigin: 'bottom center' }}
       dangerouslySetInnerHTML={{ __html: svg }}
       {...a11y}
     />
   );
-}
+});

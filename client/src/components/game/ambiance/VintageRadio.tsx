@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { useUIStore } from '../../../stores/useUIStore';
 import { useAmbianceSound } from '../../../hooks/useAmbianceSound';
 
@@ -23,7 +23,6 @@ export function VintageRadio() {
   const [volumeAngle, setVolumeAngle] = useState(94); // 35% of 270
   const [apiReady, setApiReady] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
-  const [powerGlow, setPowerGlow] = useState(false);
   const playerInitRef = useRef(false);
   const titleRef = useRef<HTMLDivElement>(null);
   const [needsScroll, setNeedsScroll] = useState(false);
@@ -91,11 +90,13 @@ export function VintageRadio() {
     });
   }, [apiReady]);
 
-  // Check if title needs scrolling
+  const titleContainerRef = useRef<HTMLDivElement>(null);
+  // Check if title needs scrolling (duplicate marquee: half width = one copy)
   useEffect(() => {
-    if (titleRef.current) {
-      setNeedsScroll(titleRef.current.scrollWidth > titleRef.current.clientWidth);
-    }
+    const inner = titleRef.current;
+    const outer = titleContainerRef.current;
+    if (!inner || !outer) return;
+    setNeedsScroll(inner.scrollWidth / 2 > outer.clientWidth);
   }, [currentTitle]);
 
   // Power toggle
@@ -105,11 +106,9 @@ export function VintageRadio() {
       player.pauseVideo();
       setIsOn(false);
       setIsPlaying(false);
-      setPowerGlow(false);
     } else {
       player.playVideo();
       setIsOn(true);
-      setPowerGlow(true);
     }
   }, [player, isOn]);
 
@@ -263,13 +262,51 @@ export function VintageRadio() {
     [player, isOn]
   );
 
-  // ─── STYLES ────────────────────────────────────────────────
-  const woodGradient =
-    'linear-gradient(160deg, #a0724a 0%, #8b5e3c 15%, #6b3a2a 40%, #5c3018 60%, #7a4e30 80%, #6b3a2a 100%)';
-  const woodShadow =
-    '0 8px 32px rgba(0,0,0,0.7), 0 2px 8px rgba(0,0,0,0.5), inset 0 1px 1px rgba(255,220,180,0.15), inset 0 -1px 1px rgba(0,0,0,0.3)';
-  const brassGradient = 'radial-gradient(ellipse at 35% 30%, #f0d875 0%, #d4af37 40%, #aa8033 70%, #8b6914 100%)';
-  const brassShadow = '0 2px 4px rgba(0,0,0,0.5), inset 0 1px 1px rgba(255,255,255,0.3)';
+  // ─── STYLES — vintage wooden cabinet (#3d1f0a) ─────────────────
+  const woodBase: React.CSSProperties = {
+    backgroundColor: '#3d1f0a',
+    backgroundImage: [
+      'repeating-linear-gradient(88deg, transparent, transparent 3px, rgba(0,0,0,0.11) 3px, rgba(0,0,0,0.11) 4px)',
+      'repeating-linear-gradient(2deg, transparent, transparent 6px, rgba(40,20,8,0.18) 6px, rgba(40,20,8,0.18) 7px)',
+      'linear-gradient(165deg, rgba(255,255,255,0.05) 0%, transparent 42%, rgba(0,0,0,0.22) 100%)',
+    ].join(', '),
+  };
+
+  const cabinetShadow =
+    '0 14px 36px rgba(0,0,0,0.72), 0 4px 12px rgba(0,0,0,0.45), inset 0 2px 3px rgba(255,220,180,0.08), inset 0 -6px 14px rgba(0,0,0,0.38)';
+
+  const goldKnobFace: React.CSSProperties = {
+    background:
+      'radial-gradient(circle at 32% 28%, #fff4c4 0%, #f0d060 12%, #c9a42e 38%, #8b6914 62%, #4a2c0a 88%, #2a1804 100%)',
+    boxShadow:
+      '0 8px 16px rgba(0,0,0,0.55), inset 0 3px 5px rgba(255,255,255,0.42), inset 0 -5px 10px rgba(0,0,0,0.55), inset -2px -2px 6px rgba(255,255,255,0.06)',
+  };
+
+  const brushedGoldBtn: React.CSSProperties = {
+    background:
+      'linear-gradient(135deg, #6e5518 0%, #c9a42e 14%, #8b7320 32%, #e8c547 48%, #7a6220 66%, #d4b84a 82%, #5c4810 100%)',
+    backgroundSize: '180% 180%',
+    boxShadow:
+      'inset 0 1px 2px rgba(255,255,255,0.38), inset 0 -3px 5px rgba(0,0,0,0.5), 0 4px 8px rgba(0,0,0,0.45)',
+  };
+
+  /** Marshall-style woven grille — decorative center speaker */
+  const marshallGrille: React.CSSProperties = {
+    backgroundColor: '#0c0a08',
+    backgroundImage: [
+      'linear-gradient(33deg, rgba(255,255,255,0.06) 12%, transparent 12.5%, transparent 50%, rgba(255,255,255,0.06) 50%, rgba(255,255,255,0.06) 62.5%, transparent 62.5%, transparent 100%)',
+      'linear-gradient(-33deg, rgba(255,255,255,0.05) 12%, transparent 12.5%, transparent 50%, rgba(255,255,255,0.05) 50%, rgba(255,255,255,0.05) 62.5%, transparent 62.5%, transparent 100%)',
+      'repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(0,0,0,0.35) 3px, rgba(0,0,0,0.35) 4px)',
+    ].join(', '),
+    backgroundSize: '10px 10px, 10px 10px, 100% 100%',
+    borderRadius: '8px',
+    boxShadow:
+      'inset 0 3px 14px rgba(0,0,0,0.85), inset 0 0 0 1px rgba(212,175,55,0.12), 0 2px 8px rgba(0,0,0,0.5)',
+    border: '3px solid #2a1e14',
+    outline: '1px solid rgba(90,70,45,0.5)',
+    outlineOffset: '-4px',
+  };
+
   const [isMobile, setIsMobile] = useState(window.innerWidth < 640);
   useEffect(() => {
     const onResize = () => setIsMobile(window.innerWidth < 640);
@@ -277,32 +314,8 @@ export function VintageRadio() {
     return () => window.removeEventListener('resize', onResize);
   }, []);
 
-  const smallKnobSize = isMobile ? 14 : 18;
-  const bigKnobSize = isMobile ? 30 : 40;
-
-  const fabricPattern: React.CSSProperties = {
-    backgroundColor: '#4a3828',
-    backgroundImage: [
-      'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.12) 2px, rgba(0,0,0,0.12) 3px)',
-      'repeating-linear-gradient(90deg, transparent, transparent 2px, rgba(0,0,0,0.08) 2px, rgba(0,0,0,0.08) 3px)',
-    ].join(', '),
-    borderRadius: '6px',
-    boxShadow: 'inset 0 2px 10px rgba(0,0,0,0.6), inset 0 0 3px rgba(0,0,0,0.3)',
-    border: '2px solid #3a2515',
-  };
-
-  const screenStyle: React.CSSProperties = {
-    background: isOn
-      ? 'linear-gradient(180deg, #1a1a0a 0%, #0d0d04 100%)'
-      : 'linear-gradient(180deg, #0a0a04 0%, #050502 100%)',
-    borderRadius: '4px',
-    border: '1.5px solid #3a3020',
-    boxShadow: isOn
-      ? 'inset 0 1px 6px rgba(0,0,0,0.8), 0 0 8px rgba(212,175,55,0.15)'
-      : 'inset 0 1px 6px rgba(0,0,0,0.9)',
-    overflow: 'hidden',
-    position: 'relative' as const,
-  };
+  const smallKnobSize = isMobile ? 28 : 34;
+  const bigKnobSize = isMobile ? 44 : 52;
 
   if (isMinimized) {
     return (
@@ -317,15 +330,15 @@ export function VintageRadio() {
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.95 }}
           onClick={() => setIsMinimized(false)}
-          className="fixed top-20 left-2 sm:top-24 sm:left-3 z-50 cursor-pointer"
+          className="fixed top-[max(5rem,env(safe-area-inset-top)+1rem)] left-[max(0.5rem,env(safe-area-inset-left))] z-50 cursor-pointer"
           title="Open Radio"
           style={{
             width: isMobile ? 36 : 48,
             height: isMobile ? 36 : 48,
-            borderRadius: '10px',
-            background: woodGradient,
-            boxShadow: woodShadow,
-            border: '2px solid #8b6914',
+            borderRadius: 10,
+            ...woodBase,
+            boxShadow: cabinetShadow,
+            border: '2px solid #2a1508',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -364,39 +377,40 @@ export function VintageRadio() {
         initial={{ opacity: 0, y: -40, scale: 0.9 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ type: 'spring', stiffness: 200, damping: 20 }}
-        className="fixed top-4 left-4 z-50 select-none hidden md:block"
-        style={{ width: isMobile ? 190 : 250 }}
+        className="fixed top-[max(1rem,env(safe-area-inset-top)+0.5rem)] left-[max(1rem,env(safe-area-inset-left))] z-50 select-none hidden md:block"
+        style={{ width: isMobile ? 208 : 276 }}
+        role="group"
+        aria-label="Radio du café — affichage du titre, réglage, lecture et pistes."
       >
-        {/* ─── RADIO BODY ─── */}
+        {/* ─── RADIO BODY — dark wood cabinet ─── */}
         <div
           style={{
-            background: woodGradient,
-            borderRadius: isMobile ? '10px' : '14px',
-            boxShadow: woodShadow,
-            padding: '0',
+            ...woodBase,
+            borderRadius: isMobile ? 12 : 16,
+            boxShadow: cabinetShadow,
+            border: '2px solid #2a1508',
+            padding: 0,
             position: 'relative',
             overflow: 'visible',
           }}
         >
-          {/* Wood grain overlay */}
           <div
             style={{
               position: 'absolute',
               inset: 0,
               borderRadius: 'inherit',
               backgroundImage:
-                'repeating-linear-gradient(85deg, transparent, transparent 8px, rgba(0,0,0,0.03) 8px, rgba(0,0,0,0.03) 9px)',
+                'repeating-linear-gradient(92deg, transparent, transparent 5px, rgba(0,0,0,0.06) 5px, rgba(0,0,0,0.06) 6px)',
               pointerEvents: 'none',
             }}
           />
-          {/* Polished sheen */}
           <div
             style={{
               position: 'absolute',
               inset: 0,
               borderRadius: 'inherit',
               background:
-                'linear-gradient(165deg, rgba(255,255,255,0.08) 0%, transparent 40%, transparent 60%, rgba(255,255,255,0.03) 100%)',
+                'linear-gradient(168deg, rgba(255,255,255,0.06) 0%, transparent 38%, transparent 62%, rgba(0,0,0,0.12) 100%)',
               pointerEvents: 'none',
             }}
           />
@@ -419,19 +433,19 @@ export function VintageRadio() {
                 style={{
                   width: isMobile ? 7 : 10,
                   height: isMobile ? 12 : 18,
-                  borderLeft: `${isMobile ? 2 : 3}px solid #999`,
-                  borderTop: `${isMobile ? 2 : 3}px solid #aaa`,
+                  borderLeft: `${isMobile ? 2 : 3}px solid #6a6a6a`,
+                  borderTop: `${isMobile ? 2 : 3}px solid #8a8a8a`,
                   borderRadius: '4px 0 0 0',
                   background: 'transparent',
                 }}
               />
               <div
                 style={{
-                  width: isMobile ? 45 : 70,
+                  width: isMobile ? 48 : 72,
                   height: isMobile ? 5 : 8,
-                  background: 'linear-gradient(180deg, #ccc 0%, #888 40%, #aaa 60%, #999 100%)',
+                  background: 'linear-gradient(180deg, #b8b8b8 0%, #707070 45%, #909090 60%, #787878 100%)',
                   borderRadius: '4px 4px 0 0',
-                  boxShadow: '0 -2px 4px rgba(0,0,0,0.3), inset 0 1px 1px rgba(255,255,255,0.4)',
+                  boxShadow: '0 -2px 5px rgba(0,0,0,0.45), inset 0 1px 1px rgba(255,255,255,0.35)',
                   marginBottom: isMobile ? 6 : 10,
                 }}
               />
@@ -439,8 +453,8 @@ export function VintageRadio() {
                 style={{
                   width: isMobile ? 7 : 10,
                   height: isMobile ? 12 : 18,
-                  borderRight: `${isMobile ? 2 : 3}px solid #999`,
-                  borderTop: `${isMobile ? 2 : 3}px solid #aaa`,
+                  borderRight: `${isMobile ? 2 : 3}px solid #6a6a6a`,
+                  borderTop: `${isMobile ? 2 : 3}px solid #8a8a8a`,
                   borderRadius: '0 4px 0 0',
                   background: 'transparent',
                 }}
@@ -448,152 +462,155 @@ export function VintageRadio() {
             </div>
           </div>
 
-          {/* ─── INNER FACE ─── */}
-          <div style={{ padding: isMobile ? '0 8px 8px 8px' : '0 12px 10px 12px' }}>
-            {/* ─── TITLE SCREEN ─── */}
-            <div style={{ ...screenStyle, height: isMobile ? 22 : 28, marginBottom: isMobile ? 6 : 8, display: 'flex', alignItems: 'center', padding: isMobile ? '0 6px' : '0 8px' }}>
-              {isOn && currentTitle ? (
-                <div
-                  ref={titleRef}
+          <div style={{ padding: isMobile ? '0 10px 10px 10px' : '0 14px 12px 14px' }}>
+            {/* Top: engraved RADIO + power + café strip */}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 8,
+                marginBottom: isMobile ? 8 : 10,
+                padding: isMobile ? '6px 10px' : '7px 12px',
+                borderRadius: 8,
+                background: 'linear-gradient(180deg, rgba(0,0,0,0.35) 0%, rgba(0,0,0,0.55) 100%)',
+                border: '1px solid rgba(0,0,0,0.45)',
+                boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.5), inset 0 -1px 0 rgba(255,200,160,0.04)',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 8 : 10 }}>
+                <span
                   style={{
-                    width: '100%',
-                    overflow: 'hidden',
-                    whiteSpace: 'nowrap',
-                    position: 'relative',
+                    fontFamily: 'Georgia, "Times New Roman", serif',
+                    fontSize: isMobile ? 11 : 13,
+                    fontWeight: 700,
+                    fontVariant: 'small-caps',
+                    letterSpacing: '0.32em',
+                    color: '#f0dcc0',
+                    textShadow:
+                      '0 0 12px rgba(212,175,55,0.35), 0 1px 0 rgba(255,255,255,0.45), 0 2px 3px rgba(0,0,0,0.95), 0 -1px 1px rgba(0,0,0,0.85)',
+                    userSelect: 'none',
                   }}
                 >
-                  <div
-                    style={{
-                      display: 'inline-block',
-                      animation: needsScroll ? 'radio-scroll-title 12s linear infinite' : 'none',
-                      fontFamily: '"Courier New", "Playfair Display", serif',
-                      fontSize: isMobile ? '9px' : '11px',
-                      fontWeight: 700,
-                      color: '#d4af37',
-                      textShadow: '0 0 6px rgba(212,175,55,0.5)',
-                      letterSpacing: '0.5px',
-                    }}
-                  >
-                    ♫ {currentTitle}
-                  </div>
-                </div>
-              ) : isOn ? (
-                <div
-                  style={{
-                    fontFamily: '"Courier New", serif',
-                    fontSize: isMobile ? 8 : 10,
-                    color: '#8b7340',
-                    letterSpacing: 1,
+                  RADIO
+                </span>
+                <motion.button
+                  type="button"
+                  animate={
+                    isOn
+                      ? { boxShadow: ['0 0 6px rgba(34,197,94,0.35)', '0 0 14px rgba(251,191,36,0.45)', '0 0 6px rgba(34,197,94,0.35)'] }
+                      : { boxShadow: 'inset 0 3px 6px rgba(0,0,0,0.75)' }
+                  }
+                  transition={{ duration: 2, repeat: isOn ? Infinity : 0 }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    togglePower();
                   }}
-                >
-                  <motion.span animate={{ opacity: [0.3, 1, 0.3] }} transition={{ duration: 1.5, repeat: Infinity }}>
-                    TUNING...
-                  </motion.span>
-                </div>
-              ) : (
-                <div
+                  title={isOn ? 'Éteindre' : 'Allumer'}
+                  aria-label={isOn ? 'Éteindre la radio' : 'Allumer la radio'}
                   style={{
-                    fontFamily: '"Courier New", serif',
-                    fontSize: isMobile ? 7 : 9,
-                    color: '#3a3020',
-                    letterSpacing: 1,
+                    width: isMobile ? 22 : 26,
+                    height: isMobile ? 22 : 26,
+                    borderRadius: '50%',
+                    flexShrink: 0,
+                    border: '1px solid rgba(0,0,0,0.55)',
+                    cursor: 'pointer',
+                    padding: 0,
+                    background: isOn
+                      ? 'radial-gradient(circle at 35% 28%, #b8ffc8 0%, #22c55e 45%, #14532d 100%)'
+                      : 'radial-gradient(circle at 50% 50%, #3f3f3f 0%, #151515 100%)',
+                    boxShadow: isOn
+                      ? '0 0 14px rgba(34,197,94,0.55), inset 0 2px 2px rgba(255,255,255,0.35), inset 0 -3px 5px rgba(0,0,0,0.45)'
+                      : 'inset 0 3px 6px rgba(0,0,0,0.75)',
                   }}
-                >
-                  ── OFF ──
-                </div>
-              )}
-              {/* Screen reflection */}
-              <div
+                />
+              </div>
+              <span
                 style={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  height: '40%',
-                  background: 'linear-gradient(180deg, rgba(255,255,255,0.04) 0%, transparent 100%)',
-                  pointerEvents: 'none',
-                  borderRadius: '4px 4px 0 0',
+                  fontSize: isMobile ? 7 : 8,
+                  color: 'rgba(255,220,180,0.38)',
+                  letterSpacing: '0.14em',
+                  whiteSpace: 'nowrap',
                 }}
-              />
+              >
+                café · playlist
+              </span>
             </div>
 
-            {/* ─── SPEAKER AREA WITH FLANKING KNOBS ─── */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 4 : 6, marginBottom: isMobile ? 6 : 8 }}>
-              {/* LEFT BIG KNOB — POWER */}
+            {/* Tuning knob | speaker (track title on grille) | volume */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 6 : 8, marginBottom: isMobile ? 8 : 10 }}>
               <div
-                onClick={togglePower}
-                title={isOn ? 'Turn OFF' : 'Turn ON'}
+                ref={tuningKnobRef}
+                onMouseDown={handleTuningKnobDown}
+                onTouchStart={handleTuningKnobDown}
+                title="Tuning — tournez pour changer de piste"
                 style={{
                   width: bigKnobSize,
                   height: bigKnobSize,
                   minWidth: bigKnobSize,
                   borderRadius: '50%',
-                  background: brassGradient,
-                  boxShadow: brassShadow,
-                  cursor: 'pointer',
+                  cursor: 'grab',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   position: 'relative',
-                  transition: 'transform 0.3s ease',
-                  transform: `rotate(${isOn ? 90 : 0}deg)`,
+                  transform: `rotate(${tuningAngle}deg)`,
+                  ...goldKnobFace,
                 }}
               >
-                {/* Knob indicator line */}
                 <div
                   style={{
                     position: 'absolute',
-                    top: 4,
-                    left: '50%',
-                    transform: 'translateX(-50%)',
-                    width: 2,
-                    height: 10,
-                    background: '#5c3018',
-                    borderRadius: 2,
+                    inset: 0,
+                    borderRadius: '50%',
+                    background:
+                      'conic-gradient(from 210deg, transparent 0deg, rgba(255,255,255,0.5) 28deg, transparent 58deg, transparent 360deg)',
+                    pointerEvents: 'none',
+                    mixBlendMode: 'soft-light',
+                    opacity: 0.85,
                   }}
                 />
-                {/* Center Ring & LED */}
                 <div
                   style={{
-                    width: bigKnobSize - 8,
-                    height: bigKnobSize - 8,
-                    borderRadius: '50%',
-                    border: '1px solid rgba(0,0,0,0.2)',
-                    boxShadow: 'inset 0 1px 2px rgba(255,255,255,0.2)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
+                    position: 'absolute',
+                    top: 5,
+                    left: '50%',
+                    marginLeft: -1.5,
+                    width: 3,
+                    height: 12,
+                    background: '#1f0f06',
+                    borderRadius: 2,
+                    boxShadow: '0 0 2px rgba(0,0,0,0.6)',
                   }}
-                >
-                  <div
-                    style={{
-                      width: isMobile ? 6 : 8,
-                      height: isMobile ? 6 : 8,
-                      borderRadius: '50%',
-                      background: isOn ? '#4ade80' : '#ef4444',
-                      boxShadow: isOn ? '0 0 8px #4ade80' : 'inset 0 1px 2px rgba(0,0,0,0.6)',
-                      transition: 'all 0.3s',
-                    }}
-                  />
-                </div>
+                />
+                <div
+                  style={{
+                    width: bigKnobSize - 12,
+                    height: bigKnobSize - 12,
+                    borderRadius: '50%',
+                    border: '1px solid rgba(0,0,0,0.4)',
+                    boxShadow: 'inset 0 2px 5px rgba(0,0,0,0.45)',
+                    pointerEvents: 'none',
+                  }}
+                />
               </div>
 
-              {/* SPEAKER GRILLE */}
               <div
                 style={{
-                  ...fabricPattern,
+                  ...marshallGrille,
                   flex: 1,
-                  height: isMobile ? 50 : 70,
+                  minHeight: isMobile ? 72 : 88,
+                  height: isMobile ? 72 : 88,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   position: 'relative',
-                  cursor: 'pointer',
+                  cursor: 'default',
+                  overflow: 'hidden',
                 }}
-                onClick={togglePlay}
-                title={isPlaying ? 'Pause' : 'Play'}
+                role="group"
+                aria-label="Now playing"
               >
-                {/* Decorative horizontal bars on speaker */}
                 {(isMobile ? [0, 1, 2, 3, 4] : [0, 1, 2, 3, 4, 5, 6]).map((i) => (
                   <div
                     key={i}
@@ -604,55 +621,116 @@ export function VintageRadio() {
                       top: (isMobile ? 5 : 8) + i * (isMobile ? 8 : 9),
                       height: 1,
                       background: 'rgba(139,105,20,0.12)',
+                      zIndex: 1,
                     }}
                   />
                 ))}
-                {/* Play/Pause overlay icon (subtle) */}
-                <AnimatePresence>
-                  {!isPlaying && isOn && (
-                    <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 0.15 }}
-                      exit={{ opacity: 0 }}
-                      style={{ fontSize: isMobile ? 18 : 24, color: '#d4af37' }}
-                    >
-                      ▶
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-                {/* Sound wave animation when playing */}
-                {isPlaying && (
-                  <div style={{ display: 'flex', gap: 3, alignItems: 'center' }}>
-                    {(isMobile ? [0, 1, 2, 3] : [0, 1, 2, 3, 4]).map((i) => (
-                      <motion.div
-                        key={i}
-                        animate={{ height: isMobile ? [3, 10 + Math.random() * 8, 3] : [4, 14 + Math.random() * 10, 4] }}
-                        transition={{ duration: 0.6 + i * 0.1, repeat: Infinity, ease: 'easeInOut', delay: i * 0.08 }}
+                {/* Track title readout — inset on the speaker mesh */}
+                <div
+                  style={{
+                    position: 'absolute',
+                    inset: isMobile ? 7 : 10,
+                    borderRadius: 6,
+                    background: 'rgba(0,0,0,0.62)',
+                    border: '1px solid rgba(212,175,55,0.28)',
+                    boxShadow: 'inset 0 2px 12px rgba(0,0,0,0.65), inset 0 1px 0 rgba(255,255,255,0.05)',
+                    zIndex: 4,
+                    display: 'flex',
+                    alignItems: 'center',
+                    padding: isMobile ? '6px 8px' : '8px 10px',
+                    overflow: 'hidden',
+                  }}
+                >
+                  <div
+                    ref={titleContainerRef}
+                    style={{
+                      width: '100%',
+                      overflow: 'hidden',
+                      minHeight: isMobile ? 28 : 32,
+                      display: 'flex',
+                      alignItems: 'center',
+                    }}
+                  >
+                    {isOn && currentTitle ? (
+                      <div
+                        ref={titleRef}
                         style={{
-                          width: 3,
-                          background: 'rgba(212,175,55,0.2)',
-                          borderRadius: 2,
+                          display: 'inline-flex',
+                          whiteSpace: 'nowrap',
+                          animation: needsScroll ? 'radio-scroll-title 14s linear infinite' : 'none',
                         }}
-                      />
-                    ))}
+                      >
+                        <span
+                          style={{
+                            fontFamily: '"Courier New", monospace',
+                            fontSize: isMobile ? 9 : 11,
+                            fontWeight: 700,
+                            color: '#ecfccb',
+                            textShadow:
+                              '0 0 8px rgba(34,197,94,0.85), 0 0 2px rgba(253,224,71,0.45)',
+                            letterSpacing: 0.35,
+                          }}
+                        >
+                          ♪ {currentTitle}
+                        </span>
+                        <span
+                          aria-hidden
+                          style={{
+                            paddingLeft: '2.5rem',
+                            fontFamily: '"Courier New", monospace',
+                            fontSize: isMobile ? 9 : 11,
+                            fontWeight: 700,
+                            color: '#ecfccb',
+                            textShadow:
+                              '0 0 8px rgba(34,197,94,0.85), 0 0 2px rgba(253,224,71,0.45)',
+                            letterSpacing: 0.35,
+                          }}
+                        >
+                          ♪ {currentTitle}
+                        </span>
+                      </div>
+                    ) : isOn ? (
+                      <motion.span
+                        style={{
+                          fontFamily: '"Courier New", monospace',
+                          fontSize: isMobile ? 9 : 10,
+                          fontWeight: 600,
+                          color: 'rgba(212,175,55,0.85)',
+                          letterSpacing: '0.08em',
+                        }}
+                        animate={{ opacity: [0.55, 1, 0.55] }}
+                        transition={{ duration: 1.4, repeat: Infinity }}
+                      >
+                        Loading track…
+                      </motion.span>
+                    ) : (
+                      <span
+                        style={{
+                          fontFamily: '"Courier New", monospace',
+                          fontSize: isMobile ? 9 : 10,
+                          fontWeight: 600,
+                          color: 'rgba(212,175,55,0.4)',
+                          letterSpacing: '0.15em',
+                        }}
+                      >
+                        — off —
+                      </span>
+                    )}
                   </div>
-                )}
+                </div>
               </div>
 
-              {/* RIGHT BIG KNOB — VOLUME */}
               <div
                 ref={volumeKnobRef}
                 onMouseDown={handleVolumeKnobDown}
                 onTouchStart={handleVolumeKnobDown}
                 onWheel={handleVolumeWheel}
-                title={`Volume: ${volume}% — drag or scroll`}
+                title={`Volume: ${volume}% — glisser ou molette`}
                 style={{
                   width: bigKnobSize,
                   height: bigKnobSize,
                   minWidth: bigKnobSize,
                   borderRadius: '50%',
-                  background: brassGradient,
-                  boxShadow: brassShadow,
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
@@ -660,108 +738,181 @@ export function VintageRadio() {
                   position: 'relative',
                   transition: 'transform 0.15s ease',
                   transform: `rotate(${volumeAngle - 135}deg)`,
+                  ...goldKnobFace,
                 }}
               >
                 <div
                   style={{
                     position: 'absolute',
-                    top: 4,
-                    left: '50%',
-                    transform: 'translateX(-50%)',
-                    width: 2,
-                    height: 10,
-                    background: '#5c3018',
-                    borderRadius: 2,
+                    inset: 0,
+                    borderRadius: '50%',
+                    background:
+                      'conic-gradient(from 30deg, transparent 0deg, rgba(255,255,255,0.45) 32deg, transparent 62deg, transparent 360deg)',
+                    pointerEvents: 'none',
+                    mixBlendMode: 'soft-light',
+                    opacity: 0.85,
                   }}
                 />
                 <div
                   style={{
-                    width: bigKnobSize - 8,
-                    height: bigKnobSize - 8,
+                    position: 'absolute',
+                    top: 5,
+                    left: '50%',
+                    marginLeft: -1.5,
+                    width: 3,
+                    height: 12,
+                    background: '#1f0f06',
+                    borderRadius: 2,
+                    boxShadow: '0 0 2px rgba(0,0,0,0.6)',
+                  }}
+                />
+                <div
+                  style={{
+                    width: bigKnobSize - 12,
+                    height: bigKnobSize - 12,
                     borderRadius: '50%',
-                    border: '1px solid rgba(0,0,0,0.2)',
-                    boxShadow: 'inset 0 1px 2px rgba(255,255,255,0.2)',
+                    border: '1px solid rgba(0,0,0,0.4)',
+                    boxShadow: 'inset 0 2px 5px rgba(0,0,0,0.45)',
+                    pointerEvents: 'none',
                   }}
                 />
               </div>
             </div>
 
-            {/* ─── SMALL KNOBS ROW (3 BUTTONS) ─── */}
-            <div style={{ display: 'flex', justifyContent: 'center', gap: isMobile ? 12 : 20, alignItems: 'center' }}>
-              {/* Prev knob */}
-              <motion.div
-                whileHover={{ scale: 1.15, rotate: -20 }}
-                whileTap={{ scale: 0.9 }}
-                onClick={prevTrack}
-                title="Previous track"
-                style={{
-                  width: smallKnobSize,
-                  height: smallKnobSize,
-                  borderRadius: '50%',
-                  background: brassGradient,
-                  boxShadow: brassShadow,
-                  cursor: 'pointer',
-                }}
-              />
-
-              {/* Next knob */}
-              <motion.div
-                whileHover={{ scale: 1.15, rotate: 20 }}
-                whileTap={{ scale: 0.9 }}
-                onClick={nextTrack}
-                title="Next track"
-                style={{
-                  width: smallKnobSize,
-                  height: smallKnobSize,
-                  borderRadius: '50%',
-                  background: brassGradient,
-                  boxShadow: brassShadow,
-                  cursor: 'pointer',
-                }}
-              />
-
-              {/* Waitress knob */}
-              <motion.div
-                whileHover={{ scale: 1.15 }}
-                whileTap={{ scale: 0.9 }}
-                onClick={handleWaitress}
-                title={isWaitressVisible ? 'Dismiss waitress' : 'Call waitress'}
-                style={{
-                  width: smallKnobSize,
-                  height: smallKnobSize,
-                  borderRadius: '50%',
-                  background: isWaitressVisible
-                    ? 'radial-gradient(ellipse at 35% 30%, #f0d875 0%, #c9a84c 50%, #aa8033 100%)'
-                    : brassGradient,
-                  boxShadow: isWaitressVisible
-                    ? '0 2px 4px rgba(0,0,0,0.5), 0 0 8px rgba(212,175,55,0.4), inset 0 1px 1px rgba(255,255,255,0.3)'
-                    : brassShadow,
-                  cursor: 'pointer',
-                }}
-              />
-            </div>
-
-            {/* ─── DECORATIVE BOTTOM TRIM ─── */}
+            {/* Prev | play/pause | next — brushed gold + waitress */}
             <div
               style={{
-                marginTop: isMobile ? 4 : 6,
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                gap: isMobile ? 10 : 14,
+                marginBottom: isMobile ? 6 : 8,
+              }}
+            >
+              <motion.button
+                type="button"
+                whileHover={{ scale: 1.06 }}
+                whileTap={{ scale: 0.94 }}
+                onClick={prevTrack}
+                title="Piste précédente"
+                aria-label="Piste précédente"
+                style={{
+                  width: smallKnobSize,
+                  height: smallKnobSize,
+                  borderRadius: '50%',
+                  ...brushedGoldBtn,
+                  border: '1px solid rgba(0,0,0,0.35)',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#2a1a06',
+                  fontSize: isMobile ? 13 : 15,
+                  lineHeight: 1,
+                  padding: 0,
+                }}
+              >
+                ⏮
+              </motion.button>
+              <motion.button
+                type="button"
+                whileHover={{ scale: 1.06 }}
+                whileTap={{ scale: 0.94 }}
+                onClick={togglePlay}
+                title={!isOn ? 'Allumer et lire' : isPlaying ? 'Pause' : 'Lecture'}
+                aria-label={!isOn ? 'Allumer la radio' : isPlaying ? 'Pause' : 'Lecture'}
+                style={{
+                  width: smallKnobSize + (isMobile ? 4 : 6),
+                  height: smallKnobSize + (isMobile ? 4 : 6),
+                  borderRadius: '50%',
+                  ...brushedGoldBtn,
+                  border: '1px solid rgba(0,0,0,0.35)',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#2a1a06',
+                  fontSize: isMobile ? 15 : 17,
+                  lineHeight: 1,
+                  padding: 0,
+                }}
+              >
+                {!isOn ? '▶' : isPlaying ? '⏸' : '▶'}
+              </motion.button>
+              <motion.button
+                type="button"
+                whileHover={{ scale: 1.06 }}
+                whileTap={{ scale: 0.94 }}
+                onClick={nextTrack}
+                title="Piste suivante"
+                aria-label="Piste suivante"
+                style={{
+                  width: smallKnobSize,
+                  height: smallKnobSize,
+                  borderRadius: '50%',
+                  ...brushedGoldBtn,
+                  border: '1px solid rgba(0,0,0,0.35)',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#2a1a06',
+                  fontSize: isMobile ? 13 : 15,
+                  lineHeight: 1,
+                  padding: 0,
+                }}
+              >
+                ⏭
+              </motion.button>
+              <motion.button
+                type="button"
+                whileHover={{ scale: 1.08 }}
+                whileTap={{ scale: 0.92 }}
+                onClick={handleWaitress}
+                title={isWaitressVisible ? 'Renvoyer la serveuse' : 'Appeler la serveuse'}
+                aria-label={isWaitressVisible ? 'Renvoyer la serveuse' : 'Appeler la serveuse'}
+                style={{
+                  width: smallKnobSize - 6,
+                  height: smallKnobSize - 6,
+                  borderRadius: '50%',
+                  ...brushedGoldBtn,
+                  border: '1px solid rgba(0,0,0,0.35)',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: isMobile ? 12 : 14,
+                  lineHeight: 1,
+                  padding: 0,
+                  boxShadow: isWaitressVisible
+                    ? 'inset 0 1px 2px rgba(255,255,255,0.38), inset 0 -3px 5px rgba(0,0,0,0.5), 0 4px 8px rgba(0,0,0,0.45), 0 0 12px rgba(251,191,36,0.35)'
+                    : 'inset 0 1px 2px rgba(255,255,255,0.38), inset 0 -3px 5px rgba(0,0,0,0.5), 0 4px 8px rgba(0,0,0,0.45)',
+                }}
+              >
+                ☕
+              </motion.button>
+            </div>
+
+            <div
+              style={{
+                marginTop: isMobile ? 2 : 4,
                 height: isMobile ? 2 : 3,
-                background: 'linear-gradient(90deg, transparent, rgba(212,175,55,0.2) 20%, rgba(212,175,55,0.3) 50%, rgba(212,175,55,0.2) 80%, transparent)',
+                background:
+                  'linear-gradient(90deg, transparent, rgba(212,175,55,0.18) 22%, rgba(212,175,55,0.28) 50%, rgba(212,175,55,0.18) 78%, transparent)',
                 borderRadius: 2,
               }}
             />
 
-            {/* ─── FEET ─── */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', padding: isMobile ? '0 14px' : '0 18px', marginTop: 2 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', padding: isMobile ? '0 12px' : '0 16px', marginTop: 4 }}>
               {[0, 1].map((i) => (
                 <div
                   key={i}
                   style={{
-                    width: isMobile ? 10 : 14,
+                    width: isMobile ? 12 : 16,
                     height: isMobile ? 3 : 4,
-                    background: 'linear-gradient(180deg, #5c3018, #3a1a08)',
-                    borderRadius: '0 0 4px 4px',
-                    boxShadow: '0 2px 3px rgba(0,0,0,0.4)',
+                    background: 'linear-gradient(180deg, #4a2810, #1f0c04)',
+                    borderRadius: '0 0 5px 5px',
+                    boxShadow: '0 3px 4px rgba(0,0,0,0.5)',
                   }}
                 />
               ))}
@@ -769,22 +920,21 @@ export function VintageRadio() {
           </div>
         </div>
 
-        {/* ─── LABELS (subtle, beneath radio) ─── */}
         <div
           style={{
             display: 'flex',
             justifyContent: 'space-between',
-            padding: isMobile ? '1px 14px 0' : '2px 20px 0',
+            padding: isMobile ? '3px 16px 0' : '4px 20px 0',
             fontFamily: '"Courier New", serif',
             fontSize: isMobile ? 6 : 7,
-            color: 'rgba(212,175,55,0.25)',
+            color: 'rgba(212,175,55,0.42)',
             letterSpacing: 1,
             textTransform: 'uppercase',
             userSelect: 'none',
           }}
         >
-          <span>Pwr</span>
-          <span>Vol {volume}%</span>
+          <span title="Tuning">Tune</span>
+          <span title="Volume">Vol {volume}%</span>
         </div>
       </motion.div>
     </>

@@ -13,6 +13,8 @@ interface ToastMessage {
 interface UIStore {
   screen: Screen;
   showAmbiance: boolean;
+  /** 0–1; multiplied with all SFX (cards, café props, etc.). Radio is separate. */
+  soundEffectsVolume: number;
   soundEffectsMuted: boolean;
   toasts: ToastMessage[];
   waitressStatus: WaitressStatus;
@@ -20,6 +22,7 @@ interface UIStore {
   isSubmitting: boolean;
   setScreen: (screen: Screen) => void;
   toggleAmbiance: () => void;
+  setSoundEffectsVolume: (volume: number) => void;
   toggleSoundEffects: () => void;
   addToast: (message: string, type?: ToastType) => void;
   removeToast: (id: string) => void;
@@ -47,6 +50,7 @@ const getInitialScreen = (): Screen => {
 export const useUIStore = create<UIStore>((set) => ({
   screen: getInitialScreen(),
   showAmbiance: true,
+  soundEffectsVolume: 1,
   soundEffectsMuted: false,
   toasts: [],
   waitressStatus: 'idle',
@@ -55,6 +59,10 @@ export const useUIStore = create<UIStore>((set) => ({
 
   setScreen: (screen) => set({ screen }),
   toggleAmbiance: () => set((state) => ({ showAmbiance: !state.showAmbiance })),
+  setSoundEffectsVolume: (volume) =>
+    set({
+      soundEffectsVolume: Math.max(0, Math.min(1, volume)),
+    }),
   toggleSoundEffects: () => set((state) => ({ soundEffectsMuted: !state.soundEffectsMuted })),
 
   addToast: (message, type = 'info') => {

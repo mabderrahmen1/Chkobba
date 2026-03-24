@@ -3,17 +3,42 @@ import { socket } from '../../lib/socket';
 import { Card } from './Card';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAmbianceSound } from '../../hooks/useAmbianceSound';
+import { useRef, useEffect } from 'react';
+import gsap from 'gsap';
 
 export function PlayerHand() {
   const { gameState, playerId, selectedCardIndex, setSelectedCard, selectedTableIndices, clearSelections, isDistributing } = useGameStore();
-  const { playCardPlace } = useAmbianceSound();
+  const { playCardPlace, playCardHover } = useAmbianceSound();
+  const handFlightRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const wasDistributing = useRef(isDistributing);
+
+  useEffect(() => {
+    const len = gameState?.hand?.length ?? 0;
+    if (wasDistributing.current && !isDistributing && len > 0) {
+      requestAnimationFrame(() => {
+        const nodes = (gameState?.hand ?? [])
+          .map((_, i) => handFlightRefs.current[i])
+          .filter(Boolean) as HTMLDivElement[];
+        if (nodes.length) {
+          gsap.from(nodes, {
+            y: -300,
+            opacity: 0,
+            scale: 0.5,
+            duration: 0.45,
+            stagger: 0.1,
+            ease: 'power2.out',
+          });
+        }
+      });
+    }
+    wasDistributing.current = isDistributing;
+  }, [isDistributing, gameState?.hand, gameState?.hand?.length]);
 
   if (!gameState?.hand || !gameState?.tableCards || !playerId) return null;
 
   const isMyTurn = gameState.currentTurn === playerId;
   const canConfirm = isMyTurn && selectedCardIndex !== null && !isDistributing;
 
-  // Capture sum logic
   const selectedHandCard = selectedCardIndex !== null ? gameState.hand[selectedCardIndex] : null;
   const selectedTableCards = selectedTableIndices
     .filter(i => i >= 0 && i < gameState.tableCards.length)
@@ -28,6 +53,7 @@ export function PlayerHand() {
     if (selectedCardIndex === index) {
       setSelectedCard(null);
     } else {
+      playCardHover();
       setSelectedCard(index);
     }
   };
@@ -39,16 +65,61 @@ export function PlayerHand() {
       playCardPlace();
     }
 
-    socket.emit('play_card', {
-      cardIndex: selectedCardIndex,
-      tableIndices: selectedTableIndices
-    });
-    clearSelections();
+    const idx = selectedCardIndex;
+    const tableIdx = [...selectedTableIndices];
+    const el = handFlightRefs.current[idx];
+
+    const emit = () => {
+      socket.emit('play_card', {
+        cardIndex: idx,
+        tableIndices: tableIdx,
+      });
+      clearSelections();
+    };
+
+    if (!el) {
+      emit();
+      return;
+    }
+
+    const felt = document.querySelector('[data-table-felt-center]');
+    const rect = el.getBoundingClientRect();
+    let tx = 0;
+    let ty = -220;
+    if (felt) {
+      const fr = felt.getBoundingClientRect();
+      tx = fr.left + fr.width / 2 - rect.left - rect.width / 2;
+      ty = fr.top + fr.height / 2 - rect.top - rect.height / 2;
+    }
+
+    const isDrop = tableIdx.length === 0;
+    const flightRot = isDrop ? (Math.random() - 0.5) * 10 : (Math.random() - 0.5) * 4;
+
+    gsap.timeline({
+      onComplete: () => {
+        gsap.set(el, { clearProps: 'transform' });
+        emit();
+      },
+    })
+      .to(el, {
+        x: tx,
+        y: ty,
+        scale: isDrop ? 1.08 : 1.06,
+        rotation: flightRot,
+        duration: 0.52,
+        ease: 'power3.inOut',
+      })
+      .to(el, { y: '+=14', duration: 0.11, ease: 'power2.out' })
+      .to(el, {
+        y: '-=7',
+        scale: isDrop ? 1.04 : 1.02,
+        duration: 0.16,
+        ease: 'bounce.out',
+      });
   };
 
   const handSize = gameState.hand.length;
 
-  // Mathematical radial fan calculation
   const getArcStyles = (index: number, total: number) => {
     if (total === 1) return { rotate: 0, y: 0 };
 
@@ -63,21 +134,18 @@ export function PlayerHand() {
     return { rotate: angleDeg, y: yOffset };
   };
 
-  // Contextual button label
   const getButtonLabel = () => {
     if (isDrop) return 'Drop';
     if (selectedTableIndices.length > 0) {
-      return isValidCapture ? `Capture ${selectedTableIndices.length}` : 'Invalid';
+      return isValidCapture ? 'Capture' : 'Invalid';
     }
     return 'Play';
   };
 
-  // Button should be disabled for invalid captures
   const canPlay = canConfirm && (isDrop || isValidCapture);
 
   return (
     <div className="flex flex-col items-center gap-2 sm:gap-4 w-full relative mt-2 sm:mt-4">
-      {/* Turn glow behind cards */}
       <AnimatePresence>
         {isMyTurn && (
           <motion.div
@@ -93,94 +161,50 @@ export function PlayerHand() {
         )}
       </AnimatePresence>
 
-      {/* Hand Cards */}
-      <div className={`flex justify-center -space-x-6 sm:-space-x-4 relative min-h-[120px] sm:min-h-[160px] md:min-h-[180px] items-end pb-2 sm:pb-4 transition-opacity duration-300 ${
-        isMyTurn ? 'opacity-100' : 'opacity-60'
-      }`}>
-        <AnimatePresence mode="popLayout">
-          {!isDistributing && gameState.hand.map((card, index) => {
+      <div
+        className={`flex justify-center -space-x-6 sm:-space-x-4 relative min-h-[clamp(88px,16vh,180px)] sm:min-h-[140px] md:min-h-[180px] items-end pb-2 sm:pb-4 transition-opacity duration-300 ${
+          isMyTurn ? 'opacity-100' : 'opacity-60'
+        }`}
+      >
+        {!isDistributing &&
+          gameState.hand.map((card, index) => {
             const isSelected = selectedCardIndex === index;
             const arc = getArcStyles(index, handSize);
 
             return (
-              <motion.div
-                key={`${card.rank}-${card.suit}`}
-                layout
-                initial={{ opacity: 0, y: -300, x: 0, scale: 0.5, rotate: 0 }}
-                animate={{
-                  opacity: 1,
-                  rotate: isSelected ? 0 : arc.rotate,
-                  y: isSelected ? -24 : arc.y,
-                  x: 0,
-                  scale: isSelected ? 1.08 : 1,
-                  zIndex: isSelected ? 10 : index
+              <div
+                key={`${card.rank}-${card.suit}-${index}`}
+                className="relative"
+                style={{
+                  transform: `rotate(${arc.rotate}deg) translateY(${arc.y}px)`,
+                  transformOrigin: 'bottom center',
+                  zIndex: isSelected ? 10 : index,
                 }}
-                exit={{
-                  opacity: 0,
-                  y: -50,
-                  scale: 0.8,
-                  transition: { duration: 0.2 },
-                }}
-                whileHover={isMyTurn && !isSelected ? { y: arc.y - 15, scale: 1.03 } : undefined}
-                transition={{
-                  type: 'spring',
-                  stiffness: 300,
-                  damping: 25,
-                  opacity: { duration: 0.2, delay: index * 0.1 },
-                  y: { type: 'spring', stiffness: 300, damping: 25, delay: index * 0.1 },
-                  rotate: { type: 'spring', stiffness: 300, damping: 25, delay: index * 0.1 },
-                  scale: { type: 'spring', stiffness: 300, damping: 25, delay: index * 0.1 }
-                }}
-                className={`relative ${isMyTurn ? 'cursor-pointer' : 'cursor-default'}`}
-                onClick={() => handleCardClick(index)}
-                style={{ transformOrigin: 'bottom center' }}
               >
-                <Card
-                  card={card}
-                  selectable={isMyTurn}
-                  selected={isSelected}
-                />
-                {isSelected && (
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="absolute inset-0 rounded-lg border-2 border-green-400/70 shadow-glow-green pointer-events-none"
-                  />
-                )}
-              </motion.div>
+                <div
+                  ref={(el) => {
+                    handFlightRefs.current[index] = el;
+                  }}
+                  className={`relative ${isMyTurn ? 'cursor-pointer' : 'cursor-default'}`}
+                  onClick={() => handleCardClick(index)}
+                  style={{ transformOrigin: 'bottom center' }}
+                >
+                  <Card card={card} selectable={isMyTurn} selected={isSelected} />
+                </div>
+              </div>
             );
           })}
-        </AnimatePresence>
       </div>
 
-      {/* Capture sum indicator */}
-      <AnimatePresence>
-        {selectedCardIndex !== null && selectedTableIndices.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.9 }}
-            className={`absolute right-0 sm:-right-8 bottom-[72px] px-3 py-1.5 rounded-lg text-[10px] sm:text-xs font-mono font-bold backdrop-blur-sm ${
-              isValidCapture
-                ? 'bg-emerald-900/80 text-emerald-300 border border-emerald-500/40'
-                : 'bg-red-900/80 text-red-300 border border-red-500/40'
-            }`}
-          >
-            {handCardValue} {isValidCapture ? '=' : '\u2260'} {tableSum}
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Confirm Play Button */}
       <motion.button
         initial={{ opacity: 0, y: 20 }}
         animate={{
           opacity: isMyTurn ? 1 : 0,
           y: isMyTurn ? 0 : 20,
-          scale: canPlay ? [1, 1.04, 1] : 1
+          scale: canPlay ? [1, 1.04, 1] : 1,
         }}
         transition={{
-          scale: { repeat: canPlay ? Infinity : 0, duration: 2, ease: "easeInOut" }
+          scale: { repeat: canPlay ? Infinity : 0, duration: 2, ease: 'easeInOut' },
         }}
         onClick={handleConfirmPlay}
         disabled={!canPlay}
