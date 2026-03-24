@@ -95,6 +95,10 @@ export function LandingScreen() {
           <h1 className="text-5xl sm:text-7xl md:text-8xl font-black text-metallic-gold tracking-tighter mb-2">
             CHKOBBA
           </h1>
+          <p className="text-cream/80 text-xs sm:text-sm font-ancient text-center max-w-md mx-auto leading-snug mb-3 px-2">
+            Chkobba en ligne — jeu de cartes <span className="text-brass/90">tunisien</span> gratuit · multijoueur ·
+            chkobba game dans le navigateur (chkobba app web)
+          </p>
           <div className="flex items-center justify-center gap-4">
             <div className="h-[1px] w-12 bg-gradient-to-r from-transparent to-brass/50" />
             <p className="text-brass font-ancient text-[10px] sm:text-sm tracking-[0.35em] sm:tracking-[0.4em] font-bold uppercase">
@@ -186,6 +190,16 @@ export function LandingScreen() {
         >
           Mediterranean Card Games • Est. 2024
         </motion.p>
+
+        <footer className="mt-10 pb-6 px-4 max-w-lg mx-auto text-center text-cream/40 text-[11px] sm:text-xs leading-relaxed font-ancient">
+          <h2 className="sr-only">Chkobba jeu et chkobba tunisienne en ligne</h2>
+          <p>
+            <strong className="text-cream/55">Chkobba jeu</strong> multijoueur : jouez à la{' '}
+            <strong className="text-cream/55">chkobba tunisienne</strong> avec des règles fidèles au jeu de cartes
+            tunisien. Gratuit, sans téléchargement — le meilleur endroit pour le{' '}
+            <strong className="text-cream/55">chkobba en ligne</strong>.
+          </p>
+        </footer>
       </div>
 
       <Modal

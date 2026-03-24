@@ -7,3 +7,6 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
+      # Baked into Vite client build (GA4)
+      - key: VITE_GA_MEASUREMENT_ID
+        value: G-BJCKN12FND

@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useSocket } from './hooks/useSocket';
 import { useUIStore } from './stores/useUIStore';
 import { ChatPanel } from './components/layout/ChatPanel';
@@ -8,10 +9,15 @@ import { JoinRoomScreen } from './components/screens/JoinRoomScreen';
 import { LobbyScreen } from './components/screens/LobbyScreen';
 import { GameScreen } from './components/screens/GameScreen';
 import { motion, AnimatePresence } from 'framer-motion';
+import { trackPageView } from './lib/analytics';
 
 export default function App() {
   useSocket();
   const screen = useUIStore((s) => s.screen);
+
+  useEffect(() => {
+    trackPageView(screen);
+  }, [screen]);
 
   return (
     <div className="h-[100dvh] max-h-[100dvh] min-h-0 w-full relative overflow-hidden bg-black">
